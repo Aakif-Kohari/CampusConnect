@@ -83,40 +83,43 @@ jobs:
                 }
               };
               
-              if (mergeable === false) {
+              if (mergeable === false || mergeableState === "dirty") {
                 console.log("Merge conflicts detected.");
                 await removeLabel("Blue");
                 await addLabel("Red");
-              } else if (mergeable === true) {
-                console.log("No merge conflicts. Proceeding with auto-merge.");
-                await removeLabel("Red");
-                await addLabel("Blue");
-                
-                try {
-                  console.log(`Auto-merging PR #${prNumber} into main...`);
-                  await github.rest.pulls.merge({
-                    owner,
-                    repo,
-                    pull_number: prNumber,
-                    merge_method: 'squash'
-                  });
-                  console.log(`✅ Successfully merged PR #${prNumber}`);
-                } catch (e) {
-                  console.error(`❌ Failed to auto-merge PR #${prNumber}:`, e.message);
-                  
-                  // If it fails to merge because it's behind, try updating the branch
-                  if (e.message.includes("out of date") || mergeableState === "behind") {
-                    console.log("🔄 Attempting to update branch...");
-                    try {
-                      await github.rest.pulls.updateBranch({ owner, repo, pull_number: prNumber });
-                      console.log(`✅ PR #${prNumber} branch successfully updated. It will re-trigger the workflow.`);
-                    } catch (updateError) {
-                      console.error(`❌ Failed to update branch: ${updateError.message}`);
-                    }
-                  }
-                }
               } else {
-                console.log("Failed to determine mergeable status (still null).");
+                console.log(`PR mergeable state is: ${mergeableState}`);
+                await removeLabel("Red");
+                
+                if (mergeableState === "clean") {
+                  console.log("No merge conflicts and requirements met. Proceeding with auto-merge.");
+                  await addLabel("Blue");
+                  
+                  try {
+                    console.log(`Auto-merging PR #${prNumber} into main...`);
+                    await github.rest.pulls.merge({
+                      owner,
+                      repo,
+                      pull_number: prNumber,
+                      merge_method: 'squash'
+                    });
+                    console.log(`✅ Successfully merged PR #${prNumber}`);
+                  } catch (e) {
+                    console.error(`❌ Failed to auto-merge PR #${prNumber}:`, e.message);
+                  }
+                } else if (mergeableState === "behind") {
+                  await removeLabel("Blue");
+                  console.log("🔄 PR is behind base branch, attempting to update branch...");
+                  try {
+                    await github.rest.pulls.updateBranch({ owner, repo, pull_number: prNumber });
+                    console.log(`✅ PR #${prNumber} branch successfully updated. It will re-trigger the workflow.`);
+                  } catch (updateError) {
+                    console.error(`❌ Failed to update branch: ${updateError.message}`);
+                  }
+                } else {
+                  console.log(`PR is not ready to merge yet (state: ${mergeableState}). Waiting for checks/approvals.`);
+                  await removeLabel("Blue");
+                }
               }
             }
 
