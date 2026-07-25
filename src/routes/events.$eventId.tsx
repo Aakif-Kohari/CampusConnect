@@ -199,6 +199,148 @@ export default function EventDetailsPage() {
     supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
   }, [supabase]);
 
+  // Gallery States and Queries
+  interface UploadingFile {
+    id: string;
+    name: string;
+    objectUrl: string;
+    progress: number;
+    status: "uploading" | "success" | "error";
+    errorMsg?: string;
+  }
+
+  const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+
+  const { data: galleryPhotos = [], refetch: refetchGallery } = useQuery<string[]>({
+    queryKey: ["eventGallery", eventId],
+    queryFn: async () => {
+      if (eventId.startsWith("mock-")) return [];
+      const { data, error } = await supabase.storage.from("event-gallery").list(eventId);
+      if (error) {
+        console.error("Failed to list gallery files", error);
+        return [];
+      }
+      if (!data) return [];
+
+      return data
+        .filter((file) => file.name !== ".emptyFolderPlaceholder")
+        .map((file) => {
+          return supabase.storage.from("event-gallery").getPublicUrl(`${eventId}/${file.name}`).data
+            .publicUrl;
+        });
+    },
+    enabled: !!eventId,
+  });
+
+  useEffect(() => {
+    if (!lightboxSrc) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setLightboxSrc(null);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [lightboxSrc]);
+
+  useEffect(() => {
+    return () => {
+      uploadingFiles.forEach((file) => URL.revokeObjectURL(file.objectUrl));
+    };
+  }, [uploadingFiles]);
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    if (files.length > 10) {
+      toast.error("You can upload a maximum of 10 photos at once.");
+      return;
+    }
+
+    const newUploads: UploadingFile[] = Array.from(files).map((file) => ({
+      id: crypto.randomUUID(),
+      name: file.name,
+      objectUrl: URL.createObjectURL(file),
+      progress: 0,
+      status: "uploading",
+    }));
+
+    setUploadingFiles((prev) => [...prev, ...newUploads]);
+
+    const uploadPromises = Array.from(files).map((file, index) => {
+      const uploadItem = newUploads[index];
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${crypto.randomUUID()}.${fileExt}`;
+      const filePath = `${eventId}/${fileName}`;
+
+      return new Promise<void>((resolve) => {
+        const progressInterval = setInterval(() => {
+          setUploadingFiles((prev) =>
+            prev.map((item) => {
+              if (item.id === uploadItem.id && item.status === "uploading" && item.progress < 90) {
+                return { ...item, progress: item.progress + 10 };
+              }
+              return item;
+            }),
+          );
+        }, 200);
+
+        supabase.storage
+          .from("event-gallery")
+          .upload(filePath, file, {
+            cacheControl: "3600",
+            upsert: false,
+          })
+          .then(({ error }) => {
+            clearInterval(progressInterval);
+            if (error) {
+              setUploadingFiles((prev) =>
+                prev.map((item) =>
+                  item.id === uploadItem.id
+                    ? { ...item, status: "error", progress: 0, errorMsg: error.message }
+                    : item,
+                ),
+              );
+              toast.error(`Failed to upload ${file.name}: ${error.message}`);
+            } else {
+              setUploadingFiles((prev) =>
+                prev.map((item) =>
+                  item.id === uploadItem.id ? { ...item, status: "success", progress: 100 } : item,
+                ),
+              );
+            }
+          })
+          .catch((err: unknown) => {
+            clearInterval(progressInterval);
+            const errMsg = err instanceof Error ? err.message : "Unknown error";
+            setUploadingFiles((prev) =>
+              prev.map((item) =>
+                item.id === uploadItem.id
+                  ? { ...item, status: "error", progress: 0, errorMsg: errMsg }
+                  : item,
+              ),
+            );
+            toast.error(`Error uploading ${file.name}`);
+          })
+          .finally(() => {
+            resolve();
+          });
+      });
+    });
+
+    await Promise.all(uploadPromises);
+
+    refetchGallery();
+    setTimeout(() => {
+      setUploadingFiles((prev) => prev.filter((item) => item.status !== "success"));
+    }, 2000);
+  };
+
   const {
     data: event,
     isLoading,
@@ -1002,18 +1144,115 @@ export default function EventDetailsPage() {
               </div>
             )}
 
-          {/* Attendee Photo Gallery (Only for past events) */}
-          {event.end_date && new Date(event.end_date).getTime() < Date.now() && (
-            <div className="mt-10 pt-10 border-t-2 border-black border-dashed">
-              <EventPhotoGallery eventId={event.id} user={user} />
+          {/* Event Gallery */}
+          <div className="mt-8 border-t-2 border-black pt-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+              <div>
+                <h2 className="font-display text-xl font-bold uppercase tracking-tight text-blue-900">
+                  Event Gallery
+                </h2>
+                <p className="font-mono text-xs text-black/60 mt-1">
+                  Photos shared from this event
+                </p>
+              </div>
+              {isOrganizer && (
+                <div>
+                  <input
+                    type="file"
+                    id="bulk-gallery-upload"
+                    multiple
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    className="hidden"
+                  />
+                  <Button
+                    onClick={() => document.getElementById("bulk-gallery-upload")?.click()}
+                    variant="outline"
+                    className="neu-border neu-press h-12 bg-lime text-black px-5 font-mono text-sm font-bold uppercase tracking-wider transition-all duration-300 hover:scale-105 active:scale-95"
+                  >
+                    📸 Upload Photos
+                  </Button>
+                </div>
+              )}
             </div>
-          )}
 
-          {/* Similar Events Recommendation Block */}
-          <SimilarEvents
-            currentEventId={event.id}
-            categoryId={(event as Record<string, unknown>).category_id as string | undefined}
-          />
+            {/* Optimistic UI & Progress for Uploading Files */}
+            {uploadingFiles.length > 0 && (
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 mb-6">
+                {uploadingFiles.map((file) => (
+                  <div
+                    key={file.id}
+                    className="relative neu-border bg-white p-2 flex flex-col justify-between"
+                  >
+                    <div className="aspect-square w-full overflow-hidden bg-cream relative">
+                      <img
+                        src={file.objectUrl}
+                        alt="Uploading..."
+                        className="h-full w-full object-cover opacity-60"
+                      />
+                      {file.status === "uploading" && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/45 p-2">
+                          <span className="font-mono text-xs font-bold text-white mb-2">
+                            {file.progress}%
+                          </span>
+                          <div className="w-full bg-white/30 h-2 rounded-full overflow-hidden">
+                            <div
+                              className="bg-lime h-full transition-all duration-200"
+                              style={{ width: `${file.progress}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                      {file.status === "success" && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-lime/80 text-black font-display font-black text-sm uppercase">
+                          Uploaded ✓
+                        </div>
+                      )}
+                      {file.status === "error" && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-red-500/90 text-white p-2">
+                          <span className="font-display font-black text-xs uppercase text-center">
+                            Failed
+                          </span>
+                          <span className="font-mono text-[9px] text-center mt-1 truncate w-full">
+                            {file.errorMsg}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <p className="font-mono text-[10px] text-black/70 truncate mt-2">{file.name}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Gallery Images List */}
+            {galleryPhotos.length === 0 && uploadingFiles.length === 0 ? (
+              <div className="neu-border bg-cream p-8 text-center font-mono text-sm text-black/50 italic">
+                No photos uploaded yet for this event.
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+                {galleryPhotos.map((url, idx) => (
+                  <div
+                    key={url}
+                    className="neu-border bg-white p-2 hover:scale-[1.02] transition-transform duration-300 group cursor-zoom-in"
+                    onClick={() => {
+                      setLightboxSrc(url);
+                    }}
+                  >
+                    <div className="aspect-square w-full overflow-hidden bg-cream">
+                      <img
+                        src={url}
+                        alt={`Event gallery photo ${idx + 1}`}
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* Social Share */}
           <div className="mt-10 border-t-2 border-black pt-6">
@@ -1086,6 +1325,19 @@ export default function EventDetailsPage() {
         targetType="event"
         targetId={event.id}
       />
+
+      {lightboxSrc && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 cursor-zoom-out"
+          onClick={() => setLightboxSrc(null)}
+        >
+          <img
+            src={lightboxSrc}
+            alt="Enlarged gallery photo"
+            className="max-h-full max-w-full object-contain neu-border border-white"
+          />
+        </div>
+      )}
     </SiteShell>
   );
 }

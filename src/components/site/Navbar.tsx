@@ -133,6 +133,7 @@ export function Navbar() {
               <Link
                 key={link.to}
                 to={link.to}
+                id={`nav-link-${link.label.toLowerCase()}`}
                 className={`font-mono text-sm font-bold uppercase hover:underline ${
                   isActive ? "underline underline-offset-4 decoration-2" : ""
                 }`}
@@ -155,10 +156,13 @@ export function Navbar() {
 
             {user && <NavbarNotificationDropdown />}
             {user ? (
-              <UserDropdown user={user} onSignOut={handleSignOut} />
+              <div id="nav-profile-trigger">
+                <UserDropdown user={user} onSignOut={handleSignOut} />
+              </div>
             ) : (
               <Link
                 to="/auth"
+                id="nav-signin-button"
                 className="neu-border neu-press bg-black px-3 py-1.5 font-mono text-xs font-bold uppercase text-cream hover:bg-cream hover:text-black dark:bg-cream dark:text-black dark:hover:bg-black dark:hover:text-cream"
                 style={{ letterSpacing: "0.08em" }}
               >
