@@ -1,4 +1,4 @@
-name: "01 Claim"
+name: "01"
 
 on:
   issue_comment:

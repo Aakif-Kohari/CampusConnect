@@ -1,4 +1,4 @@
-name: "02 Unclaim"
+name: "02"
 
 on:
   issue_comment:

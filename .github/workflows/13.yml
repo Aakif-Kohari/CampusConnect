@@ -1,4 +1,4 @@
-name: Edge Function Tests
+name: "13"
 
 on:
   push:

@@ -1,4 +1,4 @@
-name: "07 Issue Comment Guidance"
+name: "04"
 
 on:
   issue_comment:

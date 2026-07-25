@@ -1,4 +1,4 @@
-name: Sync Issue Labels and Assignees to PR
+name: "15"
 
 on:
   pull_request_target:

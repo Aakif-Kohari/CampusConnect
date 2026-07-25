@@ -1,4 +1,4 @@
-name: "13 PR Size Labeler"
+name: "11"
 
 on:
   pull_request:
