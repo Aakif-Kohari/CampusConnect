@@ -1,4 +1,5 @@
 import { Suspense, lazy } from "react";
+// @ts-expect-error - framer-motion types may not be resolved in all editor settings
 import { AnimatePresence } from "framer-motion";
 import {
   createBrowserRouter,
@@ -13,6 +14,7 @@ import {
 import Layout from "./components/Layout";
 import { ErrorBoundary, RouteErrorBoundary } from "./components/ErrorBoundary";
 import { PageWrapper } from "./components/PageWrapper";
+import { QueryClientProvider, queryClient } from "@/hooks/useReactQueryReplacement";
 
 // Pages
 import Index from "./routes/index";
@@ -20,6 +22,7 @@ import Auth from "./routes/auth";
 import Certificates from "./routes/certificates";
 import ClubsIndex from "./routes/clubs.index";
 import ClubDetails from "./routes/clubs.$slug";
+import ClubManageRoute from "./routes/clubs.$slug.manage";
 import ClubsLayout from "./routes/clubs";
 import Dashboard from "./routes/dashboard";
 import DashboardOverview from "./routes/dashboard.index";
@@ -27,11 +30,15 @@ import DashboardRsvps from "./routes/dashboard.rsvps";
 import DashboardBookmarks from "./routes/dashboard.bookmarks";
 import DashboardCalendar from "./routes/dashboard.calendar";
 import Feed from "./routes/feed";
+import EventsMapPage from "./routes/events.map";
 import ForgotPassword from "./routes/forgot-password";
 import ResetPassword from "./routes/reset-password";
 import Settings from "./routes/settings";
 import VerifyEmail from "./routes/verify-email";
 import PendingClubsAdmin from "./routes/admin.clubs.pending";
+import AdminReportsPage from "./routes/admin.reports";
+import ChallengeArena from "./routes/challenge";
+import { NotFoundPage } from "./components/NotFoundPage";
 
 // ---------------------------------------------------------------------------
 // Micro-frontend: Events remote (loaded dynamically from Module Federation)
@@ -120,6 +127,7 @@ const router = createBrowserRouter(
         <Route path="/clubs" element={<ClubsLayout />}>
           <Route index element={<ClubsIndex />} />
           <Route path=":slug" element={<ClubDetails />} />
+          <Route path=":slug/manage" element={<ClubManageRoute />} />
         </Route>
 
         <Route path="/dashboard" element={<Dashboard />}>
@@ -146,6 +154,9 @@ const router = createBrowserRouter(
             </Suspense>
           }
         />
+        {/* Events Map View with clustering */}
+        <Route path="/events/map" element={<EventsMapPage />} />
+        <Route path="/challenge" element={<ChallengeArena />} />
 
         <Route path="/feed" element={<Feed />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -153,6 +164,8 @@ const router = createBrowserRouter(
         <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/admin/clubs/pending" element={<PendingClubsAdmin />} />
+        <Route path="/admin/reports" element={<AdminReportsPage />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Route>,
   ),
@@ -160,8 +173,10 @@ const router = createBrowserRouter(
 
 export default function App() {
   return (
-    <ErrorBoundary>
-      <RouterProvider router={router} />
-    </ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <ErrorBoundary>
+        <RouterProvider router={router} />
+      </ErrorBoundary>
+    </QueryClientProvider>
   );
 }

@@ -1,4 +1,5 @@
 import { Link, useParams } from "react-router-dom";
+// @ts-expect-error - react-helmet-async types may not be resolved in all editor settings
 import { Helmet } from "react-helmet-async";
 import { RoleBadge } from "@/components/RoleBadge";
 import { SiteShell } from "@/components/site/SiteShell";
@@ -9,7 +10,8 @@ import { User } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArrowLeft, Github, Loader2, CheckCircle } from "lucide-react";
+import { ArrowLeft, Github, Loader2, CheckCircle, Flag } from "lucide-react";
+import { ReportDialog } from "@/components/ReportDialog";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -29,6 +31,33 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+
+interface ClubMemberProfile {
+  full_name: string;
+  avatar_url: string | null;
+  handle: string;
+}
+
+interface ClubMember {
+  id: string;
+  role: string;
+  status: string;
+  user_id: string;
+  profiles: ClubMemberProfile | ClubMemberProfile[];
+}
+
+interface ClubEvent {
+  id: string;
+  title: string;
+  event_date: string | null;
+}
+
+interface MemberItem {
+  name: string;
+  handle: string;
+  role: "admin" | "member" | "organizer" | "alumni";
+  avatarUrl: string | null;
+}
 
 // Small building block for the skeleton below. Deliberately a plain div
 // (not the shared ui/skeleton component) to keep this change self-contained.
@@ -110,6 +139,7 @@ export default function ClubProfile() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false);
   const [joinSuccess, setJoinSuccess] = useState(false);
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
@@ -126,7 +156,7 @@ export default function ClubProfile() {
         .from("clubs")
         .select(
           `
-          id, name, slug, description, github_repo_url, visibility,
+          id, name, slug, description, github_repo_url, visibility, promo_video_url,
           club_members (id, role, status, user_id, profiles (full_name, avatar_url, handle)),
           events (id, title, event_date)
         `,
@@ -191,9 +221,9 @@ export default function ClubProfile() {
     );
 
   const members = Array.isArray(club.club_members)
-    ? club.club_members.filter((m) => m.status === "approved")
+    ? club.club_members.filter((m: ClubMember) => m.status === "approved")
     : [];
-  const memberList = members.map((m) => {
+  const memberList = members.map((m: ClubMember) => {
     const profile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles;
     return {
       name: profile?.full_name || "Unknown User",
@@ -203,7 +233,7 @@ export default function ClubProfile() {
     };
   });
 
-  const filteredMembers = memberList.filter((m) => {
+  const filteredMembers = memberList.filter((m: MemberItem) => {
     const query = searchQuery.toLowerCase();
     return m.name.toLowerCase().includes(query) || m.handle.toLowerCase().includes(query);
   });
@@ -213,7 +243,7 @@ export default function ClubProfile() {
   const events = Array.isArray(club.events) ? club.events : [];
   const membership =
     user && Array.isArray(club.club_members)
-      ? club.club_members.find((m) => m.user_id === user.id)
+      ? club.club_members.find((m: ClubMember) => m.user_id === user.id)
       : null;
 
   const clubName = club.name || "Club";
@@ -291,9 +321,25 @@ export default function ClubProfile() {
                 </Link>
               )}
             </div>
-            <div className="markdown-content mt-4 max-w-2xl font-mono text-sm md:text-base leading-relaxed">
+            <div className="markdown-content mt-4 max-w-2xl font-mono text-sm md:text-base leading-relaxed border-b-2 border-black pb-6">
               <ReactMarkdown>{club.description || ""}</ReactMarkdown>
             </div>
+
+            {club.promo_video_url && (
+              <div className="mt-8 max-w-2xl">
+                <h3 className="font-display text-xl font-bold text-indigo-900 uppercase tracking-tight">
+                  Featured Club Promo
+                </h3>
+                <div className="neu-border bg-black aspect-video mt-4 overflow-hidden">
+                  <video
+                    src={club.promo_video_url}
+                    controls
+                    className="w-full h-full object-cover"
+                    preload="metadata"
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Members section below the description */}
             <div className="mt-8 max-w-2xl">
@@ -320,7 +366,7 @@ export default function ClubProfile() {
                   ) : (
                     <>
                       <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        {displayedMembers.map((m, i) => (
+                        {displayedMembers.map((m: MemberItem, i: number) => (
                           <li
                             key={m.handle || `${m.name}-${i}`}
                             className="neu-border bg-white flex items-center gap-3 p-3 font-mono text-sm"
@@ -468,6 +514,13 @@ export default function ClubProfile() {
               >
                 Follow
               </button>
+              <button
+                onClick={() => setIsReportDialogOpen(true)}
+                className="neu-border neu-press bg-white hover:bg-peach px-5 py-2 font-mono text-xs font-bold uppercase tracking-wider inline-flex items-center gap-1.5"
+              >
+                <Flag size={12} />
+                Report
+              </button>
               {club.github_repo_url && (
                 <a
                   href={club.github_repo_url}
@@ -492,7 +545,7 @@ export default function ClubProfile() {
                 <p className="font-mono text-sm text-black">No upcoming events.</p>
               ) : (
                 <ul className="divide-y-2 divide-black">
-                  {events.map((e) => (
+                  {events.map((e: ClubEvent) => (
                     <li key={e.id} className="flex items-center gap-4 py-4">
                       <div className="neu-border bg-gray-100 px-3 py-2 font-mono text-xs font-bold text-gray-700">
                         {e.event_date
@@ -509,6 +562,12 @@ export default function ClubProfile() {
             </div>
           </div>
         </section>
+        <ReportDialog
+          isOpen={isReportDialogOpen}
+          onClose={() => setIsReportDialogOpen(false)}
+          targetType="club"
+          targetId={club.id}
+        />
       </SiteShell>
     </>
   );
