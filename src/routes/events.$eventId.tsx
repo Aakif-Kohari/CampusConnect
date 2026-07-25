@@ -154,31 +154,6 @@ function SimilarEvents({
   );
 }
 
-function rsvpRowsToCsv(rows: { name: string; email: string; rsvp_date: string; status: string }[]) {
-  const headers = ["User Name", "Email", "RSVP Date", "Status"];
-  const escape = (val: string) => {
-    const str = String(val ?? "");
-    return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
-  };
-  const lines = [headers.join(",")];
-  for (const r of rows) {
-    lines.push([r.name, r.email, formatStandardDate(r.rsvp_date), r.status].map(escape).join(","));
-  }
-  return lines.join("\n");
-}
-
-function downloadCsv(csvContent: string, filename: string) {
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.setAttribute("download", filename);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-}
-
 export default function EventDetailsPage() {
   const { eventId = "" } = useParams();
   const supabase = createClient();
@@ -509,15 +484,10 @@ export default function EventDetailsPage() {
       });
 
       if (error) throw error;
-      return data as {
-        rows: { name: string; email: string; rsvp_date: string; status: string }[];
-      };
+      return data;
     },
-    onSuccess: (data) => {
-      const csv = rsvpRowsToCsv(data.rows);
-      const safeTitle = (event?.title ?? "event").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
-      downloadCsv(csv, `${safeTitle}-rsvps.csv`);
-      toast.success("RSVP list exported.");
+    onSuccess: () => {
+      toast.success("We will email you shortly");
     },
     onError: (error: Error) => {
       toast.error(error.message || "Failed to export RSVP list.");
