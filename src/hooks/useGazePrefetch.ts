@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/client";
 
 declare global {
   interface Window {
-    webgazer: unknown;
+    webgazer: any;
   }
 }
 
