@@ -100,7 +100,7 @@ interface Post {
   clubs: Club[] | Club | null;
   comments: Comment[] | null;
   post_reactions: PostReaction[] | null;
-  image_url?: string | null;
+  image_url?: string;
 }
 
 const POSTS_PER_PAGE = 20;
@@ -453,6 +453,10 @@ export default function Feed() {
     },
   });
 
+  const [optimisticReactions, setOptimisticReactions] = useState<
+    Record<string, { countOffset: number; userReacted: boolean }>
+  >({});
+
   const reactionMutation = useMutation({
     mutationFn: async ({
       postId,
@@ -484,7 +488,24 @@ export default function Feed() {
         if (error) throw error;
       }
     },
-    onSuccess: () => refetchPosts(),
+    onSuccess: (_data, variables) => {
+      const key = `${variables.postId}-${variables.emoji}`;
+      setOptimisticReactions((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+      refetchPosts();
+    },
+    onError: (error, variables) => {
+      const key = `${variables.postId}-${variables.emoji}`;
+      setOptimisticReactions((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+      toast.error(error.message || "Failed to update reaction.");
+    },
   });
 
   const [optimisticDeletedIds, setOptimisticDeletedIds] = useState<string[]>([]);
@@ -967,12 +988,17 @@ export default function Feed() {
                           const postReactions: PostReaction[] = Array.isArray(post.post_reactions)
                             ? post.post_reactions
                             : [];
-                          const reactionCount = postReactions.filter(
-                            (r) => r.emoji === emoji,
-                          ).length;
-                          const isReacted = postReactions.some(
+                          const baseCount = postReactions.filter((r) => r.emoji === emoji).length;
+                          const baseIsReacted = postReactions.some(
                             (r) => r.emoji === emoji && r.user_id === user?.id,
                           );
+
+                          const opt = optimisticReactions[`${post.id}-${emoji}`];
+                          const reactionCount = opt
+                            ? Math.max(0, baseCount + opt.countOffset)
+                            : baseCount;
+                          const isReacted = opt ? opt.userReacted : baseIsReacted;
+
                           const burstKey = `${post.id}-${emoji}`;
                           const burstNonce = reactionBursts[burstKey] ?? 0;
 
@@ -984,6 +1010,16 @@ export default function Feed() {
                                 if (!user) return alert("Log in first");
                                 if (!emailVerified)
                                   return alert("Please verify your email to react");
+
+                                const optKey = `${post.id}-${emoji}`;
+                                setOptimisticReactions((prev) => ({
+                                  ...prev,
+                                  [optKey]: {
+                                    countOffset: isReacted ? -1 : 1,
+                                    userReacted: !isReacted,
+                                  },
+                                }));
+
                                 setReactionBursts((prev) => ({
                                   ...prev,
                                   [burstKey]: (prev[burstKey] ?? 0) + 1,
