@@ -14,9 +14,29 @@ import {
 import Layout from "./components/Layout";
 import { ErrorBoundary, RouteErrorBoundary } from "./components/ErrorBoundary";
 import { PageWrapper } from "./components/PageWrapper";
-import { QueryClientProvider, queryClient } from "@/hooks/useReactQueryReplacement";
-import { CommandPalette } from "./components/ui/command-palette";
-import MaintenancePage from "./components/MaintenancePage";
+
+// Pages
+import Index from "./routes/index";
+import Auth from "./routes/auth";
+import Certificates from "./routes/certificates";
+import ClubsIndex from "./routes/clubs.index";
+import ClubDetails from "./routes/clubs.$slug";
+import ClubManageRoute from "./routes/clubs.$slug.manage";
+import ClubsLayout from "./routes/clubs";
+import Dashboard from "./routes/dashboard";
+import DashboardOverview from "./routes/dashboard.index";
+import DashboardRsvps from "./routes/dashboard.rsvps";
+import DashboardBookmarks from "./routes/dashboard.bookmarks";
+import DashboardCalendar from "./routes/dashboard.calendar";
+import Feed from "./routes/feed";
+import EventsMapPage from "./routes/events.map";
+import ForgotPassword from "./routes/forgot-password";
+import ResetPassword from "./routes/reset-password";
+import Settings from "./routes/settings";
+import VerifyEmail from "./routes/verify-email";
+import PendingClubsAdmin from "./routes/admin.clubs.pending";
+import AdminReportsPage from "./routes/admin.reports";
+import AdminUsersPage from "./routes/admin.users";
 import { NotFoundPage } from "./components/NotFoundPage";
 import { createClient } from "./lib/supabase/client";
 
@@ -226,6 +246,7 @@ const router = createBrowserRouter(
         <Route path="/messages" element={<MessagesRoute />} />
         <Route path="/admin/clubs/pending" element={<PendingClubsAdmin />} />
         <Route path="/admin/reports" element={<AdminReportsPage />} />
+        <Route path="/admin/users" element={<AdminUsersPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Route>,
