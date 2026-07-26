@@ -33,25 +33,13 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
 
-import { FlyerUploader } from "@/components/FlyerUploader";
-import { ImageCropUpload } from "@/components/ImageCropUpload";
-import type { ParsedFlyer } from "@/lib/parser";
-
-import { TagMultiSelect } from "@/components/ui/TagMultiSelect";
-
-const STEPS = [
-  { label: "Details" },
-  { label: "Logistics" },
-  { label: "Media & Ticketing" },
-] as const;
-
-type Step = 0 | 1 | 2;
-const STEP_FIELDS: Record<Step, (keyof EventFormValues)[]> = {
-  0: ["title", "description", "tags"],
-  1: ["startDate", "endDate", "location"],
-  2: ["banner", "capacity", "faqs"],
-};
+// Define an extended interface locally to handle the extra location field safely
+interface LocalEventFormValues extends EventFormValues {
+  location?: string;
+  requiresApproval?: boolean;
+}
 
 const defaultValues: EventFormValues = {
   title: "",
@@ -59,11 +47,7 @@ const defaultValues: EventFormValues = {
   location: "",
   startDate: "",
   endDate: "",
-  banner: "",
-  capacity: "",
-  faqs: [],
-  tags: [],
-  isPrivate: false,
+  requiresApproval: false,
 };
 
 const DRAFT_KEY = "event_draft";
@@ -150,11 +134,8 @@ export function CreateEventDialog({
         // read event_date (e.g. EventCard, event ordering) keep working.
         event_date: startDateIso,
         created_by: user.id,
-        banner: values.banner?.trim() || null,
-        capacity: values.capacity || null,
-        is_private: values.isPrivate ?? false,
-        faqs: values.faqs && values.faqs.length > 0 ? values.faqs : [],
-        tags: values.tags && values.tags.length > 0 ? values.tags : [],
+        club_id: myClub.id,
+        requires_approval: values.requiresApproval || false,
       });
 
       if (error) {
@@ -645,29 +626,30 @@ export function CreateEventDialog({
               </div>
             )}
 
-            <DialogFooter className="flex gap-2 pt-2">
-              {step > 0 && (
-                <Button type="button" variant="outline" onClick={handleBack} className="flex-1">
-                  Back
-                </Button>
+            <FormField
+              control={form.control}
+              name="requiresApproval"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border-2 border-black bg-white p-4 shadow-sm">
+                  <FormControl>
+                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel className="font-bold cursor-pointer">
+                      Requires Manual Approval
+                    </FormLabel>
+                    <p className="text-xs text-black/50">
+                      Organizers must manually approve attendee RSVPs.
+                    </p>
+                  </div>
+                </FormItem>
               )}
-              {step < 2 ? (
-                <Button
-                  type="button"
-                  onClick={handleNext}
-                  className="flex-1 bg-black text-cream hover:bg-black/80"
-                >
-                  Next →
-                </Button>
-              ) : (
-                <Button
-                  type="submit"
-                  disabled={createEvent.isPending}
-                  className="flex-1 bg-black text-cream hover:bg-black/80"
-                >
-                  {createEvent.isPending ? "Creating..." : "Create event"}
-                </Button>
-              )}
+            />
+
+            <DialogFooter className="pt-2">
+              <Button type="submit" disabled={createEvent.isPending} className="w-full sm:w-auto">
+                {createEvent.isPending ? "Creating..." : "Create event"}
+              </Button>
             </DialogFooter>
           </form>
         </Form>
