@@ -1,8 +1,6 @@
 name: "14"
 
 on:
-  pull_request_target:
-    types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 
 permissions:
@@ -54,41 +52,12 @@ jobs:
               // Analyze PR and add good-* label
               const currentLabels = pr.labels.map(l => l.name);
               const hasGoodLabel = currentLabels.some(l => l.startsWith('good-'));
-              let labelAdded = hasGoodLabel;
 
               if (!hasGoodLabel) {
-                const title = (pr.title || "").toLowerCase();
-                const body = (pr.body || "").toLowerCase();
-                const content = title + " " + body;
-                let labelToAdd = 'good-pr';
-                
-                if (content.includes('ui') || content.includes('frontend') || content.includes('design') || content.includes('css')) {
-                    labelToAdd = 'good-ui';
-                } else if (content.includes('backend') || content.includes('api') || content.includes('server') || content.includes('database')) {
-                    labelToAdd = 'good-backend';
-                } else if (content.includes('issue') || content.includes('bug')) {
-                    labelToAdd = 'good-issue';
-                }
-
-                try {
-                  await github.rest.issues.addLabels({
-                    owner,
-                    repo,
-                    issue_number: prNumber,
-                    labels: [labelToAdd]
-                  });
-                  console.log(`✅ Added label: ${labelToAdd}`);
-                  labelAdded = true;
-                } catch (err) {
-                  console.error(`❌ Failed to add label: ${err.message}`);
-                }
+                console.log("PR does not have a good-* label. Manual review required. Skipping merge.");
+                return;
               } else {
                 console.log(`PR already has a good-* label.`);
-              }
-              
-              if (!labelAdded) {
-                console.log("Good label not added successfully. Skipping merge.");
-                return;
               }
               
               if (mergeable === false) {
@@ -104,6 +73,8 @@ jobs:
                     merge_method: 'squash'
                   });
                   console.log(`✅ Successfully merged PR #${prNumber}`);
+                  console.log(`Waiting for 2 minutes before processing the next PR...`);
+                  await new Promise(resolve => setTimeout(resolve, 120000));
                 } catch (e) {
                   console.error(`❌ Failed to auto-merge PR #${prNumber}:`, e.message);
                   
