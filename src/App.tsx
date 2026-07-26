@@ -19,8 +19,6 @@ import { CommandPalette } from "./components/ui/command-palette";
 import MaintenancePage from "./components/MaintenancePage";
 import { NotFoundPage } from "./components/NotFoundPage";
 import { createClient } from "./lib/supabase/client";
-// Pages are mostly lazy-loaded below
-import MessagesRoute from "./routes/messages";
 
 const HEALTH_CHECK_URL =
   (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_HEALTH_URL) ||
@@ -56,8 +54,9 @@ async function checkDatabaseHealth(): Promise<HealthStatus> {
     }
 
     return { ok: true };
-  } catch (err: any) {
-    return { ok: false, error: err.message };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { ok: false, error: message };
   }
 }
 
@@ -80,6 +79,7 @@ const ForgotPassword = lazy(() => import("./routes/forgot-password"));
 const ResetPassword = lazy(() => import("./routes/reset-password"));
 const Settings = lazy(() => import("./routes/settings"));
 const VerifyEmail = lazy(() => import("./routes/verify-email"));
+const MessagesRoute = lazy(() => import("./routes/messages"));
 const PendingClubsAdmin = lazy(() => import("./routes/admin.clubs.pending"));
 const AdminReportsPage = lazy(() => import("./routes/admin.reports"));
 const ChallengeArena = lazy(() => import("./routes/challenge"));
@@ -223,17 +223,11 @@ const router = createBrowserRouter(
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/messages" element={<MessagesRoute />} />
         <Route path="/admin/clubs/pending" element={<PendingClubsAdmin />} />
         <Route path="/admin/reports" element={<AdminReportsPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
-
-      <Route path="/feed" element={<Feed />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      <Route path="/settings" element={<Settings />} />
-      <Route path="/messages" element={<MessagesRoute />} />
-      <Route path="/admin/clubs/pending" element={<PendingClubsAdmin />} />
     </Route>,
   ),
 );
@@ -275,7 +269,7 @@ export default function App() {
   const [dbStatus, setDbStatus] = useState<DbStatus>("checking");
 
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let timer: ReturnType<typeof setTimeout>;
 
     const verify = async () => {
       const isOnline = await checkDatabaseConnection();
