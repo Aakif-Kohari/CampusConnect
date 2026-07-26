@@ -574,7 +574,7 @@ export default function ClubManageRoute() {
                       }) => (
                         <div
                           key={e.id}
-                          className="neu-border p-4 flex items-center justify-between hover:bg-gray-50"
+                          className="neu-border p-4 flex items-center justify-between hover:bg-gray-50 flex-wrap gap-4"
                         >
                           <div>
                             <p className="font-bold font-display text-lg">{e.title}</p>
@@ -582,12 +582,20 @@ export default function ClubManageRoute() {
                               RSVPs: {e.event_rsvps?.length || 0} / {e.max_attendees || "∞"}
                             </p>
                           </div>
-                          <button
-                            onClick={() => navigate(`/events/${e.id}`)}
-                            className="neu-border neu-press bg-black text-white px-4 py-2 font-mono text-xs font-bold uppercase hover:-translate-y-1 transition-transform"
-                          >
-                            View Event
-                          </button>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => navigate(`/events/${e.id}/dashboard`)}
+                              className="neu-border neu-press bg-lime text-black px-4 py-2 font-mono text-xs font-bold uppercase hover:-translate-y-1 transition-transform"
+                            >
+                              Insights
+                            </button>
+                            <button
+                              onClick={() => navigate(`/events/${e.id}`)}
+                              className="neu-border neu-press bg-black text-white px-4 py-2 font-mono text-xs font-bold uppercase hover:-translate-y-1 transition-transform"
+                            >
+                              View Event
+                            </button>
+                          </div>
                         </div>
                       ),
                     )

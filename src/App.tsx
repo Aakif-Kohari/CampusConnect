@@ -19,24 +19,7 @@ import { CommandPalette } from "./components/ui/command-palette";
 import MaintenancePage from "./components/MaintenancePage";
 import { NotFoundPage } from "./components/NotFoundPage";
 import { createClient } from "./lib/supabase/client";
-// Pages
-import Index from "./routes/index";
-import Auth from "./routes/auth";
-import Certificates from "./routes/certificates";
-import ClubsIndex from "./routes/clubs.index";
-import ClubDetails from "./routes/clubs.$slug";
-import ClubsLayout from "./routes/clubs";
-import Dashboard from "./routes/dashboard";
-import DashboardOverview from "./routes/dashboard.index";
-import DashboardRsvps from "./routes/dashboard.rsvps";
-import DashboardBookmarks from "./routes/dashboard.bookmarks";
-import EventsIndex from "./routes/events";
-import EventDetails from "./routes/events.$eventId";
-import Feed from "./routes/feed";
-import ForgotPassword from "./routes/forgot-password";
-import ResetPassword from "./routes/reset-password";
-import Settings from "./routes/settings";
-import PendingClubsAdmin from "./routes/admin.clubs.pending";
+// Pages are mostly lazy-loaded below
 import MessagesRoute from "./routes/messages";
 
 const HEALTH_CHECK_URL =
@@ -72,6 +55,12 @@ async function checkDatabaseHealth(): Promise<HealthStatus> {
       };
     }
 
+    return { ok: true };
+  } catch (err: any) {
+    return { ok: false, error: err.message };
+  }
+}
+
 // Lazy-loaded Routes / Pages
 const Index = lazy(() => import("./routes/index"));
 const Auth = lazy(() => import("./routes/auth"));
@@ -94,6 +83,7 @@ const VerifyEmail = lazy(() => import("./routes/verify-email"));
 const PendingClubsAdmin = lazy(() => import("./routes/admin.clubs.pending"));
 const AdminReportsPage = lazy(() => import("./routes/admin.reports"));
 const ChallengeArena = lazy(() => import("./routes/challenge"));
+const EventDashboard = lazy(() => import("./routes/events.$eventId.dashboard"));
 const Leaderboard = lazy(() =>
   import("./components/Leaderboard").then((m) => ({ default: m.Leaderboard })),
 );
@@ -222,6 +212,7 @@ const router = createBrowserRouter(
             </Suspense>
           }
         />
+        <Route path="/events/:eventId/dashboard" element={<EventDashboard />} />
         {/* Events Map View with clustering */}
         <Route path="/events/map" element={<EventsMapPage />} />
         <Route path="/challenge" element={<ChallengeArena />} />
