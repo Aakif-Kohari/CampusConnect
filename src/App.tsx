@@ -1,7 +1,6 @@
 import { Suspense, lazy } from "react";
 // @ts-expect-error - framer-motion types may not be resolved in all editor settings
 import { AnimatePresence } from "framer-motion";
-import { OfflineBanner } from "@/components/OfflineBanner";
 import {
   createBrowserRouter,
   RouterProvider,
@@ -11,36 +10,38 @@ import {
   Outlet,
 } from "react-router-dom";
 
-// Layout & Components
+// Layout & Core Components (Loaded eagerly)
 import Layout from "./components/Layout";
 import { ErrorBoundary, RouteErrorBoundary } from "./components/ErrorBoundary";
 import { PageWrapper } from "./components/PageWrapper";
 import { QueryClientProvider, queryClient } from "@/hooks/useReactQueryReplacement";
-
-// Pages
-import Index from "./routes/index";
-import Auth from "./routes/auth";
-import Certificates from "./routes/certificates";
-import ClubsIndex from "./routes/clubs.index";
-import ClubDetails from "./routes/clubs.$slug";
-import ClubManageRoute from "./routes/clubs.$slug.manage";
-import ClubsLayout from "./routes/clubs";
-import Dashboard from "./routes/dashboard";
-import DashboardOverview from "./routes/dashboard.index";
-import DashboardRsvps from "./routes/dashboard.rsvps";
-import DashboardBookmarks from "./routes/dashboard.bookmarks";
-import DashboardCalendar from "./routes/dashboard.calendar";
-import Feed from "./routes/feed";
-import EventsMapPage from "./routes/events.map";
-import ForgotPassword from "./routes/forgot-password";
-import ResetPassword from "./routes/reset-password";
-import Settings from "./routes/settings";
-import VerifyEmail from "./routes/verify-email";
-import PendingClubsAdmin from "./routes/admin.clubs.pending";
-import AdminReportsPage from "./routes/admin.reports";
-import ChallengeArena from "./routes/challenge";
-import { Leaderboard } from "./components/Leaderboard";
 import { NotFoundPage } from "./components/NotFoundPage";
+
+// Lazy-loaded Routes / Pages
+const Index = lazy(() => import("./routes/index"));
+const Auth = lazy(() => import("./routes/auth"));
+const Certificates = lazy(() => import("./routes/certificates"));
+const ClubsIndex = lazy(() => import("./routes/clubs.index"));
+const ClubDetails = lazy(() => import("./routes/clubs.$slug"));
+const ClubManageRoute = lazy(() => import("./routes/clubs.$slug.manage"));
+const ClubsLayout = lazy(() => import("./routes/clubs"));
+const Dashboard = lazy(() => import("./routes/dashboard"));
+const DashboardOverview = lazy(() => import("./routes/dashboard.index"));
+const DashboardRsvps = lazy(() => import("./routes/dashboard.rsvps"));
+const DashboardBookmarks = lazy(() => import("./routes/dashboard.bookmarks"));
+const DashboardCalendar = lazy(() => import("./routes/dashboard.calendar"));
+const Feed = lazy(() => import("./routes/feed"));
+const EventsMapPage = lazy(() => import("./routes/events.map"));
+const ForgotPassword = lazy(() => import("./routes/forgot-password"));
+const ResetPassword = lazy(() => import("./routes/reset-password"));
+const Settings = lazy(() => import("./routes/settings"));
+const VerifyEmail = lazy(() => import("./routes/verify-email"));
+const PendingClubsAdmin = lazy(() => import("./routes/admin.clubs.pending"));
+const AdminReportsPage = lazy(() => import("./routes/admin.reports"));
+const ChallengeArena = lazy(() => import("./routes/challenge"));
+const Leaderboard = lazy(() =>
+  import("./components/Leaderboard").then((m) => ({ default: m.Leaderboard })),
+);
 
 // ---------------------------------------------------------------------------
 // Micro-frontend: Events remote (loaded dynamically from Module Federation)
@@ -103,6 +104,14 @@ function RemoteLoadingScreen() {
   );
 }
 
+function PageFallback() {
+  return (
+    <div className="flex h-[50vh] w-full items-center justify-center p-8">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Animated Outlet Wrapper for Framer Motion transitions
 // ---------------------------------------------------------------------------
@@ -112,7 +121,9 @@ function AnimatedOutlet() {
   return (
     <AnimatePresence mode="wait">
       <PageWrapper key={location.pathname}>
-        <Outlet />
+        <Suspense fallback={<PageFallback />}>
+          <Outlet />
+        </Suspense>
       </PageWrapper>
     </AnimatePresence>
   );
