@@ -139,26 +139,29 @@ function SimilarEvents({
   );
 }
 
-interface Profile {
-  first_name: string;
-  last_name: string;
-  avatar_url: string | null;
+function rsvpRowsToCsv(rows: { name: string; email: string; rsvp_date: string; status: string }[]) {
+  const headers = ["User Name", "Email", "RSVP Date", "Status"];
+  const escape = (val: string) => {
+    const str = String(val ?? "");
+    return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+  };
+  const lines = [headers.join(",")];
+  for (const r of rows) {
+    lines.push([r.name, r.email, formatStandardDate(r.rsvp_date), r.status].map(escape).join(","));
+  }
+  return lines.join("\n");
 }
 
-interface EventRsvp {
-  id: string;
-  user_id: string;
-  status: string;
-  checked_in: boolean;
-  rsvp_at: string;
-  profiles: Profile | Profile[] | null;
-}
-
-interface EventWaitlist {
-  id: string;
-  user_id: string;
-  created_at: string;
-  profiles: Profile | Profile[] | null;
+function downloadCsv(csvContent: string, filename: string) {
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.setAttribute("download", filename);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
 
 export default function EventDetailsPage() {

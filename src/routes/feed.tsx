@@ -421,8 +421,9 @@ export default function Feed() {
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "comments" }, (payload) => {
         // Bust the lazy cache for the affected post so the next expand re-fetches fresh data
-        const postId = (payload.new as { post_id?: string })?.post_id
-          ?? (payload.old as { post_id?: string })?.post_id;
+        const postId =
+          (payload.new as { post_id?: string })?.post_id ??
+          (payload.old as { post_id?: string })?.post_id;
         if (postId) {
           setLazyComments((prev) => {
             const next = { ...prev };
