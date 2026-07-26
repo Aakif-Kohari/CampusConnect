@@ -74,17 +74,31 @@ function SimilarEvents({
     async function fetchSimilarEvents() {
       setLoading(true);
       try {
-        const { data, error } = await supabase
+        // 1. Try pgvector similarity recommendation RPC first
+        const { data, error } = await supabase.rpc("recommend_events", {
+          p_event_id: currentEventId,
+          p_limit: 3,
+        });
+
+        if (!error && data && data.length > 0) {
+          setSimilarEvents(data as SimilarEventItem[]);
+          setLoading(false);
+          return;
+        }
+
+        // 2. Fallback to category matching if vector embeddings are not calculated yet
+        const { data: fallbackData, error: fallbackError } = await supabase
           .from("events")
           .select("id, title, category_id, event_date, banner_url, description")
           .eq("category_id", categoryId)
           .neq("id", currentEventId)
+          .eq("status", "published")
           .limit(3);
 
-        if (error) {
-          console.error("Error fetching similar events:", error);
-        } else if (data) {
-          setSimilarEvents(data as SimilarEventItem[]);
+        if (fallbackError) {
+          console.error("Error fetching fallback similar events:", fallbackError);
+        } else if (fallbackData) {
+          setSimilarEvents(fallbackData as SimilarEventItem[]);
         }
       } catch (err) {
         console.error("Unexpected error fetching similar events:", err);
