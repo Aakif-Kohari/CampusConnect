@@ -110,10 +110,11 @@
     "workbox-background-sync": "^7.4.1",
     "workbox-precaching": "^7.4.1",
     "workbox-routing": "^7.4.1",
-    "workbox-strategies": "^7.4.1",
+"workbox-strategies": "^7.4.1",
     "y-protocols": "^1.0.7",
     "yjs": "^13.6.31",
-    "zod": "^3.24.2"
+    "zod": "^3.24.2",
+    "zustand": "^5.0.14"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [

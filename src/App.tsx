@@ -1,5 +1,5 @@
-import { Suspense, lazy } from "react";
-// @ts-expect-error - framer-motion types may not be resolved in all editor settings
+import { Suspense, lazy, useEffect, useState } from "react";
+
 import { AnimatePresence } from "framer-motion";
 import {
   createBrowserRouter,
@@ -15,7 +15,10 @@ import Layout from "./components/Layout";
 import { ErrorBoundary, RouteErrorBoundary } from "./components/ErrorBoundary";
 import { PageWrapper } from "./components/PageWrapper";
 import { QueryClientProvider, queryClient } from "@/hooks/useReactQueryReplacement";
+import { CommandPalette } from "./components/ui/command-palette";
+import MaintenancePage from "./components/MaintenancePage";
 import { NotFoundPage } from "./components/NotFoundPage";
+import { createClient } from "./lib/supabase/client";
 
 // Lazy-loaded Routes / Pages
 const Index = lazy(() => import("./routes/index"));
@@ -185,10 +188,66 @@ const router = createBrowserRouter(
   ),
 );
 
+const DB_HEALTH_CHECK_TIMEOUT_MS = 8000;
+const DB_RETRY_INTERVAL_MS = 15000;
+
+type DbStatus = "checking" | "online" | "offline";
+
+async function checkDatabaseConnection(): Promise<boolean> {
+  try {
+    const supabase = createClient();
+
+    const healthCheck = supabase.from("profiles").select("id", { count: "exact", head: true });
+
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(
+        () => reject(new Error("Database health check timed out")),
+        DB_HEALTH_CHECK_TIMEOUT_MS,
+      ),
+    );
+
+    type HealthCheckResult = Awaited<typeof healthCheck>;
+    const { error } = (await Promise.race([healthCheck, timeout])) as HealthCheckResult;
+
+    if (error) {
+      console.error("Database health check returned an error:", error.message);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.error("Database client threw while checking connection:", err);
+    return false;
+  }
+}
+
 export default function App() {
+  const [dbStatus, setDbStatus] = useState<DbStatus>("checking");
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+
+    const verify = async () => {
+      const isOnline = await checkDatabaseConnection();
+      setDbStatus(isOnline ? "online" : "offline");
+      if (!isOnline) {
+        timer = setTimeout(verify, DB_RETRY_INTERVAL_MS);
+      }
+    };
+
+    verify();
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (dbStatus === "offline") {
+    return <MaintenancePage />;
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <ErrorBoundary>
+        <CommandPalette />
         <RouterProvider router={router} />
       </ErrorBoundary>
     </QueryClientProvider>

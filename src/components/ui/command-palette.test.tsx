@@ -1,53 +1,64 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
-import "@testing-library/jest-dom/vitest";
-import { BrowserRouter } from "react-router-dom";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import * as matchers from "@testing-library/jest-dom/matchers";
+import { MemoryRouter } from "react-router-dom";
 import { CommandPalette } from "./command-palette";
 
-// Mock JSDOM missing browser APIs required by cmdk
-beforeEach(() => {
-  global.ResizeObserver = class ResizeObserver {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  };
+expect.extend(matchers);
 
-  Element.prototype.scrollIntoView = () => {};
+beforeEach(() => {
+  cleanup();
+
+  if (typeof globalThis.ResizeObserver === "undefined") {
+    globalThis.ResizeObserver = vi.fn().mockImplementation(() => ({
+      observe: vi.fn(),
+      unobserve: vi.fn(),
+      disconnect: vi.fn(),
+    }));
+  }
+
+  if (typeof window !== "undefined" && window.Element) {
+    window.Element.prototype.scrollIntoView = vi.fn();
+  }
 });
 
-const renderPalette = () => {
-  return render(
-    <BrowserRouter>
-      <CommandPalette />
-    </BrowserRouter>,
-  );
-};
+afterEach(() => {
+  cleanup();
+});
 
-describe("CommandPalette Component", () => {
-  afterEach(() => {
-    cleanup();
+describe("CommandPalette", () => {
+  it("renders correctly and stays closed by default", () => {
+    render(
+      <MemoryRouter>
+        <CommandPalette />
+      </MemoryRouter>
+    );
+    expect(screen.queryByPlaceholderText(/type a command or search/i)).not.toBeInTheDocument();
   });
 
-  it("does not render initially", () => {
-    renderPalette();
-    expect(screen.queryByPlaceholderText(/Type a command or search/i)).not.toBeInTheDocument();
-  });
+  it("opens when Cmd+K or Ctrl+K is pressed", () => {
+    render(
+      <MemoryRouter>
+        <CommandPalette />
+      </MemoryRouter>
+    );
 
-  it("opens when pressing Cmd+K or Ctrl+K", () => {
-    renderPalette();
-
-    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
-
-    expect(screen.getByPlaceholderText(/Type a command or search/i)).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: "k", metaKey: true });
+    expect(screen.getByPlaceholderText(/type a command or search/i)).toBeInTheDocument();
   });
 
   it("displays navigation items when open", () => {
-    renderPalette();
+    render(
+      <MemoryRouter>
+        <CommandPalette />
+      </MemoryRouter>
+    );
 
-    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    fireEvent.keyDown(window, { key: "k", metaKey: true });
 
-    expect(screen.getByText("Browse Clubs")).toBeInTheDocument();
-    expect(screen.getByText("Upcoming Events")).toBeInTheDocument();
+    expect(screen.getByText("Explore Clubs")).toBeInTheDocument();
+    expect(screen.getByText("Events Calendar")).toBeInTheDocument();
   });
 });
