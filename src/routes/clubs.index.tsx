@@ -15,6 +15,14 @@ const VIEW_MODE_STORAGE_KEY = "clubs-view-mode";
 
 type ViewMode = "grid" | "list";
 
+interface ClubItem {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  club_stats?: { total_members?: number }[] | { total_members?: number } | null;
+}
+
 export default function ClubsIndex() {
   const supabase = createClient();
   const [searchInput, setSearchInput] = useState("");
@@ -78,7 +86,7 @@ export default function ClubsIndex() {
     });
 
   // Flatten the nested page arrays from useInfiniteQuery into a single list
-  const allClubs = data?.pages.flatMap((page) => page.clubs) || [];
+  const allClubs: ClubItem[] = (data?.pages.flatMap((page) => page.clubs) || []) as ClubItem[];
   const totalActiveCount = data?.pages[0]?.totalCount || allClubs.length;
 
   // Deriving the Top 3 Trending Clubs based on member_count
