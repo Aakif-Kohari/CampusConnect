@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 
 import { OptimizedImage } from "@/components/media/OptimizedImage";
-import { Switch } from "@/components/ui/switch";
+
 
 import type { User } from "@supabase/supabase-js";
 import { useQuery } from "@/hooks/useReactQueryReplacement";
@@ -735,7 +735,6 @@ function AvatarUpload({ name, avatarTheme }: { name: string; avatarTheme?: Avata
   const supabase = supabaseRef.current;
   const [preview, setPreview] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
-  const [initials, setInitials] = useState("");
 
   useEffect(() => {
     let isMounted = true;
@@ -783,9 +782,87 @@ function AvatarUpload({ name, avatarTheme }: { name: string; avatarTheme?: Avata
   const gradientClass = AVATAR_THEMES.find((theme) => theme.id === avatarTheme)?.gradient;
   const backgroundClass = showGradient && gradientClass ? gradientClass : "bg-lime";
 
+
+        setPreview(avatarUrl);
+        setImageError(false);
+        toast.success("Profile picture updated.");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to upload avatar.");
+    } finally {
+      setUploading(false);
+      setUploadProgress(null);
+      setSelectedFile(null);
+      if (croppedPreviewUrl) {
+        URL.revokeObjectURL(croppedPreviewUrl);
+      }
+      setImageSrc("");
+      setOriginalFile(null);
+      if (inputRef.current) {
+        inputRef.current.value = "";
+      }
+    }
+  }
+
+  function handleCropCancel() {
+    setCropOpen(false);
+    setImageSrc("");
+    setOriginalFile(null);
+    if (inputRef.current) {
+      inputRef.current.value = "";
+    }
+  }
+
+  async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    await processFile(file);
+  }
+
+  function handleDragEnter(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (uploading) return;
+    dragDepthRef.current += 1;
+    if (event.dataTransfer.types.includes("Files")) {
+      setIsDragging(true);
+    }
+  }
+
+  function handleDragOver(event: DragEvent<HTMLDivElement>) {
+    // Required so the browser allows a drop here instead of opening the file.
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  function handleDragLeave(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+    if (dragDepthRef.current === 0) {
+      setIsDragging(false);
+    }
+  }
+
+  async function handleDrop(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    dragDepthRef.current = 0;
+    setIsDragging(false);
+    if (uploading) return;
+
+    const file = event.dataTransfer.files?.[0];
+    if (!file) return;
+    await processFile(file);
+  }
+
+  async function uploadAvatar(file: File): Promise<string | undefined> {
+=======
   async function handleUploaded(url: string) {
     setPreview(url);
     setImageError(false);
+
 
     const {
       data: { user },
@@ -844,6 +921,67 @@ function AvatarUpload({ name, avatarTheme }: { name: string; avatarTheme?: Avata
           hint="JPG, PNG or WEBP · Max 2 MB · Square images look best"
         />
       </div>
+
+      <Dialog
+        open={cropOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            handleCropCancel();
+          }
+        }}
+      >
+        <DialogContent className="neu-border neu-shadow bg-cream sm:max-w-md text-black max-h-[90vh] flex flex-col p-6">
+          <DialogHeader>
+            <DialogTitle className="text-black">Crop Profile Picture</DialogTitle>
+          </DialogHeader>
+          <div className="relative h-64 w-full bg-black/10 mt-2 overflow-hidden">
+            {imageSrc && (
+              <Cropper
+                image={imageSrc}
+                crop={crop}
+                zoom={zoom}
+                aspect={1}
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onCropComplete={(
+                  _,
+                  croppedPixels: { width: number; height: number; x: number; y: number },
+                ) => setCroppedAreaPixels(croppedPixels)}
+              />
+            )}
+          </div>
+          <div className="space-y-2 mt-4">
+            <div className="flex items-center justify-between text-xs font-mono font-bold">
+              <span>Zoom</span>
+              <span>{Math.round(zoom * 100)}%</span>
+            </div>
+            <Slider
+              min={1}
+              max={3}
+              step={0.1}
+              value={[zoom]}
+              onValueChange={(vals) => setZoom(vals[0])}
+              className="w-full py-2"
+            />
+          </div>
+          <DialogFooter className="mt-6 gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleCropCancel}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              onClick={handleCropConfirm}
+            >
+              Crop & Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
