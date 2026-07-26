@@ -19,6 +19,47 @@ import { CommandPalette } from "./components/ui/command-palette";
 import MaintenancePage from "./components/MaintenancePage";
 import { NotFoundPage } from "./components/NotFoundPage";
 import { createClient } from "./lib/supabase/client";
+// Pages are mostly lazy-loaded below
+import MessagesRoute from "./routes/messages";
+
+const HEALTH_CHECK_URL =
+  (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_HEALTH_URL) ||
+  (typeof process !== "undefined" && process.env?.REACT_APP_API_HEALTH_URL) ||
+  "/api/health";
+
+const HEALTH_CHECK_TIMEOUT = 8000; // 8 seconds
+
+interface HealthStatus {
+  ok: boolean;
+  error?: string;
+}
+
+async function checkDatabaseHealth(): Promise<HealthStatus> {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), HEALTH_CHECK_TIMEOUT);
+
+    const response = await fetch(HEALTH_CHECK_URL, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      signal: controller.signal,
+      cache: "no-store",
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        error: `Server responded with status ${response.status} (${response.statusText})`,
+      };
+    }
+
+    return { ok: true };
+  } catch (err: any) {
+    return { ok: false, error: err.message };
+  }
+}
 
 // Lazy-loaded Routes / Pages
 const Index = lazy(() => import("./routes/index"));
@@ -42,6 +83,7 @@ const VerifyEmail = lazy(() => import("./routes/verify-email"));
 const PendingClubsAdmin = lazy(() => import("./routes/admin.clubs.pending"));
 const AdminReportsPage = lazy(() => import("./routes/admin.reports"));
 const ChallengeArena = lazy(() => import("./routes/challenge"));
+const EventDashboard = lazy(() => import("./routes/events.$eventId.dashboard"));
 const Leaderboard = lazy(() =>
   import("./components/Leaderboard").then((m) => ({ default: m.Leaderboard })),
 );
@@ -170,6 +212,7 @@ const router = createBrowserRouter(
             </Suspense>
           }
         />
+        <Route path="/events/:eventId/dashboard" element={<EventDashboard />} />
         {/* Events Map View with clustering */}
         <Route path="/events/map" element={<EventsMapPage />} />
         <Route path="/challenge" element={<ChallengeArena />} />
@@ -184,6 +227,13 @@ const router = createBrowserRouter(
         <Route path="/admin/reports" element={<AdminReportsPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
+
+      <Route path="/feed" element={<Feed />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/settings" element={<Settings />} />
+      <Route path="/messages" element={<MessagesRoute />} />
+      <Route path="/admin/clubs/pending" element={<PendingClubsAdmin />} />
     </Route>,
   ),
 );

@@ -74,7 +74,7 @@ export default function EventsPage() {
   const [sortLoaded, setSortLoaded] = useState(false);
   const [hidePastEvents, setHidePastEvents] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
-
+  const confettiTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [filters, setFilters] = useState<FilterState>({
     dateRange: "all",
     categories: [],
@@ -127,6 +127,13 @@ export default function EventsPage() {
     if (!sortLoaded) return;
     sessionStorage.setItem("event-sort-order", sortOrder);
   }, [sortOrder, sortLoaded]);
+  useEffect(() => {
+    return () => {
+      if (confettiTimeoutRef.current) {
+        clearTimeout(confettiTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const [totalCount, setTotalCount] = useState<number | null>(null);
   const [searchInput, setSearchInput] = useState("");
@@ -452,7 +459,15 @@ export default function EventsPage() {
           .eq("user_id", user.id);
         if (count === 1) {
           setShowConfetti(true);
-          setTimeout(() => setShowConfetti(false), 5000);
+
+          if (confettiTimeoutRef.current) {
+            clearTimeout(confettiTimeoutRef.current);
+          }
+
+          confettiTimeoutRef.current = setTimeout(() => {
+            setShowConfetti(false);
+            confettiTimeoutRef.current = null;
+          }, 5000);
         }
       }
       refetch();
@@ -903,7 +918,9 @@ export default function EventsPage() {
                   <>
                     <div className="mx-auto grid max-w-7xl gap-6 md:grid-cols-2 lg:grid-cols-3">
                       {isLoading ? (
-                        Array.from({ length: 4 }).map((_, i) => <EventCardSkeleton key={i} />)
+                        Array.from({ length: 6 }).map((_, i) => (
+                          <EventCardSkeleton key={i} index={i} />
+                        ))
                       ) : sortedEvents.length === 0 && filter !== "All" ? (
                         <div className="col-span-full mx-auto max-w-md text-center neu-border bg-white p-8 animate-in fade-in-0 zoom-in-95 duration-300">
                           <CalendarIcon
@@ -969,6 +986,14 @@ export default function EventsPage() {
                         ))
                       )}
                     </div>
+
+                    {isLoadingMore && (
+                      <div className="mx-auto grid max-w-7xl gap-6 md:grid-cols-2 lg:grid-cols-3 mt-8">
+                        {Array.from({ length: 3 }).map((_, i) => (
+                          <EventCardSkeleton key={`loading-more-${i}`} index={i + 6} />
+                        ))}
+                      </div>
+                    )}
 
                     {!isLoading && (
                       <div className="mt-12 text-center flex flex-col items-center justify-center gap-4">
