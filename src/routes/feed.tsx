@@ -332,13 +332,15 @@ export default function Feed() {
           // Fetch the full post with relations
           const { data, error } = await supabase
             .from("posts")
-            .select(`
+            .select(
+              `
               id, content, created_at, club_id, is_pinned,
               profiles (id, full_name, handle),
               clubs (id, name, club_members (user_id, role)),
               comments (id, content, created_at, deleted_at, parent_id, parent_comment_id, profiles (id, full_name, handle)),
               post_reactions (emoji, user_id)
-            `)
+            `,
+            )
             .eq("id", newRawPost.id)
             .single();
 
@@ -350,7 +352,7 @@ export default function Feed() {
             });
             setShowNewPostsBanner(true);
           }
-        }
+        },
       )
       .subscribe();
 
