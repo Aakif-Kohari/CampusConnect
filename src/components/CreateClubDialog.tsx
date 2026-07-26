@@ -6,7 +6,7 @@ import { Plus, Camera, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 
-import { createClient, getSupabaseUrl } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 import {
   clubFormSchema,
   MAX_DESCRIPTION_LENGTH,
@@ -42,7 +42,6 @@ const defaultValues: ClubFormInput = {
   slug: "",
   description: "",
   visibility: "public",
-  logo_url: null,
 };
 
 function uploadFileWithProgress(
