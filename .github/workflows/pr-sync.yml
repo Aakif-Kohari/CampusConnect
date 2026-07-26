@@ -1,7 +1,7 @@
 name: PR Sync
 
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, edited]
 
 jobs:
@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
-      issues: read
+      issues: write
     steps:
       - name: Sync Assignees and Labels from Linked Issue
         uses: actions/github-script@v7
