@@ -48,7 +48,7 @@ export default function ClubsIndex() {
   }, [viewMode, viewModeLoaded]);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
+    supabase.auth.getUser().then(({ data }) => setUser(data?.user ?? null));
   }, [supabase]);
 
   useEffect(() => {
