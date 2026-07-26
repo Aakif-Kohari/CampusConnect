@@ -48,7 +48,7 @@ export default function ClubsIndex() {
   }, [viewMode, viewModeLoaded]);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUser(data?.user ?? null));
+    supabase.auth.getUser().then((res) => setUser(res.data?.user ?? null));
   }, [supabase]);
 
   useEffect(() => {
@@ -86,7 +86,8 @@ export default function ClubsIndex() {
     });
 
   // Flatten the nested page arrays from useInfiniteQuery into a single list
-  const allClubs: ClubItem[] = (data?.pages.flatMap((page) => page.clubs) || []) as ClubItem[];
+  const allClubs: ClubItem[] = (data?.pages.flatMap((page: { clubs: unknown[] }) => page.clubs) ||
+    []) as ClubItem[];
   const totalActiveCount = data?.pages[0]?.totalCount || allClubs.length;
 
   // Deriving the Top 3 Trending Clubs based on member_count
