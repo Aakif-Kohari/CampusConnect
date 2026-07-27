@@ -19,6 +19,7 @@ jobs:
           github-token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
           script: |
             const { owner, repo } = context.repo;
+            const commentedPRs = new Set();
 
             async function processPR(prNumber, prBody) {
               console.log(`\nEvaluating PR #${prNumber}`);
@@ -33,6 +34,7 @@ jobs:
               
               let mergeable = null;
               let mergeableState = null;
+              let prData = null;
               
               // Retry loop because PR mergeable state might be null immediately after creation
               for (let attempt = 1; attempt <= 10; attempt++) {
@@ -44,6 +46,7 @@ jobs:
                 
                 mergeable = pr.mergeable;
                 mergeableState = pr.mergeable_state;
+                prData = pr;
                 
                 if (mergeable !== null) {
                   break;
@@ -92,10 +95,29 @@ jobs:
               if (mergeable === false || mergeableState === "dirty") {
                 console.log("Merge conflicts detected.");
                 await removeLabel("Blue");
-                await addLabel("Red");
+                
+                if (!commentedPRs.has(prNumber)) {
+                  const assigneesToTag = prData.assignees && prData.assignees.length > 0 
+                    ? prData.assignees.map(a => `@${a.login}`).join(" ") 
+                    : `@${prData.user.login}`;
+                    
+                  const commentBody = `${assigneesToTag} This PR has merge conflicts. Please resolve them so it can be automatically merged.`;
+                  
+                  try {
+                    console.log(`Commenting on PR #${prNumber} about merge conflicts...`);
+                    await github.rest.issues.createComment({
+                      owner,
+                      repo,
+                      issue_number: prNumber,
+                      body: commentBody
+                    });
+                    commentedPRs.add(prNumber);
+                  } catch (e) {
+                    console.error(`Failed to comment on PR #${prNumber}:`, e.message);
+                  }
+                }
               } else {
                 console.log(`PR mergeable state is: ${mergeableState}`);
-                await removeLabel("Red");
                 
                 if (mergeableState === "clean") {
                   console.log("No merge conflicts and requirements met. Proceeding with auto-merge.");
