@@ -34,7 +34,7 @@ import {
 import { SiteShell } from "@/components/site/SiteShell";
 import { createClient } from "@/lib/supabase/client";
 import { calculateReadTime } from "@/utils/readTime";
-import { PullToRefresh } from "@/components/PullToRefresh";
+import { PullToRefreshContainer } from "@/components/PullToRefreshContainer";
 import { useEmailVerification } from "@/hooks/useEmailVerification";
 import { ReportDialog } from "@/components/ReportDialog";
 import CompressWorker from "@/workers/compress.worker?worker";
@@ -305,95 +305,40 @@ export default function Feed() {
     userRef.current = user;
   }, [user]);
 
-  const handleRefetch = useCallback(() => {
+  const handleRefetch = useCallback(async () => {
     setShowNewPostsBanner(false);
-    setPrependedPosts([]);
-    setHiddenPosts([]);
-    refetchPosts();
+    await refetchPosts();
   }, [refetchPosts]);
 
-  const handleLoadNewPosts = () => {
+  const handleLoadNewPosts = useCallback(() => {
     setPrependedPosts((prev) => [...hiddenPosts, ...prev]);
     setHiddenPosts([]);
     setShowNewPostsBanner(false);
-  };
+  }, [hiddenPosts]);
 
-  useEffect(() => {
-    const channel = supabase
-      .channel("public-posts-insert")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "posts",
-        },
-        async (payload) => {
-          const newRawPost = payload.new;
-          // Ignore posts created by currently authenticated user
-          if (userRef.current && newRawPost.created_by === userRef.current.id) {
-            return;
-          }
-
-          // Fetch the full post with relations
-          const { data, error } = await supabase
-            .from("posts")
-            .select(
-              `
-              id, content, created_at, club_id, is_pinned,
-              profiles (id, full_name, handle),
-              clubs (id, name, club_members (user_id, role)),
-              comments (id, content, created_at, deleted_at, parent_id, parent_comment_id, profiles (id, full_name, handle)),
-              post_reactions (emoji, user_id)
-            `,
-            )
-            .eq("id", newRawPost.id)
-            .single();
-
-          if (!error && data) {
-            const fullPost = data as unknown as Post;
-            setHiddenPosts((prev) => {
-              if (prev.some((p) => p.id === fullPost.id)) return prev;
-              return [fullPost, ...prev];
-            });
-            setShowNewPostsBanner(true);
-          }
-        },
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [supabase]);
-
-  /** Fetch (or re-fetch) comments for a post and store them in lazyComments. */
   const fetchCommentsForPost = useCallback(
-    (postId: string) => {
-      setLoadingCommentPostIds((ids) => new Set([...ids, postId]));
-      supabase
+    async (postId: string) => {
+      if (lazyComments[postId]) return;
+      setLoadingCommentPostIds((prev) => new Set(prev).add(postId));
+
+      const { data, error } = await supabase
         .from("comments")
-        .select(
-          "id, content, created_at, deleted_at, parent_id, parent_comment_id, profiles (id, full_name, handle)",
-        )
+        .select(`id, content, created_at, deleted_at, parent_id, parent_comment_id, profiles (id, full_name, handle)`)
         .eq("post_id", postId)
-        .is("deleted_at", null)
-        .order("created_at", { ascending: true })
-        .then(({ data, error }) => {
-          if (!error && data) {
-            setLazyComments((c) => ({ ...c, [postId]: data as Comment[] }));
-          }
-          setLoadingCommentPostIds((ids) => {
-            const next = new Set(ids);
-            next.delete(postId);
-            return next;
-          });
-        });
+        .order("created_at", { ascending: true });
+
+      if (!error && data) {
+        setLazyComments((prev) => ({ ...prev, [postId]: data as unknown as Comment[] }));
+      }
+      setLoadingCommentPostIds((prev) => {
+        const next = new Set(prev);
+        next.delete(postId);
+        return next;
+      });
     },
-    [supabase],
+    [supabase, lazyComments],
   );
 
-  /** Toggle a post's comment section. On first open, lazily fetches the full thread. */
   const toggleComments = useCallback(
     (postId: string) => {
       setExpandedPostIds((prev) => {
@@ -402,15 +347,27 @@ export default function Feed() {
           next.delete(postId);
         } else {
           next.add(postId);
-          // Only fetch if not already cached
-          if (!lazyComments[postId]) {
-            fetchCommentsForPost(postId);
-          }
+          fetchCommentsForPost(postId);
         }
         return next;
       });
     },
-    [fetchCommentsForPost, lazyComments],
+    [fetchCommentsForPost],
+  );
+
+  const observer = useRef<IntersectionObserver | null>(null);
+  const lastPostElementRef = useCallback(
+    (node: HTMLElement | null) => {
+      if (isLoading || isFetchingNextPage) return;
+      if (observer.current) observer.current.disconnect();
+      observer.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && hasNextPage) {
+          fetchNextPage();
+        }
+      });
+      if (node) observer.current.observe(node);
+    },
+    [isLoading, isFetchingNextPage, fetchNextPage, hasNextPage],
   );
 
   useEffect(() => {
@@ -797,7 +754,7 @@ export default function Feed() {
 
   return (
     <SiteShell>
-      <PullToRefresh isRefreshing={isLoading || isFetching} onRefresh={handleRefetch}>
+      <PullToRefreshContainer onRefresh={handleRefetch}>
         <section className="border-b-2 border-black bg-peach px-4 py-14 md:px-6">
           <div className="mx-auto max-w-4xl">
             <p className="eyebrow font-bold">Discussion feed</p>
@@ -1576,7 +1533,7 @@ export default function Feed() {
             )}
           </div>
         </section>
-      </PullToRefresh>
+      </PullToRefreshContainer>
       <ConfirmModal
         open={!!confirmPostId}
         onCancel={() => setConfirmPostId(null)}
