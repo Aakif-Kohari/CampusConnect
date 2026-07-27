@@ -105,13 +105,10 @@ serve(async (req: Request) => {
       console.error("[login-proxy] Failed to clear login attempts:", clearError);
     }
 
-    return new Response(
-      JSON.stringify({ session: signInData.session, user: signInData.user }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
-    );
+    return new Response(JSON.stringify({ session: signInData.session, user: signInData.user }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (err) {
     console.error("[login-proxy] Unexpected error:", err);
     return new Response(JSON.stringify({ error: "Something went wrong. Please try again." }), {
