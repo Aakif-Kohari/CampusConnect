@@ -34,7 +34,7 @@ import {
 import { SiteShell } from "@/components/site/SiteShell";
 import { createClient } from "@/lib/supabase/client";
 import { calculateReadTime } from "@/utils/readTime";
-import { PullToRefresh } from "@/components/PullToRefresh";
+import { PullToRefreshContainer } from "@/components/PullToRefreshContainer";
 import { useEmailVerification } from "@/hooks/useEmailVerification";
 import { ReportDialog } from "@/components/ReportDialog";
 import CompressWorker from "@/workers/compress.worker?worker";
@@ -305,95 +305,40 @@ export default function Feed() {
     userRef.current = user;
   }, [user]);
 
-  const handleRefetch = useCallback(() => {
+  const handleRefetch = useCallback(async () => {
     setShowNewPostsBanner(false);
-    setPrependedPosts([]);
-    setHiddenPosts([]);
-    refetchPosts();
+    await refetchPosts();
   }, [refetchPosts]);
 
-  const handleLoadNewPosts = () => {
+  const handleLoadNewPosts = useCallback(() => {
     setPrependedPosts((prev) => [...hiddenPosts, ...prev]);
     setHiddenPosts([]);
     setShowNewPostsBanner(false);
-  };
+  }, [hiddenPosts]);
 
-  useEffect(() => {
-    const channel = supabase
-      .channel("public-posts-insert")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "posts",
-        },
-        async (payload) => {
-          const newRawPost = payload.new;
-          // Ignore posts created by currently authenticated user
-          if (userRef.current && newRawPost.created_by === userRef.current.id) {
-            return;
-          }
-
-          // Fetch the full post with relations
-          const { data, error } = await supabase
-            .from("posts")
-            .select(
-              `
-              id, content, created_at, club_id, is_pinned,
-              profiles (id, full_name, handle),
-              clubs (id, name, club_members (user_id, role)),
-              comments (id, content, created_at, deleted_at, parent_id, parent_comment_id, profiles (id, full_name, handle)),
-              post_reactions (emoji, user_id)
-            `,
-            )
-            .eq("id", newRawPost.id)
-            .single();
-
-          if (!error && data) {
-            const fullPost = data as unknown as Post;
-            setHiddenPosts((prev) => {
-              if (prev.some((p) => p.id === fullPost.id)) return prev;
-              return [fullPost, ...prev];
-            });
-            setShowNewPostsBanner(true);
-          }
-        },
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [supabase]);
-
-  /** Fetch (or re-fetch) comments for a post and store them in lazyComments. */
   const fetchCommentsForPost = useCallback(
-    (postId: string) => {
-      setLoadingCommentPostIds((ids) => new Set([...ids, postId]));
-      supabase
+    async (postId: string) => {
+      if (lazyComments[postId]) return;
+      setLoadingCommentPostIds((prev) => new Set(prev).add(postId));
+
+      const { data, error } = await supabase
         .from("comments")
-        .select(
-          "id, content, created_at, deleted_at, parent_id, parent_comment_id, profiles (id, full_name, handle)",
-        )
+        .select(`id, content, created_at, deleted_at, parent_id, parent_comment_id, profiles (id, full_name, handle)`)
         .eq("post_id", postId)
-        .is("deleted_at", null)
-        .order("created_at", { ascending: true })
-        .then(({ data, error }) => {
-          if (!error && data) {
-            setLazyComments((c) => ({ ...c, [postId]: data as Comment[] }));
-          }
-          setLoadingCommentPostIds((ids) => {
-            const next = new Set(ids);
-            next.delete(postId);
-            return next;
-          });
-        });
+        .order("created_at", { ascending: true });
+
+      if (!error && data) {
+        setLazyComments((prev) => ({ ...prev, [postId]: data as unknown as Comment[] }));
+      }
+      setLoadingCommentPostIds((prev) => {
+        const next = new Set(prev);
+        next.delete(postId);
+        return next;
+      });
     },
-    [supabase],
+    [supabase, lazyComments],
   );
 
-  /** Toggle a post's comment section. On first open, lazily fetches the full thread. */
   const toggleComments = useCallback(
     (postId: string) => {
       setExpandedPostIds((prev) => {
@@ -402,15 +347,27 @@ export default function Feed() {
           next.delete(postId);
         } else {
           next.add(postId);
-          // Only fetch if not already cached
-          if (!lazyComments[postId]) {
-            fetchCommentsForPost(postId);
-          }
+          fetchCommentsForPost(postId);
         }
         return next;
       });
     },
-    [fetchCommentsForPost, lazyComments],
+    [fetchCommentsForPost],
+  );
+
+  const observer = useRef<IntersectionObserver | null>(null);
+  const lastPostElementRef = useCallback(
+    (node: HTMLElement | null) => {
+      if (isLoading || isFetchingNextPage) return;
+      if (observer.current) observer.current.disconnect();
+      observer.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && hasNextPage) {
+          fetchNextPage();
+        }
+      });
+      if (node) observer.current.observe(node);
+    },
+    [isLoading, isFetchingNextPage, fetchNextPage, hasNextPage],
   );
 
   useEffect(() => {
@@ -426,6 +383,28 @@ export default function Feed() {
           }
         }
         refetchPosts();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "comments" }, (payload) => {
+        // Bust the lazy cache for the affected post so the next expand re-fetches fresh data
+        const postId =
+          (payload.new as { post_id?: string })?.post_id ??
+          (payload.old as { post_id?: string })?.post_id;
+        if (postId) {
+          if (payload.eventType === "INSERT" && payload.new) {
+            // Merge new comment directly into state — no full refetch needed
+            setLazyComments((prev) => {
+              if (!prev[postId]) return prev; // not expanded yet, skip
+              return { ...prev, [postId]: [...prev[postId], payload.new as Comment] };
+            });
+          } else {
+            // For UPDATE/DELETE bust the cache so next expand re-fetches
+            setLazyComments((prev) => {
+              const next = { ...prev };
+              delete next[postId];
+              return next;
+            });
+          }
+        }
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "post_reactions" }, () => {
         refetchPosts();
@@ -650,13 +629,11 @@ export default function Feed() {
       }
     },
     onSuccess: (_data, variables) => {
-      // Bust the lazy cache for this post so the new comment appears on re-fetch
-      setLazyComments((prev) => {
-        const next = { ...prev };
-        delete next[variables.postId];
-        return next;
-      });
-      refetchPosts();
+      // The realtime subscription will merge the new comment into lazyComments.
+      // Only refetch posts if the comment section for this post isn't open yet.
+      if (!expandedPostIds.has(variables.postId)) {
+        refetchPosts();
+      }
     },
     onError: (error) => {
       toast.error(error.message || "Failed to post comment. Please try again.");
@@ -797,7 +774,7 @@ export default function Feed() {
 
   return (
     <SiteShell>
-      <PullToRefresh isRefreshing={isLoading || isFetching} onRefresh={handleRefetch}>
+      <PullToRefreshContainer onRefresh={handleRefetch}>
         <section className="border-b-2 border-black bg-peach px-4 py-14 md:px-6">
           <div className="mx-auto max-w-4xl">
             <p className="eyebrow font-bold">Discussion feed</p>
@@ -1001,12 +978,63 @@ export default function Feed() {
                 ))}
               </div>
             ) : filteredPosts.length === 0 ? (
+
+              <div
+                className="neu-border relative overflow-hidden bg-white px-6 py-12 text-center sm:px-10 sm:py-16"
+                role="status"
+                aria-live="polite"
+              >
+                <div
+                  className="absolute -left-6 -top-6 h-24 w-24 rotate-12 border-2 border-black bg-lime"
+                  aria-hidden="true"
+                />
+                <div
+                  className="absolute -bottom-8 -right-6 h-28 w-28 -rotate-12 border-2 border-black bg-peach"
+                  aria-hidden="true"
+                />
+
+                <div className="relative mx-auto flex max-w-xl flex-col items-center">
+                  <div className="relative mb-6" aria-hidden="true">
+                    <div className="neu-border flex h-24 w-24 items-center justify-center bg-lime sm:h-28 sm:w-28">
+                      <MessageCircle className="h-12 w-12 sm:h-14 sm:w-14" strokeWidth={2.5} />
+                    </div>
+                    <div className="neu-border absolute -right-4 -top-4 flex h-10 w-10 items-center justify-center bg-peach">
+                      <Sparkles className="h-5 w-5" strokeWidth={2.5} />
+                    </div>
+                  </div>
+
+                  <p className="mb-3 font-mono text-xs font-bold uppercase tracking-[0.2em]">
+                    The conversation starts here
+                  </p>
+                  <h2 className="text-2xl font-bold sm:text-3xl">
+                    {searchQuery
+                      ? "No posts match your search query."
+                      : "No posts yet. Be the first to start a discussion!"}
+                  </h2>
+                  <p className="mt-4 max-w-md font-mono text-sm leading-relaxed text-gray-700">
+                    Share an announcement, ask a question, or post an update for your club
+                    community.
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      editorRef.current?.focusWrite();
+                    }}
+                    className="neu-border mt-7 inline-flex items-center gap-2 bg-black px-4 py-2 font-mono text-xs font-bold uppercase text-cream transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-black"
+                  >
+                    <PenLine className="h-4 w-4" aria-hidden="true" />
+                    Start a discussion
+                  </button>
+                </div>
+              </div>
               <DiscussionEmptyState
                 searchQuery={searchQuery}
                 onStartDiscussion={() => {
                   editorRef.current?.focusWrite();
                 }}
               />
+
             ) : (
               <div
                 ref={parentRef}
@@ -1576,7 +1604,7 @@ export default function Feed() {
             )}
           </div>
         </section>
-      </PullToRefresh>
+      </PullToRefreshContainer>
       <ConfirmModal
         open={!!confirmPostId}
         onCancel={() => setConfirmPostId(null)}
