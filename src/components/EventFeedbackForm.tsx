@@ -2,7 +2,9 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useQuery, useMutation } from "@/hooks/useReactQueryReplacement";
+
 import { StarRating } from "@/components/ui/star-rating";
+
 import { User } from "@supabase/supabase-js";
 
 interface EventFeedbackFormProps {
@@ -122,7 +124,7 @@ const [rating, setRating] = useState<number>(0);
       <button
         type="submit"
         disabled={rating === 0 || submitMutation.isPending}
-        className="neu-border neu-press bg-black px-6 py-3 font-mono text-sm font-bold uppercase text-white transition-transform hover:-translate-y-1 disabled:opacity-50 disabled:hover:translate-y-0"
+        className="neu-border neu-press bg-black px-4 py-2 font-mono text-sm font-bold uppercase text-white transition-transform hover:-translate-y-1 disabled:opacity-50 disabled:hover:translate-y-0"
       >
         {submitMutation.isPending ? "Submitting..." : "Submit Feedback"}
       </button>
