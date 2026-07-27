@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
+import { usePresenceCount } from "@/hooks/use-presence-count";
 
 // Small building block for the skeleton below. Deliberately a plain div
 // (not the shared ui/skeleton component) to keep this change self-contained.
@@ -93,6 +94,8 @@ function ClubProfile() {
     },
   });
 
+  const { count: onlineCount, ready: presenceReady } = usePresenceCount(club?.id);
+
   const joinMutation = useMutation({
     mutationFn: async () => {
       if (!user || !club) throw new Error("Must be logged in");
@@ -134,7 +137,15 @@ function ClubProfile() {
       <section className="border-b-2 border-black bg-lime px-4 py-14 md:px-6">
         <div className="mx-auto max-w-6xl">
           <p className="eyebrow font-bold">Club</p>
-          <h1 className="mt-2 text-5xl font-bold md:text-7xl">{club.name}</h1>
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            <h1 className="text-5xl font-bold md:text-7xl">{club.name}</h1>
+            {presenceReady ? (
+              <span className="flex items-center gap-1.5 rounded-full bg-white/70 px-3 py-1 font-mono text-xs font-bold">
+                <span className="h-2 w-2 rounded-full bg-green-500" aria-hidden="true" />
+                {onlineCount} {onlineCount === 1 ? "member" : "members"} online
+              </span>
+            ) : null}
+          </div>
           <p className="mt-4 max-w-2xl font-mono text-sm md:text-base">{club.description}</p>
           <div className="mt-6 flex flex-wrap gap-3">
             <button
