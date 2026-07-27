@@ -20,8 +20,16 @@ jobs:
           script: |
             const { owner, repo } = context.repo;
 
-            async function processPR(prNumber) {
+            async function processPR(prNumber, prBody) {
               console.log(`\nEvaluating PR #${prNumber}`);
+              
+              const body = prBody || "";
+              const hasClosingKeyword = /(close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+(#\d+|https:\/\/github\.com\/[^\/]+\/[^\/]+\/issues\/\d+)/i.test(body);
+
+              if (!hasClosingKeyword) {
+                console.log(`PR #${prNumber} does not contain closing/fixing keywords (e.g. 'closes #123'). Skipping.`);
+                return false;
+              }
               
               let mergeable = null;
               let mergeableState = null;
@@ -102,6 +110,7 @@ jobs:
                       merge_method: 'squash'
                     });
                     console.log(`✅ Successfully merged PR #${prNumber}`);
+                    return true;
                   } catch (e) {
                     console.error(`❌ Failed to auto-merge PR #${prNumber}:`, e.message);
                   }
@@ -119,6 +128,7 @@ jobs:
                   await removeLabel("Blue");
                 }
               }
+              return false;
             }
 
             console.log("Manual trigger detected. Entering continuous auto-merge loop...");
@@ -126,6 +136,8 @@ jobs:
               console.log("Fetching all open PRs...");
               let page = 1;
               let hasMore = true;
+              let anyMerged = false;
+              
               while (hasMore) {
                 const { data: openPRs } = await github.rest.pulls.list({
                   owner,
@@ -134,18 +146,29 @@ jobs:
                   per_page: 100,
                   page
                 });
+                
                 for (const pr of openPRs) {
-                  await processPR(pr.number);
+                  const wasMerged = await processPR(pr.number, pr.body);
+                  if (wasMerged) {
+                    anyMerged = true;
+                    // Randomize time between 1 and 5 minutes (60000ms to 300000ms)
+                    const min = 60000;
+                    const max = 300000;
+                    const waitTime = Math.floor(Math.random() * (max - min + 1)) + min;
+                    console.log(`Waiting for ${Math.round(waitTime / 1000)} seconds before evaluating the next PR...`);
+                    await new Promise(r => setTimeout(r, waitTime));
+                  }
                 }
+                
                 if (openPRs.length < 100) hasMore = false;
                 page++;
               }
+              
               console.log("✅ Finished processing all open PRs for this cycle.");
               
-              // Randomize time between 1 and 5 minutes (60000ms to 300000ms)
-              const min = 60000;
-              const max = 300000;
-              const waitTime = Math.floor(Math.random() * (max - min + 1)) + min;
-              console.log(`Waiting for ${Math.round(waitTime / 1000)} seconds before next cycle...`);
-              await new Promise(r => setTimeout(r, waitTime));
+              if (!anyMerged) {
+                // If nothing was merged in this cycle, wait a bit before checking again to avoid spamming the API
+                console.log("No PRs were merged in this cycle. Sleeping for 1 minute before checking again...");
+                await new Promise(r => setTimeout(r, 60000));
+              }
             }
