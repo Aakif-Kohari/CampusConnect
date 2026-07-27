@@ -33,6 +33,7 @@ import ForgotPassword from "./routes/forgot-password";
 import ResetPassword from "./routes/reset-password";
 import Settings from "./routes/settings";
 import VerifyEmail from "./routes/verify-email";
+import PasskeyCallback from "./routes/auth.passkey-callback";
 import PendingClubsAdmin from "./routes/admin.clubs.pending";
 import AdminReportsPage from "./routes/admin.reports";
 import { NotFoundPage } from "./components/NotFoundPage";
@@ -158,6 +159,7 @@ const router = createBrowserRouter(
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
+        <Route path="/auth/passkey-callback" element={<PasskeyCallback />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/admin/clubs/pending" element={<PendingClubsAdmin />} />
         <Route path="/admin/reports" element={<AdminReportsPage />} />

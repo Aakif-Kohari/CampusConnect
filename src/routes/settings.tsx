@@ -35,6 +35,7 @@ import {
   FormControl,
   FormMessage,
 } from "@/components/ui/form";
+import { PasskeyManager } from "@/components/PasskeyManager";
 
 const FONT_SIZE_KEY = "campusconnect-font-size";
 
@@ -562,33 +563,30 @@ export default function SettingsPage() {
                   <button
                     type="button"
                     onClick={() => setTheme("light")}
-                    className={`neu-border neu-press px-4 py-2 font-mono text-xs font-bold uppercase ${
-                      theme === "light"
-                        ? "bg-black text-cream dark:bg-cream dark:text-black"
-                        : "bg-white text-black hover:bg-lime dark:bg-brand-gray-base-800 dark:text-cream"
-                    }`}
+                    className={`neu-border neu-press px-4 py-2 font-mono text-xs font-bold uppercase ${theme === "light"
+                      ? "bg-black text-cream dark:bg-cream dark:text-black"
+                      : "bg-white text-black hover:bg-lime dark:bg-brand-gray-base-800 dark:text-cream"
+                      }`}
                   >
                     ☀️ Light
                   </button>
                   <button
                     type="button"
                     onClick={() => setTheme("dark")}
-                    className={`neu-border neu-press px-4 py-2 font-mono text-xs font-bold uppercase ${
-                      theme === "dark"
-                        ? "bg-black text-cream dark:bg-cream dark:text-black"
-                        : "bg-white text-black hover:bg-lime dark:bg-brand-gray-base-800 dark:text-cream"
-                    }`}
+                    className={`neu-border neu-press px-4 py-2 font-mono text-xs font-bold uppercase ${theme === "dark"
+                      ? "bg-black text-cream dark:bg-cream dark:text-black"
+                      : "bg-white text-black hover:bg-lime dark:bg-brand-gray-base-800 dark:text-cream"
+                      }`}
                   >
                     🌙 Dark
                   </button>
                   <button
                     type="button"
                     onClick={() => setTheme("system")}
-                    className={`neu-border neu-press px-4 py-2 font-mono text-xs font-bold uppercase ${
-                      theme === "system"
-                        ? "bg-black text-cream dark:bg-cream dark:text-black"
-                        : "bg-white text-black hover:bg-lime dark:bg-brand-gray-base-800 dark:text-cream"
-                    }`}
+                    className={`neu-border neu-press px-4 py-2 font-mono text-xs font-bold uppercase ${theme === "system"
+                      ? "bg-black text-cream dark:bg-cream dark:text-black"
+                      : "bg-white text-black hover:bg-lime dark:bg-brand-gray-base-800 dark:text-cream"
+                      }`}
                   >
                     💻 System
                   </button>
@@ -657,6 +655,10 @@ export default function SettingsPage() {
                 Reset
               </button>
             </div>
+          </Panel>
+
+          <Panel title="Passkeys">
+            <PasskeyManager />
           </Panel>
 
           <Panel title="Notifications">
@@ -777,11 +779,10 @@ function AvatarThemePicker({
               aria-label={`${theme.label} gradient`}
               aria-pressed={isSelected}
               title={theme.label}
-              className={`h-10 w-10 rounded-full border-2 border-black transition-transform ${theme.gradient} ${
-                isSelected
-                  ? "scale-110 ring-4 ring-black ring-offset-2 ring-offset-white"
-                  : "hover:scale-105"
-              }`}
+              className={`h-10 w-10 rounded-full border-2 border-black transition-transform ${theme.gradient} ${isSelected
+                ? "scale-110 ring-4 ring-black ring-offset-2 ring-offset-white"
+                : "hover:scale-105"
+                }`}
             />
           );
         })}
@@ -1041,13 +1042,12 @@ function AvatarUpload({ name, avatarTheme }: { name: string; avatarTheme?: Avata
             }
           }}
           aria-label="Upload profile picture. Click to browse, or drag and drop an image."
-          className={`neu-border flex cursor-pointer flex-col items-center justify-center gap-1.5 border-2 border-dashed p-5 text-center transition-colors duration-150 ${
-            uploading
-              ? "cursor-not-allowed border-black bg-gray-100 opacity-70"
-              : isDragging
-                ? "border-black bg-lime/40 scale-[1.01]"
-                : "border-black bg-white hover:bg-cream"
-          }`}
+          className={`neu-border flex cursor-pointer flex-col items-center justify-center gap-1.5 border-2 border-dashed p-5 text-center transition-colors duration-150 ${uploading
+            ? "cursor-not-allowed border-black bg-gray-100 opacity-70"
+            : isDragging
+              ? "border-black bg-lime/40 scale-[1.01]"
+              : "border-black bg-white hover:bg-cream"
+            }`}
         >
           {uploading ? (
             <Loader2 className="h-6 w-6 animate-spin" aria-hidden="true" />

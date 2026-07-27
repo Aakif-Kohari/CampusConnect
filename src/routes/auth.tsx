@@ -9,6 +9,8 @@ import { toast } from "sonner";
 import { PasswordInput } from "@/components/ui/password-input";
 import { sendVerificationEmail } from "@/lib/email/service";
 import { getFriendlyAuthError } from "@/utils/authErrors";
+import { PasskeyLoginButton } from "@/components/PasskeyLoginButton";
+import { useWebAuthn } from "@/hooks/useWebAuthn";
 
 export default function AuthPage() {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
@@ -17,6 +19,7 @@ export default function AuthPage() {
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
   const supabase = createClient();
+  const { registerPasskey } = useWebAuthn();
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -65,6 +68,18 @@ export default function AuthPage() {
         });
 
         toast.success("Account created! A verification link has been sent to your email.");
+
+        if (signUpData?.session) {
+          try {
+            const enrolled = await registerPasskey("Passkey");
+            if (enrolled) {
+              toast.success("Passkey registered successfully!");
+            }
+          } catch (e) {
+            console.error("Passkey enrollment skipped or failed", e);
+          }
+        }
+
         navigate("/dashboard", { replace: true });
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({
@@ -239,6 +254,19 @@ export default function AuthPage() {
             >
               Continue with Google
             </Button>
+
+            {mode === "signin" && (
+              <div className="mt-3">
+                <PasskeyLoginButton
+                  disabled={loading}
+                  onSuccess={() => navigate("/dashboard", { replace: true })}
+                  onError={(msg) => {
+                    setError(msg);
+                    toast.error(msg);
+                  }}
+                />
+              </div>
+            )}
 
             <p className="mt-6 text-center font-mono text-xs text-black">
               {mode === "signin" ? "New here?" : "Already have an account?"}{" "}
