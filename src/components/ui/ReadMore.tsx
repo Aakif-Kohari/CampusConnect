@@ -24,7 +24,7 @@ export function ReadMore({ text, className }: ReadMoreProps) {
         ref={textRef}
         className={cn(
           "text-sm leading-6 text-gray-800 transition-all duration-300 ease-in-out",
-          !isExpanded && "line-clamp-4"
+          !isExpanded && "line-clamp-4",
         )}
       >
         {text}

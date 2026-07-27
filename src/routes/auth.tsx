@@ -59,7 +59,7 @@ export default function AuthPage() {
     signUpForm.reset();
   }
 
-async function onSignIn(values: SignInFormValues) {
+  async function onSignIn(values: SignInFormValues) {
     setLoading(true);
     setError(null);
 

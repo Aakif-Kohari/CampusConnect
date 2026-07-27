@@ -175,7 +175,7 @@ export function EventCard({
 
   const [ticketOpen, setTicketOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
-const shouldTruncate = !!event.description && event.description.length > 220;
+  const shouldTruncate = !!event.description && event.description.length > 220;
 
   const displayedDescription =
     shouldTruncate && !isDescriptionExpanded
@@ -312,7 +312,7 @@ const shouldTruncate = !!event.description && event.description.length > 220;
         </Link>
         <p className="mt-1 font-mono text-sm font-bold text-blue-900">{club?.name}</p>
 
-{event.description ? (
+        {event.description ? (
           <div className="mt-4">
             <ReadMore text={event.description} />
           </div>

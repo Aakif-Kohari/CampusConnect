@@ -39,7 +39,8 @@ export default defineConfig({
           singleton: true,
           requiredVersion: "^19.2.0",
         },
-}),
+      },
+    }),
     // Generates dist/stats.html showing what's actually in the production
     // bundle (run with `npm run build:analyze`). Used to verify lucide-react
     // icons are being tree-shaken down to only the ones we import.
@@ -50,7 +51,8 @@ export default defineConfig({
         brotliSize: true,
         template: "treemap",
       }),
-  ],  resolve: {
+  ],
+  resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
@@ -60,7 +62,7 @@ export default defineConfig({
     chunkSizeWarningLimit: 1000,
     rolldownOptions: {
       output: {
-manualChunks(id) {
+        manualChunks(id) {
           if (id.includes("node_modules")) {
             if (id.includes("react") || id.includes("react-dom")) {
               return "vendor-react";
@@ -70,7 +72,8 @@ manualChunks(id) {
             }
             return "vendor";
           }
-        },      },
+        },
+      },
     },
   },
 });

@@ -13,7 +13,7 @@ interface EventFeedbackFormProps {
 }
 export default function EventFeedbackForm({ eventId, user }: EventFeedbackFormProps) {
   const supabase = createClient();
-const [rating, setRating] = useState<number>(0);
+  const [rating, setRating] = useState<number>(0);
   const [comment, setComment] = useState("");
   const {
     data: existingFeedback,
@@ -73,9 +73,10 @@ const [rating, setRating] = useState<number>(0);
     return (
       <div className="neu-border bg-brand-green-bg p-6 mb-8">
         <h3 className="font-display text-xl font-bold uppercase mb-4 text-black">Your Feedback</h3>
-<div className="mb-4">
+        <div className="mb-4">
           <StarRating value={existingFeedback.rating} readOnly size={24} />
-        </div>        {existingFeedback.comment && (
+        </div>{" "}
+        {existingFeedback.comment && (
           <p className="font-mono text-sm text-gray-800 bg-white p-4 neu-border">
             {existingFeedback.comment}
           </p>
@@ -98,7 +99,7 @@ const [rating, setRating] = useState<number>(0);
         <label className="block font-mono text-sm font-bold mb-2 uppercase">
           Rating (Required)
         </label>
-<div className="flex gap-1">
+        <div className="flex gap-1">
           <StarRating
             value={rating}
             onChange={setRating}
@@ -106,7 +107,8 @@ const [rating, setRating] = useState<number>(0);
             size={32}
             label="Event rating"
           />
-        </div>      </div>
+        </div>{" "}
+      </div>
 
       <div className="mb-6">
         <label htmlFor="comment" className="block font-mono text-sm font-bold mb-2 uppercase">
