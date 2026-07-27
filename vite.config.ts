@@ -4,9 +4,10 @@ import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
 import { fileURLToPath } from "url";
-import { visualizer } from "rollup-plugin-visualizer";
-// @ts-expect-error - module-federation types may not be loaded in standard editor config
 import { federation } from "@module-federation/vite";
+import { visualizer } from "rollup-plugin-visualizer";
+import { VitePWA } from "vite-plugin-pwa";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -41,21 +42,20 @@ export default defineConfig({
         },
       },
     }),
-    // Generates dist/stats.html showing what's actually in the production
-    // bundle (run with `npm run build:analyze`). Used to verify lucide-react
-    // icons are being tree-shaken down to only the ones we import.
-    process.env.ANALYZE === "true" &&
-      visualizer({
-        filename: "dist/stats.html",
-        gzipSize: true,
-        brotliSize: true,
-        template: "treemap",
-      }),
+    visualizer({
+      filename: "stats.html",
+      gzipSize: true,
+      brotliSize: true,
+    }),
   ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "pdf-lib": path.resolve(__dirname, "./node_modules/pdf-lib/dist/pdf-lib.esm.js"),
     },
+  },
+  optimizeDeps: {
+    include: ["pdf-lib"],
   },
   build: {
     target: "esnext",
