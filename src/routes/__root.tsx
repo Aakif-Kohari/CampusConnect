@@ -9,9 +9,14 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
+import { wireToastSounds } from "@/lib/audio/wireToastSounds";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { createClient } from "../lib/supabase/client";
+
+// Must run before any toast.success/toast.error call fires anywhere in the
+// app — see wireToastSounds.ts for why importing it at the root is enough.
+wireToastSounds();
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
