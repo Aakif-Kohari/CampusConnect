@@ -8,8 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { ThemeProvider } from "@/components/theme-provider";
 import TopProgressBar from "@/components/TopProgressBar";
 import ShortcutsModal from "@/components/ShortcutsModal";
-import { WebRTCProvider } from "@/components/VideoCall/WebRTCProvider";
-import { CommandPalette } from "@/components/ui/command-palette";
+import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 
 // Persistent banner shown while the browser has no network connection.
 function OfflineBanner() {
@@ -128,7 +127,7 @@ export default function Layout() {
           <TopProgressBar />
 
           <ShortcutsModal open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
-          <CommandPalette />
+          <PWAInstallPrompt />
 
           <Outlet />
           <Toaster />

@@ -12,9 +12,7 @@ describe("EmptyState Component", () => {
     );
 
     expect(screen.getByRole("heading", { name: /no upcoming events/i })).toBeInTheDocument();
-    expect(
-      screen.getByText("This club hasn't scheduled anything yet."),
-    ).toBeInTheDocument();
+    expect(screen.getByText("This club hasn't scheduled anything yet.")).toBeInTheDocument();
   });
 
   it("renders action button and handles onClick event", () => {
@@ -36,10 +34,7 @@ describe("EmptyState Component", () => {
 
   it("renders action link with correct href attribute", () => {
     render(
-      <EmptyState
-        title="No clubs found"
-        action={{ label: "Explore Clubs", href: "/clubs" }}
-      />,
+      <EmptyState title="No clubs found" action={{ label: "Explore Clubs", href: "/clubs" }} />,
     );
 
     const link = screen.getByRole("link", { name: /explore clubs/i });
