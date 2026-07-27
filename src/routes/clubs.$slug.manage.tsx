@@ -6,7 +6,12 @@ import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { User } from "@supabase/supabase-js";
 import { Settings, Users, Calendar, ShieldCheck, XCircle, CheckCircle } from "lucide-react";
+import { PromoVideoUploader } from "@/components/PromoVideoUploader";
 import { ClubManageSkeleton } from "@/components/DashboardWidgetSkeleton";
+import { ImageCropUpload } from "@/components/ImageCropUpload";
+
+// ⚠️ Adjust if your Supabase Storage bucket for club banners has a different name
+const BUCKET_NAME = "club-banners";
 
 export default function ClubManageRoute() {
   const { slug = "" } = useParams();
@@ -25,6 +30,7 @@ export default function ClubManageRoute() {
   const [twitterUrl, setTwitterUrl] = useState("");
   const [instagramUrl, setInstagramUrl] = useState("");
   const [websiteUrl, setWebsiteUrl] = useState("");
+  const [promoVideoUrl, setPromoVideoUrl] = useState("");
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
@@ -43,7 +49,7 @@ export default function ClubManageRoute() {
         .from("clubs")
         .select(
           `
-          id, name, slug, description, banner_url, logo_url, visibility, github_repo_url, social_links,
+          id, name, slug, description, banner_url, logo_url, visibility, github_repo_url, social_links, promo_video_url,
           club_members (id, role, status, user_id, profiles (full_name, avatar_url, handle)),
           events (id, title, event_date, max_attendees, event_rsvps(id))
         `,
@@ -77,6 +83,7 @@ export default function ClubManageRoute() {
       setTwitterUrl(links.twitter || "");
       setInstagramUrl(links.instagram || "");
       setWebsiteUrl(links.website || "");
+      setPromoVideoUrl(club.promo_video_url || "");
     }
   }, [club]);
 
@@ -110,6 +117,7 @@ export default function ClubManageRoute() {
           description,
           banner_url: bannerUrl,
           logo_url: logoUrl,
+          promo_video_url: promoVideoUrl || null,
           visibility,
           github_repo_url: githubRepo,
           social_links: socialLinks,
@@ -249,12 +257,14 @@ export default function ClubManageRoute() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="font-mono text-sm font-bold uppercase mb-1 block">
-                        Banner URL
+                        Banner Image
                       </label>
-                      <input
-                        value={bannerUrl}
-                        onChange={(e) => setBannerUrl(e.target.value)}
-                        className="neu-border w-full p-2 font-mono text-sm"
+                      <ImageCropUpload
+                        aspect={16 / 9}
+                        bucket={BUCKET_NAME}
+                        value={bannerUrl || undefined}
+                        onUploaded={(url) => setBannerUrl(url)}
+                        hint="JPEG, PNG, WEBP — max 5MB · 16:9 crop"
                       />
                     </div>
                     <div>
@@ -267,6 +277,13 @@ export default function ClubManageRoute() {
                         className="neu-border w-full p-2 font-mono text-sm"
                       />
                     </div>
+                  </div>
+                  <div className="pt-2 pb-2">
+                    <PromoVideoUploader
+                      clubId={club.id}
+                      initialVideoUrl={promoVideoUrl}
+                      onUploadComplete={(url) => setPromoVideoUrl(url || "")}
+                    />
                   </div>
                   <div>
                     <label className="font-mono text-sm font-bold uppercase mb-1 block">
@@ -438,7 +455,7 @@ export default function ClubManageRoute() {
                       }) => (
                         <div
                           key={e.id}
-                          className="neu-border p-4 flex items-center justify-between hover:bg-gray-50"
+                          className="neu-border p-4 flex items-center justify-between hover:bg-gray-50 flex-wrap gap-4"
                         >
                           <div>
                             <p className="font-bold font-display text-lg">{e.title}</p>
@@ -446,12 +463,20 @@ export default function ClubManageRoute() {
                               RSVPs: {e.event_rsvps?.length || 0} / {e.max_attendees || "∞"}
                             </p>
                           </div>
-                          <button
-                            onClick={() => navigate(`/events/${e.id}`)}
-                            className="neu-border neu-press bg-black text-white px-4 py-2 font-mono text-xs font-bold uppercase hover:-translate-y-1 transition-transform"
-                          >
-                            View Event
-                          </button>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => navigate(`/events/${e.id}/dashboard`)}
+                              className="neu-border neu-press bg-lime text-black px-4 py-2 font-mono text-xs font-bold uppercase hover:-translate-y-1 transition-transform"
+                            >
+                              Insights
+                            </button>
+                            <button
+                              onClick={() => navigate(`/events/${e.id}`)}
+                              className="neu-border neu-press bg-black text-white px-4 py-2 font-mono text-xs font-bold uppercase hover:-translate-y-1 transition-transform"
+                            >
+                              View Event
+                            </button>
+                          </div>
                         </div>
                       ),
                     )

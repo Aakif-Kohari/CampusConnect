@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import NotificationItem from "./NotificationItem";
 import { createClient } from "../../lib/supabase/client";
+import { useSupabaseSubscription } from "@/hooks/useSupabaseSubscription";
 const mockNotifications = [
   {
     id: "1",
@@ -58,51 +59,13 @@ export const NavbarNotificationDropdown: React.FC = () => {
       }
 
       setUserId(user.id);
-
-      const { count, error } = await supabase
-        .from("notifications")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .is("read_at", null);
-
-      if (!error && count !== null) {
-        setUnreadCount(count);
-      }
     }
 
     fetchUnreadCount();
   }, []);
 
-  // 2. Real-time Supabase subscription for live unread updates
-  useEffect(() => {
-    if (!userId) return;
-
-    const channel = supabase
-      .channel("realtime_notifications")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "notifications",
-          filter: `user_id=eq.${userId}`,
-        },
-        async () => {
-          const { count } = await supabase
-            .from("notifications")
-            .select("*", { count: "exact", head: true })
-            .eq("user_id", userId)
-            .is("read_at", null);
-
-          if (count !== null) setUnreadCount(count);
-        },
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [userId]);
+  // Realtime subscription disabled until notifications table exists in schema
+  useSupabaseSubscription({ table: "notifications", enabled: false });
 
   const filteredNotifications = notifications.filter(
     (n) =>
@@ -119,26 +82,11 @@ export const NavbarNotificationDropdown: React.FC = () => {
     setUnreadCount((prev) => Math.max(0, prev - 1));
 
     // Optional: update Supabase read_at if authenticated
-    if (userId) {
-      await supabase
-        .from("notifications")
-        .update({ read_at: new Date().toISOString() })
-        .eq("id", id)
-        .eq("user_id", userId);
-    }
   };
 
   const handleMarkAllAsRead = async () => {
     setNotifications(notifications.map((n) => ({ ...n, isRead: true })));
     setUnreadCount(0);
-
-    if (userId) {
-      await supabase
-        .from("notifications")
-        .update({ read_at: new Date().toISOString() })
-        .eq("user_id", userId)
-        .is("read_at", null);
-    }
   };
 
   useEffect(() => {
