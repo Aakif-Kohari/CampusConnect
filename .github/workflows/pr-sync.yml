@@ -54,7 +54,23 @@ jobs:
               }
               
               // Get Labels
-              const labels = issue.labels.map(l => l.name);
+              let labels = issue.labels.map(l => l.name);
+              
+              // Wait for auto-labeler to add labels (race condition check)
+              let retries = 0;
+              while (labels.length === 0 && retries < 5) {
+                console.log('No labels found on issue, waiting 5s for auto-labeler...');
+                await new Promise(r => setTimeout(r, 5000));
+                
+                const { data: updatedIssue } = await github.rest.issues.get({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber
+                });
+                labels = updatedIssue.labels.map(l => l.name);
+                retries++;
+              }
+              
               if (labels.length > 0) {
                 console.log(`Adding labels to PR: ${labels.join(', ')}`);
                 try {
