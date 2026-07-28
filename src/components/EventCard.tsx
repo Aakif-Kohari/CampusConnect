@@ -16,6 +16,7 @@ import { EventRSVPButton } from "@/components/EventRSVPButton";
 import { ReadMore } from "@/components/ui/ReadMore";
 interface Event {
   id: string;
+  short_id?: string | null;
   title: string;
   description: string | null;
   event_date: string | null;
@@ -277,6 +278,22 @@ export function EventCard({
             )}
           </div>
 
+      <p className="mt-3 font-mono text-xs font-bold uppercase text-black">Event</p>
+      <Link to={`/events/${event.short_id || event.id}`} className="group">
+        <h2 className="mt-1 text-2xl font-black group-hover:underline text-violet-900">
+          {event.title}
+        </h2>
+      </Link>
+      <p className="mt-1 font-mono text-sm font-bold text-blue-900">{club?.name}</p>
+
+      {event.description ? (
+        <p className="mt-4 text-sm leading-6 text-gray-800">{event.description}</p>
+      ) : null}
+
+      <dl className="mt-5 grid gap-4 sm:grid-cols-3">
+        <div>
+          <dt className="font-mono text-xs font-bold uppercase text-black">Date &amp; Time</dt>
+          <dd className="mt-1 text-sm text-red-900">{formatEventDateRange(event)}</dd>
           <div className="flex gap-2 relative z-10">
             <button
               type="button"
