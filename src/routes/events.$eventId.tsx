@@ -11,6 +11,7 @@ import { MapSkeleton } from "@/components/ui/MapSkeleton";
 const EventMap = lazy(() => import("@/components/EventMap").then((m) => ({ default: m.EventMap })));
 import { formatEventDateRange } from "@/lib/utils";
 import { downloadIcs, getGoogleCalendarUrl } from "@/lib/calendarUtils";
+import { EventCapacityGauge } from "@/components/events/EventCapacityGauge";
 import { formatStandardDate } from "@/utils/dateUtils";
 import { toast } from "sonner";
 import { ShareMenu } from "@/components/ui/ShareMenu";
@@ -1069,6 +1070,15 @@ export default function EventDetailsPage() {
               <Users className="h-5 w-5" />
               <span>{attendeeCount} RSVP&apos;d</span>
             </div>
+          </div>
+
+          <div className="mt-6 max-w-md">
+            <EventCapacityGauge
+              eventId={event.id}
+              initialCapacity={attendeeCount}
+              maxAttendees={maxAttendees || null}
+              showDetails={true}
+            />
           </div>
 
           <div className="mt-8 hidden items-center gap-4 md:flex">

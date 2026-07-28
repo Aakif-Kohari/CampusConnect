@@ -13,7 +13,8 @@ import { TicketDialog } from "@/components/ui/ticket-modal";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { EventRSVPButton } from "@/components/EventRSVPButton";
-import { ReadMore } from "@/components/ui/ReadMore";
+import { EventCapacityGauge } from "@/components/events/EventCapacityGauge";
+
 interface Event {
   id: string;
   short_id?: string | null;
@@ -25,6 +26,7 @@ interface Event {
   location: string | null;
   banner_url?: string | null;
   created_at?: string | null;
+  max_attendees?: number | null;
   clubs: { name: string } | { name: string }[] | null;
   event_rsvps: { id: string; user_id: string }[] | null;
   saved_events: { id: string; user_id: string }[] | null;
@@ -334,6 +336,15 @@ export function EventCard({
           </div>
         ) : null}
         <EventProgressBar createdAt={event.created_at} eventDate={event.event_date} />
+
+        <div className="mt-4">
+          <EventCapacityGauge
+            eventId={event.id}
+            initialCapacity={rsvps.length}
+            maxAttendees={event.max_attendees || null}
+            showDetails={true}
+          />
+        </div>
 
         <dl className="mt-5 grid gap-4 sm:grid-cols-3">
           <div>
