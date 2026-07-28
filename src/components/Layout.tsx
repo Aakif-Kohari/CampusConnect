@@ -10,6 +10,40 @@ import TopProgressBar from "@/components/TopProgressBar";
 import ShortcutsModal from "@/components/ShortcutsModal";
 import { WebRTCProvider } from "@/components/VideoCall/WebRTCProvider";
 import { OfflineBanner } from "@/components/OfflineBanner";
+import PWAInstallPrompt from "@/components/PWAInstallPrompt";
+
+// Persistent banner shown while the browser has no network connection.
+function OfflineBanner() {
+  const [isOffline, setIsOffline] = useState(
+    typeof navigator !== "undefined" ? !navigator.onLine : false,
+  );
+
+  useEffect(() => {
+    const handleOffline = () => setIsOffline(true);
+    const handleOnline = () => setIsOffline(false);
+
+    window.addEventListener("offline", handleOffline);
+    window.addEventListener("online", handleOnline);
+
+    setIsOffline(!navigator.onLine);
+
+    return () => {
+      window.removeEventListener("offline", handleOffline);
+      window.removeEventListener("online", handleOnline);
+    };
+  }, []);
+
+  if (!isOffline) return null;
+
+  return (
+    <div
+      role="alert"
+      className="sticky top-0 z-[100] border-b-2 border-black bg-peach px-4 py-2 text-center font-mono text-xs font-bold uppercase tracking-wider text-black md:text-sm"
+    >
+      You are currently offline. Some features may be unavailable.
+    </div>
+  );
+}
 
 export default function Layout() {
   const location = useLocation();
@@ -31,9 +65,7 @@ export default function Layout() {
         if (!sessionStorage.getItem(checkedKey)) {
           supabase.functions
             .invoke("device-fingerprint-alert", {
-              headers: {
-                Authorization: `Bearer ${session.access_token}`,
-              },
+              headers: { Authorization: `Bearer ${session.access_token}` },
             })
             .then(({ data, error }) => {
               if (!error && data?.isNewDevice) {
@@ -41,9 +73,10 @@ export default function Layout() {
                   `New Login Detected: Unrecognized device (${data.browser} on ${data.os}). We sent you a security email alert.`,
                 );
               }
-              if (!error) {
-                sessionStorage.setItem(checkedKey, "true");
-              }
+              if (!error) sessionStorage.setItem(checkedKey, "true");
+            })
+            .catch(() => {
+              // Edge function not deployed or CORS blocked in local dev — ignore silently
             });
         }
       }
@@ -96,6 +129,7 @@ export default function Layout() {
           <TopProgressBar />
 
           <ShortcutsModal open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+          <PWAInstallPrompt />
 
           <Outlet />
           <Toaster />
