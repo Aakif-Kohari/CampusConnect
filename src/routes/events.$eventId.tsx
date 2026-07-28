@@ -45,10 +45,12 @@ import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { OptimizedImage } from "@/components/media/OptimizedImage";
 import { LazyImage } from "@/components/ui/LazyImage";
 import { parseCoordinates } from "@/lib/eventUtils";
+import { isCaptchaConfigured, shouldRequireCaptcha } from "@/lib/captcha";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { CreatePollDialog } from "@/components/polls/CreatePollDialog";
 import { ActivePoll } from "@/components/polls/ActivePoll";
 import { SteganographicQRScanner } from "@/components/SteganographicQRScanner";
+import { CaptchaWidget } from "@/components/CaptchaWidget";
 
 interface SimilarEventItem {
   id: string;
@@ -191,6 +193,7 @@ export default function EventDetailsPage() {
   const [copied, setCopied] = useState(false);
   const [idCopied, setIdCopied] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | undefined>(undefined);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackRating, setFeedbackRating] = useState(0);
   const [feedbackComment, setFeedbackComment] = useState("");
@@ -496,7 +499,15 @@ export default function EventDetailsPage() {
   });
 
   const toggleRsvp = useMutation({
-    mutationFn: async ({ eventId, hasRsvpd }: { eventId: string; hasRsvpd: boolean }) => {
+    mutationFn: async ({
+      eventId,
+      hasRsvpd,
+      captchaToken,
+    }: {
+      eventId: string;
+      hasRsvpd: boolean;
+      captchaToken?: string;
+    }) => {
       if (!user) throw new Error("Please log in to RSVP");
       if (eventId.startsWith("mock-")) {
         return;
@@ -507,7 +518,7 @@ export default function EventDetailsPage() {
       } = await supabase.auth.getSession();
 
       const { error } = await supabase.functions.invoke("toggle-rsvp", {
-        body: { eventId, hasRsvpd },
+        body: { eventId, hasRsvpd, captchaToken },
         headers: {
           Authorization: `Bearer ${session?.access_token}`,
         },
@@ -922,6 +933,13 @@ export default function EventDetailsPage() {
     location: event.location || "",
   });
 
+  const captchaSiteKey =
+    import.meta.env.VITE_TURNSTILE_SITE_KEY || import.meta.env.VITE_HCAPTCHA_SITE_KEY;
+  const captchaSecretKey =
+    import.meta.env.VITE_TURNSTILE_SECRET_KEY || import.meta.env.VITE_HCAPTCHA_SECRET_KEY;
+  const captchaEnabled = isCaptchaConfigured(captchaSiteKey, captchaSecretKey);
+  const captchaProvider = import.meta.env.VITE_TURNSTILE_SITE_KEY ? "turnstile" : "hcaptcha";
+
   const handleRsvpClick = () => {
     if (!user) {
       toast.error("Please log in to RSVP");
@@ -935,7 +953,13 @@ export default function EventDetailsPage() {
       setConfirmOpen(true);
       return;
     }
-    toggleRsvp.mutate({ eventId: event.id, hasRsvpd: false });
+
+    if (captchaEnabled && !shouldRequireCaptcha(captchaSiteKey, captchaSecretKey, captchaToken)) {
+      toast.error("Please complete the CAPTCHA challenge to RSVP.");
+      return;
+    }
+
+    toggleRsvp.mutate({ eventId: event.id, hasRsvpd: false, captchaToken });
   };
 
   const handleCopyLink = async () => {
@@ -1164,14 +1188,32 @@ export default function EventDetailsPage() {
                 )}
               </div>
             ) : (
-              <Button
-                onClick={handleRsvpClick}
-                disabled={toggleRsvp.isPending}
-                variant="primary"
-                size="lg"
-              >
-                {toggleRsvp.isPending ? "Updating..." : "RSVP NOW"}
-              </Button>
+              <div className="flex flex-col gap-1">
+                <Button
+                  onClick={handleRsvpClick}
+                  disabled={toggleRsvp.isPending}
+                  variant="primary"
+                  size="lg"
+                >
+                  {toggleRsvp.isPending ? "Updating..." : "RSVP NOW"}
+                </Button>
+                {captchaEnabled && (
+                  <div className="flex flex-col gap-2">
+                    <span
+                      className={`font-mono text-xs font-bold ${event.banner_url ? "text-white/80" : "text-black/60"}`}
+                    >
+                      Verification required before RSVP
+                    </span>
+                    <CaptchaWidget
+                      siteKey={captchaSiteKey}
+                      provider={captchaProvider}
+                      onToken={(token) => setCaptchaToken(token)}
+                      onError={() => setCaptchaToken(undefined)}
+                      onExpire={() => setCaptchaToken(undefined)}
+                    />
+                  </div>
+                )}
+              </div>
             )}
             <span
               className={`font-mono text-sm font-bold ${event.banner_url ? "text-white/80" : "text-black/60"}`}

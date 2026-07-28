@@ -424,7 +424,15 @@ export default function EventsPage() {
   }, [supabase, refetch]);
 
   const toggleRsvp = useMutation({
-    mutationFn: async ({ eventId, hasRsvpd }: { eventId: string; hasRsvpd: boolean }) => {
+    mutationFn: async ({
+      eventId,
+      hasRsvpd,
+      captchaToken,
+    }: {
+      eventId: string;
+      hasRsvpd: boolean;
+      captchaToken?: string;
+    }) => {
       if (!user) throw new Error("Must be logged in");
       if (eventId.startsWith("mock-")) {
         return;
@@ -438,6 +446,7 @@ export default function EventsPage() {
         body: {
           eventId,
           hasRsvpd,
+          captchaToken,
         },
         headers: {
           Authorization: `Bearer ${session?.access_token}`,
