@@ -2,7 +2,6 @@ import { FeedPostSkeleton } from "@/components/FeedPostSkeleton";
 import { useMutation, useQuery, useInfiniteQuery, setQueryData, invalidateQueries } from "@/hooks/useReactQueryReplacement";
 import { CommentThreadSkeleton } from "@/components/Feed/CommentSkeleton";
 import { DiscussionEmptyState } from "@/components/Feed/DiscussionEmptyState";
-import { useMutation, useQuery, useInfiniteQuery } from "@/hooks/useReactQueryReplacement";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import type { User } from "@supabase/supabase-js";
 import {
@@ -37,7 +36,7 @@ import {
 import { SiteShell } from "@/components/site/SiteShell";
 import { createClient } from "@/lib/supabase/client";
 import { calculateReadTime } from "@/utils/readTime";
-import { PullToRefreshContainer } from "@/components/PullToRefreshContainer";
+import PullToRefresh from "@/components/PullToRefresh";
 import { useEmailVerification } from "@/hooks/useEmailVerification";
 import { ReportDialog } from "@/components/ReportDialog";
 import CompressWorker from "@/workers/compress.worker?worker";
@@ -679,20 +678,14 @@ export default function Feed() {
       }
     },
     onMutate: async ({ postId, emoji, isReacted }) => {
-      // Cancel any outgoing refetches
-      // (not needed in this custom implementation, but kept for pattern consistency)
-
-      // Snapshot the previous value
       const previousData = data?.pages.flatMap((page) => page.posts) ?? [];
 
-      // Optimistically update the cache
       const updatedPosts = previousData.map((post) => {
         if (post.id === postId) {
           const postReactions: PostReaction[] = Array.isArray(post.post_reactions)
             ? post.post_reactions
             : [];
           if (isReacted) {
-            // Remove reaction optimistically
             return {
               ...post,
               post_reactions: postReactions.filter(
@@ -700,7 +693,6 @@ export default function Feed() {
               ),
             };
           } else {
-            // Add reaction optimistically
             return {
               ...post,
               post_reactions: [...postReactions, { emoji, user_id: user?.id || "" }],
@@ -710,22 +702,8 @@ export default function Feed() {
         return post;
       });
 
-      // Update cache with optimistic data
       setQueryData(["posts"], { pages: [{ posts: updatedPosts }] });
-
-      // Return context with previous data for rollback
       return { previousData };
-    },
-    onError: (error, variables, context) => {
-      // Rollback to previous value on error
-      if (context?.previousData) {
-        setQueryData(["posts"], { pages: [{ posts: context.previousData }] });
-      }
-      toast.error(error.message || "Failed to update reaction. Please try again.");
-    },
-    onSuccess: () => {
-      // Refetch to ensure server state matches
-      refetchPosts();
     },
     onSuccess: (_data, variables) => {
       const key = `${variables.postId}-${variables.emoji}`;
@@ -736,7 +714,10 @@ export default function Feed() {
       });
       refetchPosts();
     },
-    onError: (error, variables) => {
+    onError: (error, variables, context) => {
+      if (context?.previousData) {
+        setQueryData(["posts"], { pages: [{ posts: context.previousData }] });
+      }
       const key = `${variables.postId}-${variables.emoji}`;
       setOptimisticReactions((prev) => {
         const next = { ...prev };
@@ -805,7 +786,7 @@ export default function Feed() {
 
   return (
     <SiteShell>
-      <PullToRefreshContainer onRefresh={handleRefetch}>
+      <PullToRefresh onRefresh={handleRefetch}>
         <section className="border-b-2 border-black bg-peach px-4 py-14 md:px-6">
           <div className="mx-auto max-w-4xl">
             <p className="eyebrow font-bold">Discussion feed</p>
@@ -1040,8 +1021,6 @@ export default function Feed() {
 
                   const authorRole = (authorMembership?.role ?? "member") as MemberRole;
 
-                  // Prefer lazily-fetched comments (full thread); fall back to the embedded
-                  // snapshot that comes with the post query while the lazy fetch is pending.
                   const postComments: Comment[] = (
                     lazyComments[post.id] !== undefined
                       ? lazyComments[post.id]
@@ -1313,7 +1292,7 @@ export default function Feed() {
             )}
           </div>
         </section>
-      </PullToRefreshContainer>
+      </PullToRefresh>
       <ConfirmModal
         open={!!confirmPostId}
         onCancel={() => setConfirmPostId(null)}
