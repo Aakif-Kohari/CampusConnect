@@ -147,7 +147,6 @@ function renderLocationWithLinks(locationText: string | null) {
     return part;
   });
 }
-
 export function EventCard({
   event,
   index,
