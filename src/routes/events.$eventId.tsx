@@ -11,6 +11,7 @@ import { MapSkeleton } from "@/components/ui/MapSkeleton";
 const EventMap = lazy(() => import("@/components/EventMap").then((m) => ({ default: m.EventMap })));
 import { formatEventDateRange } from "@/lib/utils";
 import { downloadIcs, getGoogleCalendarUrl } from "@/lib/calendarUtils";
+import { EventCapacityGauge } from "@/components/events/EventCapacityGauge";
 import { formatStandardDate } from "@/utils/dateUtils";
 import { toast } from "sonner";
 import { ShareMenu } from "@/components/ui/ShareMenu";
@@ -351,17 +352,19 @@ export default function EventDetailsPage() {
   } = useQuery({
     queryKey: ["event", eventId],
     queryFn: async () => {
+      // Try to lookup by short_id first, then fall back to UUID for backwards compatibility
       const { data, error } = await supabase
         .from("events")
         .select(
           `
+          id, title, description, event_date, start_date, end_date, location, banner_url, created_by, short_id,
           id, title, description, event_date, start_date, end_date, location, banner_url, created_by, max_attendees, requires_approval,
           clubs (name, slug),
           event_rsvps (id, user_id, status, checked_in, rsvp_at, profiles (first_name, last_name, avatar_url)),
           event_waitlist (id, user_id, created_at, profiles (first_name, last_name, avatar_url))
         `,
         )
-        .eq("id", eventId)
+        .or(`short_id.eq.${eventId},id.eq.${eventId}`)
         .single();
 
       if (error) {
@@ -1067,6 +1070,15 @@ export default function EventDetailsPage() {
               <Users className="h-5 w-5" />
               <span>{attendeeCount} RSVP&apos;d</span>
             </div>
+          </div>
+
+          <div className="mt-6 max-w-md">
+            <EventCapacityGauge
+              eventId={event.id}
+              initialCapacity={attendeeCount}
+              maxAttendees={maxAttendees || null}
+              showDetails={true}
+            />
           </div>
 
           <div className="mt-8 hidden items-center gap-4 md:flex">

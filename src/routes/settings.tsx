@@ -6,7 +6,7 @@ import { useTheme } from "@/components/theme-provider";
 import { Loader2, X, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
-import { SecuritySection } from "@/components/Settings/SecuritySection";
+import { withAuth, WithAuthProps } from "@/hoc/withAuth";
 
 import { OptimizedImage } from "@/components/media/OptimizedImage";
 
@@ -62,12 +62,11 @@ function useFontSize() {
   return { fontSize, increment, decrement, reset };
 }
 
-export default function SettingsPage() {
+function SettingsPageContent({ user }: WithAuthProps) {
   const navigate = useNavigate();
   const supabase = createClient();
   const { theme, setTheme } = useTheme();
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [borderThickness, setBorderThickness] = useState(2);
   const [borderRadius, setBorderRadius] = useState(0);
@@ -99,14 +98,6 @@ export default function SettingsPage() {
   };
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) {
-        navigate("/auth", { replace: true });
-      } else {
-        setUser(user);
-      }
-    });
-
     // Load appearance settings from localStorage
     const savedThickness = localStorage.getItem("border-thickness");
     const savedRadius = localStorage.getItem("border-radius");
@@ -881,3 +872,5 @@ function Toggle({ label, defaultChecked }: { label: string; defaultChecked?: boo
     </label>
   );
 }
+
+export default withAuth(SettingsPageContent);

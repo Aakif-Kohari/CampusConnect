@@ -22,6 +22,8 @@ import { Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { VideoEmbed } from "@/components/VideoEmbed";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { AnimatedTooltip } from "@/components/ui/AnimatedTooltip";
 import { toast } from "sonner";
 import { RoleBadge } from "@/components/RoleBadge";
 import {
@@ -914,28 +916,29 @@ export default function Feed() {
                     className="hidden"
                   />
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!user) return alert("Log in first");
-                      if (!emailVerified) return alert("Please verify your email to post");
-                      if (!selectedClubId) return alert("Join or select a club first");
-                      if (newPost.trim()) postMutation.mutate();
-                    }}
-                    disabled={
-                      !newPost.trim() ||
-                      !selectedClubId ||
-                      postMutation.isPending ||
-                      !emailVerified ||
-                      compressing
-                    }
-                    title={!emailVerified ? "Please verify your email to post" : ""}
-                    className={`neu-border neu-press px-5 py-2 font-mono text-xs font-bold uppercase disabled:cursor-not-allowed disabled:opacity-50 ${
-                      emailVerified ? "bg-black text-cream" : "bg-gray-400 text-gray-700"
-                    }`}
-                  >
-                    {postMutation.isPending ? "Posting…" : "Post Markdown"}
-                  </button>
+                  <AnimatedTooltip content={!emailVerified ? "Please verify your email to post" : null}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!user) return alert("Log in first");
+                        if (!emailVerified) return alert("Please verify your email to post");
+                        if (!selectedClubId) return alert("Join or select a club first");
+                        if (newPost.trim()) postMutation.mutate();
+                      }}
+                      disabled={
+                        !newPost.trim() ||
+                        !selectedClubId ||
+                        postMutation.isPending ||
+                        !emailVerified ||
+                        compressing
+                      }
+                      className={`neu-border neu-press px-5 py-2 font-mono text-xs font-bold uppercase disabled:cursor-not-allowed disabled:opacity-50 ${
+                        emailVerified ? "bg-black text-cream" : "bg-gray-400 text-gray-700"
+                      }`}
+                    >
+                      {postMutation.isPending ? "Posting…" : "Post Markdown"}
+                    </button>
+                  </AnimatedTooltip>
                 </div>
               </div>
 
