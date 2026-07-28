@@ -12,8 +12,10 @@ import {
   decryptMessage,
 } from "@/lib/crypto";
 import { toast } from "sonner";
-import { ShieldCheck, Send, Search, Lock, AlertTriangle, RefreshCw } from "lucide-react";
+import { ShieldCheck, Send, Search, Lock, AlertTriangle, RefreshCw, Smile } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import EmojiPicker from "emoji-picker-react";
 
 interface Profile {
   id: string;
@@ -645,6 +647,23 @@ export default function ChatBox() {
                     placeholder="Type a secure message..."
                     className="flex-1 border-2 border-black px-3 py-2 font-mono text-sm focus:outline-none dark:bg-zinc-800 dark:border-cream dark:text-cream"
                   />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        className="h-10 w-10 border-2 border-black bg-yellow-300 text-black neu-border neu-press"
+                      >
+                        <Smile className="h-4 w-4" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent side="top" align="end" className="p-0 border-2 border-black">
+                      <EmojiPicker 
+                        onEmojiClick={(emojiData) => setInputMessage(prev => prev + emojiData.emoji)}
+                      />
+                    </PopoverContent>
+                  </Popover>
                   <Button
                     type="submit"
                     size="icon"
