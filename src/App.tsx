@@ -94,6 +94,7 @@ const DashboardOverview = lazy(() => import("./routes/dashboard.index"));
 const DashboardRsvps = lazy(() => import("./routes/dashboard.rsvps"));
 const DashboardBookmarks = lazy(() => import("./routes/dashboard.bookmarks"));
 const DashboardCalendar = lazy(() => import("./routes/dashboard.calendar"));
+const GlobalCalendar = lazy(() => import("./routes/calendar"));
 const Feed = lazy(() => import("./routes/feed"));
 const EventsMapPage = lazy(() => import("./routes/events.map"));
 const ForgotPassword = lazy(() => import("./routes/forgot-password"));
@@ -157,6 +158,16 @@ const router = createBrowserRouter(
           <Route path="bookmarks" element={<DashboardBookmarks />} />
           <Route path="calendar" element={<DashboardCalendar />} />
         </Route>
+
+        <Route
+          path="/calendar"
+          element={
+            <Suspense fallback={<PageFallback />}>
+              {" "}
+              <GlobalCalendar />
+            </Suspense>
+          }
+        />
 
         <Route path="/events" element={<LazyEventsIndex />} />
         <Route path="/events/:eventId" element={<LazyEventDetails />} />
@@ -246,7 +257,7 @@ export default function App() {
         <div className="fixed bottom-4 right-4 z-[9999]">
           <ThemeToggle />
         </div>
-        
+
         <RouterProvider router={router} />
       </ErrorBoundary>
     </QueryClientProvider>
