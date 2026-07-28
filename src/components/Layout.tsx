@@ -8,23 +8,23 @@ import { createClient } from "@/lib/supabase/client";
 import { ThemeProvider } from "@/components/theme-provider";
 import TopProgressBar from "@/components/TopProgressBar";
 const [userId, setUserId] = useState<string | null>(null);
-  const [shortcutsOpen, setShortcutsOpen] = useState(false);
-  const [timeoutWarningOpen, setTimeoutWarningOpen] = useState(false);
+const [shortcutsOpen, setShortcutsOpen] = useState(false);
+const [timeoutWarningOpen, setTimeoutWarningOpen] = useState(false);
 
-  const handleIdle = useCallback(() => {
-    const supabase = createClient();
-    supabase.auth.signOut().finally(() => {
-      window.location.href = "/auth";
-    });
-  }, []);
+const handleIdle = useCallback(() => {
+  const supabase = createClient();
+  supabase.auth.signOut().finally(() => {
+    window.location.href = "/auth";
+  });
+}, []);
 
-  const handleWarning = useCallback(() => setTimeoutWarningOpen(true), []);
+const handleWarning = useCallback(() => setTimeoutWarningOpen(true), []);
 
-  useIdleTimer({
-    enabled: !!userId,
-    onWarning: handleWarning,
-    onIdle: handleIdle,
-  });// Persistent banner shown while the browser has no network connection.
+useIdleTimer({
+  enabled: !!userId,
+  onWarning: handleWarning,
+  onIdle: handleIdle,
+}); // Persistent banner shown while the browser has no network connection.
 function OfflineBanner() {
   const [isOffline, setIsOffline] = useState(
     typeof navigator !== "undefined" ? !navigator.onLine : false,
@@ -140,7 +140,7 @@ export default function Layout() {
           <OfflineBanner />
           <TopProgressBar />
 
-<ShortcutsModal open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+          <ShortcutsModal open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
           <PWAInstallPrompt />
           <SessionTimeoutModal
             open={timeoutWarningOpen}

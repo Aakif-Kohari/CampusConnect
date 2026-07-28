@@ -87,6 +87,7 @@ const Certificates = lazy(() => import("./routes/certificates"));
 const ClubsIndex = lazy(() => import("./routes/clubs.index"));
 const ClubDetails = lazy(() => import("./routes/clubs.$slug"));
 const ClubManageRoute = lazy(() => import("./routes/clubs.$slug.manage"));
+const ClubTasksRoute = lazy(() => import("./routes/clubs.$slug.tasks"));
 const ClubsLayout = lazy(() => import("./routes/clubs"));
 const Dashboard = lazy(() => import("./routes/dashboard"));
 const DashboardOverview = lazy(() => import("./routes/dashboard.index"));
@@ -149,6 +150,7 @@ const router = createBrowserRouter(
           <Route index element={<ClubsIndex />} />
           <Route path=":slug" element={<ClubDetails />} />
           <Route path=":slug/manage" element={<ClubManageRoute />} />
+          <Route path=":slug/tasks" element={<ClubTasksRoute />} />
         </Route>
 
         <Route path="/dashboard" element={<Dashboard />}>
