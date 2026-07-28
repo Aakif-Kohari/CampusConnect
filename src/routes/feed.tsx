@@ -1,8 +1,13 @@
 import { FeedPostSkeleton } from "@/components/FeedPostSkeleton";
-import { useMutation, useQuery, useInfiniteQuery, setQueryData, invalidateQueries } from "@/hooks/useReactQueryReplacement";
+import {
+  useMutation,
+  useQuery,
+  useInfiniteQuery,
+  setQueryData,
+  invalidateQueries,
+} from "@/hooks/useReactQueryReplacement";
 import { CommentThreadSkeleton } from "@/components/Feed/CommentSkeleton";
 import { DiscussionEmptyState } from "@/components/Feed/DiscussionEmptyState";
-import { useMutation, useQuery, useInfiniteQuery } from "@/hooks/useReactQueryReplacement";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import type { User } from "@supabase/supabase-js";
 import {
@@ -199,7 +204,11 @@ export default function Feed() {
     fetchNextPage,
     hasNextPage,
     refetch: refetchPosts,
-  } = useInfiniteQuery<{ posts: Post[]; nextCursor?: { created_at: string; id: string } }>({
+  } = useInfiniteQuery<
+    { posts: Post[]; nextCursor?: { created_at: string; id: string } },
+    Error,
+    { created_at: string; id: string } | null
+  >({
     queryKey: ["posts"],
     initialPageParam: null,
     queryFn: async ({ pageParam = null }) => {
@@ -778,24 +787,6 @@ export default function Feed() {
       // Refetch to ensure server state matches
       refetchPosts();
     },
-    onSuccess: (_data, variables) => {
-      const key = `${variables.postId}-${variables.emoji}`;
-      setOptimisticReactions((prev) => {
-        const next = { ...prev };
-        delete next[key];
-        return next;
-      });
-      refetchPosts();
-    },
-    onError: (error, variables) => {
-      const key = `${variables.postId}-${variables.emoji}`;
-      setOptimisticReactions((prev) => {
-        const next = { ...prev };
-        delete next[key];
-        return next;
-      });
-      toast.error(error.message || "Failed to update reaction.");
-    },
   });
 
   const [optimisticDeletedIds, setOptimisticDeletedIds] = useState<string[]>([]);
@@ -966,7 +957,9 @@ export default function Feed() {
                     className="hidden"
                   />
 
-                  <AnimatedTooltip content={!emailVerified ? "Please verify your email to post" : null}>
+                  <AnimatedTooltip
+                    content={!emailVerified ? "Please verify your email to post" : null}
+                  >
                     <button
                       type="button"
                       onClick={() => {

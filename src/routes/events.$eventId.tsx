@@ -542,13 +542,12 @@ export default function EventDetailsPage() {
       // Return context with previous data for rollback
       return { previousEvent };
     },
-    onError: (error, variables, context) => {
+    onError: (error: unknown, variables, context) => {
       // Rollback to previous value on error
       if (context?.previousEvent) {
         setQueryData(["event", eventId], context.previousEvent);
       }
-      toast.error(error.message || "Failed to update RSVP. Please try again.");
-    onError: (error: (Error & { details?: string; context?: string }) | unknown) => {
+
       const err = error as Record<string, unknown>;
       if (
         (typeof err?.message === "string" && err.message.includes("Rate limit")) ||

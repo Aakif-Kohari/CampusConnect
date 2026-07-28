@@ -105,36 +105,22 @@ export default function AuthPage() {
 
       if (signUpError) throw signUpError;
 
-        toast.success("Account created! A verification link has been sent to your email.");
+      toast.success("Account created! A verification link has been sent to your email.");
 
-        if (signUpData?.session) {
-          try {
-            const enrolled = await registerPasskey("Passkey");
-            if (enrolled) {
-              toast.success("Passkey registered successfully!");
-            }
-          } catch (e) {
-            console.error("Passkey enrollment skipped or failed", e);
+      if (signUpData?.session) {
+        try {
+          const enrolled = await registerPasskey("Passkey");
+          if (enrolled) {
+            toast.success("Passkey registered successfully!");
           }
+        } catch (e) {
+          console.error("Passkey enrollment skipped or failed", e);
         }
-
-        navigate("/dashboard", { replace: true });
-      } else {
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-      await sendVerificationEmail({
-        to: values.email,
-        recipientName: `${values.firstName} ${values.lastName}`.trim(),
-        verificationUrl,
-      });
+      }
 
       // Track registration A/B variant telemetry
       useExperimentStore.getState().trackRegistration();
 
-      toast.success("Account created! A verification link has been sent to your email.");
       navigate("/dashboard", { replace: true });
     } catch (err: unknown) {
       const message = getFriendlyAuthError(err);

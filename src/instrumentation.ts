@@ -17,12 +17,6 @@ export function initializeTracing() {
     }),
   );
 
-  // Create tracer provider with sampler
-  const tracerProvider = new BasicTracerProvider({
-    resource,
-    sampler: new TraceIdRatioBasedSampler(0.1), // Sample 10% of traces
-  });
-
   const exporter = new OTLPTraceExporter({
     url: import.meta.env.VITE_OTEL_COLLECTOR_URL || "http://localhost:4318/v1/traces",
   });

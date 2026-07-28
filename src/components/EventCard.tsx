@@ -14,6 +14,8 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { EventRSVPButton } from "@/components/EventRSVPButton";
 import { EventCapacityGauge } from "@/components/events/EventCapacityGauge";
+import { ShareMenu } from "@/components/ui/ShareMenu";
+import { ReadMore } from "@/components/ui/ReadMore";
 
 interface Event {
   id: string;
@@ -177,12 +179,7 @@ export function EventCard({
 
   const [ticketOpen, setTicketOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const shouldTruncate = !!event.description && event.description.length > 220;
 
-  const displayedDescription =
-    shouldTruncate && !isDescriptionExpanded
-      ? `${event.description!.slice(0, 180)}...`
-      : event.description;
   const handleCopyLink = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
@@ -248,13 +245,6 @@ export function EventCard({
     onBookmarkToggle?.(event.id, isSaved);
   };
 
-  const shouldTruncate = !!event.description && event.description.length > 220;
-
-  const displayedDescription =
-    shouldTruncate && !isDescriptionExpanded
-      ? `${event.description!.slice(0, 180)}...`
-      : event.description;
-
   return (
     <div className="group">
       <article
@@ -279,23 +269,6 @@ export function EventCard({
               </span>
             )}
           </div>
-
-      <p className="mt-3 font-mono text-xs font-bold uppercase text-black">Event</p>
-      <Link to={`/events/${event.short_id || event.id}`} className="group">
-        <h2 className="mt-1 text-2xl font-black group-hover:underline text-violet-900">
-          {event.title}
-        </h2>
-      </Link>
-      <p className="mt-1 font-mono text-sm font-bold text-blue-900">{club?.name}</p>
-
-      {event.description ? (
-        <p className="mt-4 text-sm leading-6 text-gray-800">{event.description}</p>
-      ) : null}
-
-      <dl className="mt-5 grid gap-4 sm:grid-cols-3">
-        <div>
-          <dt className="font-mono text-xs font-bold uppercase text-black">Date &amp; Time</dt>
-          <dd className="mt-1 text-sm text-red-900">{formatEventDateRange(event)}</dd>
           <div className="flex gap-2 relative z-10">
             <button
               type="button"
