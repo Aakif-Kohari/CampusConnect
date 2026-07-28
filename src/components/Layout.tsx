@@ -9,22 +9,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import TopProgressBar from "@/components/TopProgressBar";
 import ShortcutsModal from "@/components/ShortcutsModal";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
-import { showAnnouncementToast } from "@/lib/announcements/sse";
-
-  const handleIdle = useCallback(() => {
-    const supabase = createClient();
-    supabase.auth.signOut().finally(() => {
-      window.location.href = "/auth";
-    });
-  }, []);
-
-  const handleWarning = useCallback(() => setTimeoutWarningOpen(true), []);
-
-  useIdleTimer({
-    enabled: !!userId,
-    onWarning: handleWarning,
-    onIdle: handleIdle,
-  });// Persistent banner shown while the browser has no network connection.
+import { WebRTCProvider } from "@/components/VideoCall/WebRTCProvider";
 function OfflineBanner() {
   const [isOffline, setIsOffline] = useState(
     typeof navigator !== "undefined" ? !navigator.onLine : false,
@@ -133,54 +118,24 @@ export default function Layout() {
     };
   }, []);
 
-  useEffect(() => {
-    if (typeof window === "undefined" || typeof window.EventSource === "undefined") {
-      return;
-    }
+return (
+  <ThemeProvider>
+    <TooltipProvider delayDuration={200}>
+      <WebRTCProvider>
+        <OfflineBanner />
+        <TopProgressBar />
 
-    const sseUrl =
-      import.meta.env.VITE_SSE_URL ||
-      import.meta.env.VITE_LIVE_FEED_URL ||
-      "http://localhost:8081/events";
-    const eventSource = new window.EventSource(sseUrl);
+        <ShortcutsModal
+          open={shortcutsOpen}
+          onOpenChange={setShortcutsOpen}
+        />
 
-    const handleEvent = (event: MessageEvent<string>) => {
-      if (!event.data) return;
-      showAnnouncementToast(event.data);
-    };
+        <PWAInstallPrompt />
 
-    eventSource.addEventListener("announcement", handleEvent as EventListener);
-    eventSource.onmessage = handleEvent;
-    eventSource.onerror = () => {
-      if (eventSource.readyState === window.EventSource.CLOSED) {
-        console.warn("SSE connection closed", sseUrl);
-      }
-    };
-
-    return () => {
-      eventSource.close();
-    };
-  }, []);
-
-  return (
-    <ThemeProvider>
-      <TooltipProvider delayDuration={200}>
-        <WebRTCProvider>
-          <OfflineBanner />
-          <TopProgressBar />
-
-<ShortcutsModal open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
-          <PWAInstallPrompt />
-          <SessionTimeoutModal
-            open={timeoutWarningOpen}
-            secondsLeft={300}
-            onStayLoggedIn={() => setTimeoutWarningOpen(false)}
-          />
-          <Outlet />
-          <Toaster />
-          <ScrollToTop />
-        </WebRTCProvider>
-      </TooltipProvider>
-    </ThemeProvider>
-  );
-}
+        <Outlet />
+        <Toaster />
+        <ScrollToTop />
+      </WebRTCProvider>
+    </TooltipProvider>
+  </ThemeProvider>
+);
