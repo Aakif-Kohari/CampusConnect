@@ -48,6 +48,7 @@ import { parseCoordinates } from "@/lib/eventUtils";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { CreatePollDialog } from "@/components/polls/CreatePollDialog";
 import { ActivePoll } from "@/components/polls/ActivePoll";
+import { SteganographicQRScanner } from "@/components/SteganographicQRScanner";
 
 interface SimilarEventItem {
   id: string;
@@ -553,6 +554,57 @@ export default function EventDetailsPage() {
     },
     onError: (error: Error) => {
       toast.error(error.message || "Failed to export RSVP list.");
+    },
+  });
+
+  const checkInRsvp = useMutation({
+    mutationFn: async ({ rsvpId }: { rsvpId: string }) => {
+      if (!user) throw new Error("Please log in to check in attendees");
+      if (!event || eventId.startsWith("mock-")) {
+        return { alreadyCheckedIn: false };
+      }
+
+      const { data: existingRsvp, error: fetchError } = await supabase
+        .from("event_rsvps")
+        .select("checked_in")
+        .eq("id", rsvpId)
+        .eq("event_id", eventId)
+        .maybeSingle();
+
+      if (fetchError) throw fetchError;
+      if (existingRsvp?.checked_in) {
+        return { alreadyCheckedIn: true };
+      }
+
+      const { error } = await supabase
+        .from("event_rsvps")
+        .update({ checked_in: true })
+        .eq("id", rsvpId)
+        .eq("event_id", eventId);
+
+      if (error) throw error;
+
+      try {
+        await supabase.from("event_attendance_logs").insert({
+          rsvp_id: rsvpId,
+          recorded_by: user.id,
+        });
+      } catch {
+        // Attendance logging is optional if the table is unavailable in the current environment.
+      }
+
+      return { alreadyCheckedIn: false };
+    },
+    onSuccess: (result) => {
+      if (result?.alreadyCheckedIn) {
+        toast.success("This attendee is already checked in.");
+      } else {
+        toast.success("Attendee checked in successfully.");
+      }
+      refetch();
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to check in attendee.");
     },
   });
 
@@ -1560,6 +1612,26 @@ export default function EventDetailsPage() {
               <h2 className="font-display text-2xl font-black uppercase tracking-tight text-black mb-6">
                 Attendee Manager
               </h2>
+              <div className="mb-8 rounded-2xl border-4 border-black bg-white p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h3 className="font-display text-xl font-black uppercase tracking-tight text-black">
+                      QR Check-in
+                    </h3>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      Verify a signed ticket from the camera or an uploaded image to mark the
+                      attendee as checked in.
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-5">
+                  <SteganographicQRScanner
+                    onVerificationSuccess={(payload) => {
+                      checkInRsvp.mutate({ rsvpId: payload.rsvpId });
+                    }}
+                  />
+                </div>
+              </div>
               <DragDropContext onDragEnd={onDragEnd}>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {/* Waitlisted Column */}
