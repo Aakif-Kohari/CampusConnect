@@ -2,10 +2,11 @@ name: PR Sync
 
 on:
   pull_request_target:
-    types: [opened, edited]
+    types: [opened, edited, synchronize, reopened]
 
 jobs:
   sync-issue-to-pr:
+    name: PR Sync
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
