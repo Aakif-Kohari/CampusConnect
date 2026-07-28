@@ -35,7 +35,7 @@ export default tseslint.config(
       "react-refresh": reactRefresh,
       "local-rules": localRulesPlugin,
     },
-rules: {
+    rules: {
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
       "local-rules/no-cross-page-imports": "error",
@@ -44,10 +44,11 @@ rules: {
         {
           selector: "ImportNamespaceSpecifier[parent.source.value='lucide-react']",
           message:
-            "Import icons individually, e.g. `import { ChevronDown } from \"lucide-react\"`. A wildcard import (`import * as Icons from \"lucide-react\"`) pulls the entire icon library into the bundle and defeats tree-shaking.",
+            'Import icons individually, e.g. `import { ChevronDown } from "lucide-react"`. A wildcard import (`import * as Icons from "lucide-react"`) pulls the entire icon library into the bundle and defeats tree-shaking.',
         },
       ],
-    },  },
+    },
+  },
   {
     files: ["src/components/ui/**/*.{ts,tsx}"],
     rules: {

@@ -118,7 +118,9 @@ export function StarRating({
               isInteractive && "transition-transform hover:scale-110",
             )}
             style={{ width: size, height: size }}
-            onMouseMove={isInteractive ? (e) => setHoverValue(valueFromPointer(e, starIndex)) : undefined}
+            onMouseMove={
+              isInteractive ? (e) => setHoverValue(valueFromPointer(e, starIndex)) : undefined
+            }
             onClick={isInteractive ? (e) => onChange?.(valueFromPointer(e, starIndex)) : undefined}
           >
             <Star size={size} className="absolute inset-0 text-gray-300" aria-hidden="true" />

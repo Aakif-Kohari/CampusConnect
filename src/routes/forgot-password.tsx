@@ -29,7 +29,7 @@ export default function ForgotPasswordPage() {
     defaultValues: { email: "" },
   });
 
-async function onSubmit(values: ForgotPasswordFormValues) {
+  async function onSubmit(values: ForgotPasswordFormValues) {
     setLoading(true);
     setError(null);
 

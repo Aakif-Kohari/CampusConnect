@@ -1,4 +1,5 @@
 import { FeedPostSkeleton } from "@/components/FeedPostSkeleton";
+import { useMutation, useQuery, useInfiniteQuery, setQueryData, invalidateQueries } from "@/hooks/useReactQueryReplacement";
 import { CommentThreadSkeleton } from "@/components/Feed/CommentSkeleton";
 import { DiscussionEmptyState } from "@/components/Feed/DiscussionEmptyState";
 import { useMutation, useQuery, useInfiniteQuery } from "@/hooks/useReactQueryReplacement";
@@ -22,6 +23,8 @@ import { Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { VideoEmbed } from "@/components/VideoEmbed";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { AnimatedTooltip } from "@/components/ui/AnimatedTooltip";
 import { toast } from "sonner";
 import { RoleBadge } from "@/components/RoleBadge";
 import {
@@ -45,6 +48,7 @@ import {
 } from "@/components/MarkdownEditorWithMentions";
 import { MentionRenderer } from "@/components/MentionRenderer";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
+import { LazyImage } from "@/components/ui/LazyImage";
 import { ShareMenu } from "@/components/ui/ShareMenu";
 import {
   AlertDialog,
@@ -289,7 +293,7 @@ export default function Feed() {
   const parentRef = useRef<HTMLDivElement>(null);
   const rowVirtualizer = useWindowVirtualizer({
     count: filteredPosts.length,
-    estimateSize: () => 300,
+    estimateSize: () => 210,
     overscan: 5,
     scrollMargin: parentRef.current?.offsetTop ?? 0,
   });
@@ -316,14 +320,64 @@ export default function Feed() {
     setShowNewPostsBanner(false);
   }, [hiddenPosts]);
 
+  useEffect(() => {
+    const channel = supabase
+      .channel("public-posts-insert")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "posts",
+        },
+        async (payload) => {
+          const newRawPost = payload.new;
+          // Ignore posts created by currently authenticated user
+          if (userRef.current && newRawPost.created_by === userRef.current.id) {
+            return;
+          }
+
+          // Fetch the full post with relations
+          const { data, error } = await supabase
+            .from("posts")
+            .select(
+              `
+              id, content, created_at, club_id, is_pinned,
+              profiles (id, full_name, handle),
+              clubs (id, name, club_members (user_id, role)),
+              comments (id, content, created_at, deleted_at, parent_id, parent_comment_id, profiles (id, full_name, handle)),
+              post_reactions (emoji, user_id)
+            `,
+            )
+            .eq("id", newRawPost.id)
+            .single();
+
+          if (!error && data) {
+            const fullPost = data as unknown as Post;
+            setHiddenPosts((prev) => {
+              if (prev.some((p) => p.id === fullPost.id)) return prev;
+              return [fullPost, ...prev];
+            });
+            setShowNewPostsBanner(true);
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase]);
+
+  /** Fetch (or re-fetch) comments for a post and store them in lazyComments. */
   const fetchCommentsForPost = useCallback(
     async (postId: string) => {
-      if (lazyComments[postId]) return;
-      setLoadingCommentPostIds((prev) => new Set(prev).add(postId));
-
+      setLoadingCommentPostIds((ids) => new Set([...ids, postId]));
       const { data, error } = await supabase
         .from("comments")
-        .select(`id, content, created_at, deleted_at, parent_id, parent_comment_id, profiles (id, full_name, handle)`)
+        .select(
+          `id, content, created_at, deleted_at, parent_id, parent_comment_id, profiles (id, full_name, handle)`,
+        )
         .eq("post_id", postId)
         .order("created_at", { ascending: true });
 
@@ -336,7 +390,7 @@ export default function Feed() {
         return next;
       });
     },
-    [supabase, lazyComments],
+    [supabase],
   );
 
   const toggleComments = useCallback(
@@ -675,6 +729,55 @@ export default function Feed() {
         if (error) throw error;
       }
     },
+    onMutate: async ({ postId, emoji, isReacted }) => {
+      // Cancel any outgoing refetches
+      // (not needed in this custom implementation, but kept for pattern consistency)
+
+      // Snapshot the previous value
+      const previousData = data?.pages.flatMap((page) => page.posts) ?? [];
+
+      // Optimistically update the cache
+      const updatedPosts = previousData.map((post) => {
+        if (post.id === postId) {
+          const postReactions: PostReaction[] = Array.isArray(post.post_reactions)
+            ? post.post_reactions
+            : [];
+          if (isReacted) {
+            // Remove reaction optimistically
+            return {
+              ...post,
+              post_reactions: postReactions.filter(
+                (r) => !(r.emoji === emoji && r.user_id === user?.id),
+              ),
+            };
+          } else {
+            // Add reaction optimistically
+            return {
+              ...post,
+              post_reactions: [...postReactions, { emoji, user_id: user?.id || "" }],
+            };
+          }
+        }
+        return post;
+      });
+
+      // Update cache with optimistic data
+      setQueryData(["posts"], { pages: [{ posts: updatedPosts }] });
+
+      // Return context with previous data for rollback
+      return { previousData };
+    },
+    onError: (error, variables, context) => {
+      // Rollback to previous value on error
+      if (context?.previousData) {
+        setQueryData(["posts"], { pages: [{ posts: context.previousData }] });
+      }
+      toast.error(error.message || "Failed to update reaction. Please try again.");
+    },
+    onSuccess: () => {
+      // Refetch to ensure server state matches
+      refetchPosts();
+    },
     onSuccess: (_data, variables) => {
       const key = `${variables.postId}-${variables.emoji}`;
       setOptimisticReactions((prev) => {
@@ -863,28 +966,29 @@ export default function Feed() {
                     className="hidden"
                   />
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!user) return alert("Log in first");
-                      if (!emailVerified) return alert("Please verify your email to post");
-                      if (!selectedClubId) return alert("Join or select a club first");
-                      if (newPost.trim()) postMutation.mutate();
-                    }}
-                    disabled={
-                      !newPost.trim() ||
-                      !selectedClubId ||
-                      postMutation.isPending ||
-                      !emailVerified ||
-                      compressing
-                    }
-                    title={!emailVerified ? "Please verify your email to post" : ""}
-                    className={`neu-border neu-press px-5 py-2 font-mono text-xs font-bold uppercase disabled:cursor-not-allowed disabled:opacity-50 ${
-                      emailVerified ? "bg-black text-cream" : "bg-gray-400 text-gray-700"
-                    }`}
-                  >
-                    {postMutation.isPending ? "Posting…" : "Post Markdown"}
-                  </button>
+                  <AnimatedTooltip content={!emailVerified ? "Please verify your email to post" : null}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!user) return alert("Log in first");
+                        if (!emailVerified) return alert("Please verify your email to post");
+                        if (!selectedClubId) return alert("Join or select a club first");
+                        if (newPost.trim()) postMutation.mutate();
+                      }}
+                      disabled={
+                        !newPost.trim() ||
+                        !selectedClubId ||
+                        postMutation.isPending ||
+                        !emailVerified ||
+                        compressing
+                      }
+                      className={`neu-border neu-press px-5 py-2 font-mono text-xs font-bold uppercase disabled:cursor-not-allowed disabled:opacity-50 ${
+                        emailVerified ? "bg-black text-cream" : "bg-gray-400 text-gray-700"
+                      }`}
+                    >
+                      {postMutation.isPending ? "Posting…" : "Post Markdown"}
+                    </button>
+                  </AnimatedTooltip>
                 </div>
               </div>
 
@@ -978,63 +1082,12 @@ export default function Feed() {
                 ))}
               </div>
             ) : filteredPosts.length === 0 ? (
-
-              <div
-                className="neu-border relative overflow-hidden bg-white px-6 py-12 text-center sm:px-10 sm:py-16"
-                role="status"
-                aria-live="polite"
-              >
-                <div
-                  className="absolute -left-6 -top-6 h-24 w-24 rotate-12 border-2 border-black bg-lime"
-                  aria-hidden="true"
-                />
-                <div
-                  className="absolute -bottom-8 -right-6 h-28 w-28 -rotate-12 border-2 border-black bg-peach"
-                  aria-hidden="true"
-                />
-
-                <div className="relative mx-auto flex max-w-xl flex-col items-center">
-                  <div className="relative mb-6" aria-hidden="true">
-                    <div className="neu-border flex h-24 w-24 items-center justify-center bg-lime sm:h-28 sm:w-28">
-                      <MessageCircle className="h-12 w-12 sm:h-14 sm:w-14" strokeWidth={2.5} />
-                    </div>
-                    <div className="neu-border absolute -right-4 -top-4 flex h-10 w-10 items-center justify-center bg-peach">
-                      <Sparkles className="h-5 w-5" strokeWidth={2.5} />
-                    </div>
-                  </div>
-
-                  <p className="mb-3 font-mono text-xs font-bold uppercase tracking-[0.2em]">
-                    The conversation starts here
-                  </p>
-                  <h2 className="text-2xl font-bold sm:text-3xl">
-                    {searchQuery
-                      ? "No posts match your search query."
-                      : "No posts yet. Be the first to start a discussion!"}
-                  </h2>
-                  <p className="mt-4 max-w-md font-mono text-sm leading-relaxed text-gray-700">
-                    Share an announcement, ask a question, or post an update for your club
-                    community.
-                  </p>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      editorRef.current?.focusWrite();
-                    }}
-                    className="neu-border mt-7 inline-flex items-center gap-2 bg-black px-4 py-2 font-mono text-xs font-bold uppercase text-cream transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-black"
-                  >
-                    <PenLine className="h-4 w-4" aria-hidden="true" />
-                    Start a discussion
-                  </button>
-                </div>
-              </div>
               <DiscussionEmptyState
                 searchQuery={searchQuery}
                 onStartDiscussion={() => {
                   editorRef.current?.focusWrite();
                 }}
               />
-
             ) : (
               <div
                 ref={parentRef}
@@ -1180,12 +1233,11 @@ export default function Feed() {
                               return <a href={href}>{children}</a>;
                             },
                             img: ({ src, alt }) => (
-                              <img
+                              <LazyImage
                                 src={src}
                                 alt={alt || ""}
                                 onClick={() => typeof src === "string" && setLightboxSrc(src)}
                                 className="max-h-64 cursor-zoom-in rounded-none neu-border"
-                                loading="lazy"
                               />
                             ),
                             p: ({ children }) => (
@@ -1201,12 +1253,11 @@ export default function Feed() {
 
                       {post.image_url && (
                         <div className="mt-3">
-                          <img
+                          <LazyImage
                             src={post.image_url}
                             alt="Post attachment"
                             onClick={() => setLightboxSrc(post.image_url ?? null)}
                             className="max-h-96 cursor-zoom-in rounded-none neu-border object-cover"
-                            loading="lazy"
                           />
                         </div>
                       )}

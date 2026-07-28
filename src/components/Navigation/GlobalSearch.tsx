@@ -20,7 +20,7 @@ export default function GlobalSearch() {
   const [searchTerm, setSearchTerm] = useState("");
   const [results, setResults] = useState<EventSearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [activeResultId, setActiveResultId] = useState<string | null>(null);
 
   const debouncedSearch = useDebounce(searchTerm, 300);
@@ -60,7 +60,7 @@ const [error, setError] = useState<string | null>(null);
 
     fetchSearchResults(debouncedSearch);
 
-return () => {
+    return () => {
       ignore = true;
     };
   }, [debouncedSearch, supabase]);
@@ -88,22 +88,21 @@ return () => {
     }
   };
 
-  return (    <div>
+  return (
+    <div>
       <input
         type="text"
         placeholder="Search..."
-value={searchTerm}
+        value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
         onKeyDown={handleKeyDown}
       />
       {isLoading && <p>Searching...</p>}
       {error && <p role="alert">Something went wrong: {error}</p>}
-
       {!isLoading && !error && searchTerm.trim() && results.length === 0 && (
         <p>No events found for &ldquo;{searchTerm}&rdquo;.</p>
       )}
-
-{results.length > 0 && (
+      {results.length > 0 && (
         <div className="mt-2 flex neu-border overflow-hidden bg-white">
           <ul className="w-1/3 border-r-2 border-black">
             {results.map((event) => (
@@ -152,6 +151,7 @@ value={searchTerm}
             )}
           </div>
         </div>
-      )}    </div>
+      )}{" "}
+    </div>
   );
 }

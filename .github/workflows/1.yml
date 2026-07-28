@@ -19,18 +19,14 @@ jobs:
           github-token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
           script: |
             const { owner, repo } = context.repo;
-            const commentedPRs = new Set();
+            const commentedPRs = new Map(); // Track PR number -> commit SHA for conflict messages
+            const missingKeywordPRs = new Set();
 
             async function processPR(prNumber, prBody) {
               console.log(`\nEvaluating PR #${prNumber}`);
               
               const body = prBody || "";
               const hasClosingKeyword = /(close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+(#\d+|https:\/\/github\.com\/[^\/]+\/[^\/]+\/issues\/\d+)/i.test(body);
-
-              if (!hasClosingKeyword) {
-                console.log(`PR #${prNumber} does not contain closing/fixing keywords (e.g. 'closes #123'). Skipping.`);
-                return false;
-              }
               
               let mergeable = null;
               let mergeableState = null;
@@ -96,27 +92,48 @@ jobs:
                 console.log("Merge conflicts detected.");
                 await removeLabel("Blue");
                 
-                if (!commentedPRs.has(prNumber)) {
-                  const assigneesToTag = prData.assignees && prData.assignees.length > 0 
-                    ? prData.assignees.map(a => `@${a.login}`).join(" ") 
-                    : `@${prData.user.login}`;
-                    
-                  const commentBody = `${assigneesToTag} This PR has merge conflicts. Please resolve them so it can be automatically merged.`;
+                const currentSha = prData.head.sha;
+                
+                if (commentedPRs.get(prNumber) !== currentSha) {
+                  const author = prData.user.login;
+                  const commentBody = `@${author} it looks like this PR has some merge conflicts; mind resolving them so we can get it merged? 🚀`;
                   
                   try {
-                    console.log(`Commenting on PR #${prNumber} about merge conflicts...`);
+                    console.log(`Commenting on PR #${prNumber} about merge conflicts for commit ${currentSha}...`);
                     await github.rest.issues.createComment({
                       owner,
                       repo,
                       issue_number: prNumber,
                       body: commentBody
                     });
-                    commentedPRs.add(prNumber);
+                    commentedPRs.set(prNumber, currentSha);
                   } catch (e) {
                     console.error(`Failed to comment on PR #${prNumber}:`, e.message);
                   }
                 }
               } else {
+                if (!hasClosingKeyword) {
+                  console.log(`PR #${prNumber} does not contain closing/fixing keywords (e.g. 'closes #123'). Skipping auto-merge/update.`);
+                  if (!missingKeywordPRs.has(prNumber)) {
+                    const assigneesToTag = prData.assignees && prData.assignees.length > 0 
+                      ? prData.assignees.map(a => `@${a.login}`).join(" ") 
+                      : `@${prData.user.login}`;
+                    const missingMsg = `${assigneesToTag} This PR does not contain a closing keyword (e.g. \`closes #123\`) in the description. Please add it so the PR can be auto-merged.`;
+                    try {
+                      await github.rest.issues.createComment({
+                        owner,
+                        repo,
+                        issue_number: prNumber,
+                        body: missingMsg
+                      });
+                      missingKeywordPRs.add(prNumber);
+                    } catch (e) {
+                      console.error(`Failed to comment on missing keyword for PR #${prNumber}:`, e.message);
+                    }
+                  }
+                  return false;
+                }
+
                 console.log(`PR mergeable state is: ${mergeableState}`);
                 
                 if (mergeableState === "clean") {
@@ -173,9 +190,9 @@ jobs:
                   const wasMerged = await processPR(pr.number, pr.body);
                   if (wasMerged) {
                     anyMerged = true;
-                    // Randomize time between 90 and 150 seconds (90000ms to 150000ms)
-                    const min = 90000;
-                    const max = 150000;
+                    // Randomize time between 60 and 90 seconds (60000ms to 90000ms)
+                    const min = 60000;
+                    const max = 90000;
                     const waitTime = Math.floor(Math.random() * (max - min + 1)) + min;
                     console.log(`Waiting for ${Math.round(waitTime / 1000)} seconds before evaluating the next PR...`);
                     await new Promise(r => setTimeout(r, waitTime));
