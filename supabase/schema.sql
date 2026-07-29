@@ -99,6 +99,8 @@ CREATE TABLE events (
   latitude DOUBLE PRECISION,
   longitude DOUBLE PRECISION,
   max_attendees INTEGER,
+  available_spots INTEGER,
+  version INTEGER NOT NULL DEFAULT 1,
   status TEXT NOT NULL DEFAULT 'scheduled',
   created_by UUID REFERENCES profiles(id),
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -873,6 +875,12 @@ VALUES
   ('qrcodes', 'qrcodes', true)
 ON CONFLICT (id) DO UPDATE
 SET public = EXCLUDED.public;
+
+-- Create private club-documents bucket
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('club-documents', 'club-documents', false)
+ON CONFLICT (id) DO UPDATE SET public = false;
+
 
 -- Remove existing policies if they already exist
 DROP POLICY IF EXISTS "Public Access" ON storage.objects;
