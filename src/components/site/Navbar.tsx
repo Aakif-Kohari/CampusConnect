@@ -1,59 +1,298 @@
-import { Link, useLocation } from "@tanstack/react-router";
+import { getPresenceBadgeClass, usePresence } from "@/hooks/usePresence";
+import { createClient } from "@/lib/supabase/client";
+import type { User } from "@supabase/supabase-js";
+import { useEffect, useRef, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+
 import { ThemeToggle } from "../ThemeToggle";
+import { NavbarNotificationDropdown } from "./NavbarNotificationDropdown";
+
+import { Menu, X } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const links = [
   { to: "/events", label: "Events" },
   { to: "/clubs", label: "Clubs" },
   { to: "/feed", label: "Feed" },
+  { to: "/challenge", label: "Challenge" },
   { to: "/certificates", label: "Certificates" },
   { to: "/dashboard", label: "Dashboard" },
+  { to: "/messages", label: "Messages" },
+] as const;
+const landingLinks = [
+  { href: "#features", label: "Features" },
+  { href: "#faq", label: "FAQ" },
+  { href: "#contact", label: "Contact" },
 ] as const;
 
 export function Navbar() {
   const location = useLocation();
+  const navigate = useNavigate();
   const currentPath = location.pathname;
+  const supabase = createClient();
+
+  const [user, setUser] = useState<User | null>(null);
+  const { onlineUsers } = usePresence(user?.id);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const hamburgerRef = useRef<HTMLButtonElement>(null);
+  const navRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      const focusTimeout = setTimeout(() => {
+        const firstLink = navRef.current?.querySelector("a");
+        if (firstLink) {
+          (firstLink as HTMLElement).focus();
+        }
+      }, 0);
+
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") {
+          setMobileMenuOpen(false);
+          hamburgerRef.current?.focus();
+          return;
+        }
+
+        if (e.key === "Tab") {
+          const hamburger = hamburgerRef.current;
+          const nav = navRef.current;
+          if (!hamburger || !nav) return;
+
+          const focusableLinks = Array.from(
+            nav.querySelectorAll("a, button, [tabindex='0']"),
+          ) as HTMLElement[];
+
+          if (focusableLinks.length === 0) return;
+
+          const firstLink = focusableLinks[0];
+          const lastLink = focusableLinks[focusableLinks.length - 1];
+
+          if (document.activeElement === hamburger && e.shiftKey) {
+            e.preventDefault();
+            lastLink.focus();
+          } else if (document.activeElement === lastLink && !e.shiftKey) {
+            e.preventDefault();
+            hamburger.focus();
+          } else if (document.activeElement === firstLink && e.shiftKey) {
+            e.preventDefault();
+            hamburger.focus();
+          }
+        }
+      };
+
+      document.addEventListener("keydown", handleKeyDown);
+      return () => {
+        clearTimeout(focusTimeout);
+        document.removeEventListener("keydown", handleKeyDown);
+      };
+    }
+  }, [mobileMenuOpen]);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
+
+  const handleSignOut = async () => {
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      console.error("Sign out failed:", error.message);
+      return;
+    }
+
+    navigate("/", { replace: true });
+  };
 
   return (
-    <header className="sticky top-0 z-40 border-b-2 border-black bg-white">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 md:px-6">
-        <Link to="/" className="font-display text-xl font-bold md:text-2xl">
+    <header className="sticky top-0 z-40 border-b-2 border-black bg-white text-black dark:border-cream dark:bg-black dark:text-cream">
+      <div className="mx-auto flex min-w-0 max-w-7xl items-center justify-between gap-2 px-2 py-3 sm:px-4 md:px-6">
+        {/* Logo */}
+        <Link
+          to="/"
+          className="min-w-0 flex-1 truncate font-display text-sm font-bold sm:flex-none sm:text-xl md:text-2xl navbar-logo"
+        >
           <span style={{ letterSpacing: "0.04em" }}>CAMPUS</span>
-          <span className="bg-black px-1 text-cream">CONNECT</span>
+          <span className="bg-black px-1 text-cream dark:bg-cream dark:text-black">CONNECT</span>
         </Link>
-        <nav className="hidden items-center gap-6 md:flex">
-          {links.map((l) => {
-            const isActive =
-              l.to === "/"
-                ? currentPath === "/"
-                : currentPath === l.to || currentPath.startsWith(l.to + "/");
+
+        {/* Desktop Navbar */}
+        <nav aria-label="Main navigation" className="hidden items-center gap-6 md:flex">
+          {/* Landing page section links */}
+          {currentPath === "/" &&
+            landingLinks.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                className="font-mono text-sm font-bold uppercase hover:underline"
+                style={{ letterSpacing: "0.05em" }}
+              >
+                {link.label}
+              </a>
+            ))}
+
+          {/* Route links */}
+          {links.map((link) => {
+            const isActive = currentPath === link.to || currentPath.startsWith(link.to + "/");
 
             return (
               <Link
-                key={l.to}
-                to={l.to}
+                key={link.to}
+                to={link.to}
+                id={`nav-link-${link.label.toLowerCase()}`}
                 className={`font-mono text-sm font-bold uppercase hover:underline ${
                   isActive ? "underline underline-offset-4 decoration-2" : ""
                 }`}
                 style={{ letterSpacing: "0.05em" }}
               >
-                {l.label}
+                {link.label}
               </Link>
             );
           })}
         </nav>
 
-        <div className="flex items-center gap-3">
-          <ThemeToggle />
+        {/* Actions */}
+        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <div className="hidden rounded-full border border-black bg-lime px-2 py-1 text-xs font-mono font-bold md:flex dark:border-cream dark:text-black">
+              🟢 {onlineUsers} online
+            </div>
 
-          <Link
-            to="/auth"
-            className="neu-border neu-press bg-black px-4 py-2 font-mono text-xs font-bold uppercase text-cream hover:bg-cream hover:text-black"
-            style={{ letterSpacing: "0.08em" }}
+            <ThemeToggle />
+
+            {user && <NavbarNotificationDropdown />}
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="User menu"
+                    className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-black bg-lime font-mono text-xs font-bold uppercase focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 dark:focus-visible:ring-cream"
+                  >
+                    {user.email?.[0]?.toUpperCase() ?? "U"}
+                  </button>
+                </DropdownMenuTrigger>
+
+                <DropdownMenuContent align="end" className="w-56">
+                  {/* Email */}
+                  <DropdownMenuLabel className="break-all text-xs">{user.email}</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+
+                  {/* Dashboard */}
+                  <DropdownMenuItem asChild>
+                    <Link to="/dashboard">Dashboard</Link>
+                  </DropdownMenuItem>
+
+                  {/* Messages */}
+                  <DropdownMenuItem asChild>
+                    <Link to="/messages">Messages</Link>
+                  </DropdownMenuItem>
+
+                  {/* Settings */}
+                  <DropdownMenuItem asChild>
+                    <Link to="/settings">Settings</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+
+                  {/* Sign Out */}
+                  <DropdownMenuItem
+                    onClick={handleSignOut}
+                    className="cursor-pointer text-red-600 focus:text-red-600"
+                  >
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Link
+                to="/auth"
+                id="nav-signin-button"
+                className="neu-border neu-press bg-black px-3 py-1.5 font-mono text-xs font-bold uppercase text-cream hover:bg-cream hover:text-black dark:bg-cream dark:text-black dark:hover:bg-black dark:hover:text-cream"
+                style={{ letterSpacing: "0.08em" }}
+              >
+                Sign in
+              </Link>
+            )}
+          </div>
+
+          {/* Mobile menu toggle button */}
+          <button
+            ref={hamburgerRef}
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="neu-border flex h-8 w-8 shrink-0 items-center justify-center bg-white p-1 text-black transition-colors hover:bg-lime dark:bg-black dark:text-cream md:hidden"
+            aria-label="Toggle navigation menu"
+            aria-expanded={mobileMenuOpen}
+            aria-controls="mobile-navigation"
           >
-            Sign in
-          </Link>
+            {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+          </button>
         </div>
       </div>
+
+      {/* Mobile Navigation */}
+      {mobileMenuOpen && (
+        <nav
+          ref={navRef}
+          id="mobile-navigation"
+          role="dialog"
+          aria-modal="true"
+          className="border-t-2 border-black bg-cream p-4 dark:border-cream dark:bg-black md:hidden"
+        >
+          <div className="flex flex-col gap-2">
+            {currentPath === "/" &&
+              landingLinks.map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  className="neu-border w-full px-4 py-2.5 text-left font-mono text-sm font-bold uppercase bg-white text-black hover:bg-lime"
+                  style={{ letterSpacing: "0.05em" }}
+                >
+                  {link.label}
+                </a>
+              ))}
+
+            {links.map((link) => {
+              const isActive = currentPath === link.to || currentPath.startsWith(link.to + "/");
+
+              return (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  className={`neu-border w-full px-4 py-2.5 text-left font-mono text-sm font-bold uppercase ${
+                    isActive
+                      ? "bg-black text-cream dark:bg-cream dark:text-black"
+                      : "bg-white text-black hover:bg-lime dark:bg-brand-gray-base-800 dark:text-cream"
+                  }`}
+                  style={{ letterSpacing: "0.05em" }}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+      )}
     </header>
   );
 }
