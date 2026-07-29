@@ -49,7 +49,7 @@ export type EventWithPopularity = {
 export async function getTrendingEvents(
   limit: number = 10,
   offset: number = 0,
-): Promise<{ data: EventWithPopularity[] | null; error: unknown }> {
+): Promise<{ data: EventWithPopularity[] | null; error: any }> {
   try {
     // Call the custom Postgres RPC function that handles the complex aggregation and sorting
     const { data, error } = await supabase.rpc("get_trending_events", {
@@ -63,7 +63,7 @@ export async function getTrendingEvents(
     }
 
     return { data: data as EventWithPopularity[] | null, error: null };
-  } catch (err: unknown) {
+  } catch (err) {
     console.error("Unexpected error in getTrendingEvents:", err);
     return { data: null, error: err };
   }
@@ -78,7 +78,7 @@ export async function getTrendingEvents(
  */
 export async function incrementEventViews(
   eventId: string,
-): Promise<{ success: boolean; error: unknown }> {
+): Promise<{ success: boolean; error: any }> {
   try {
     const { error } = await supabase.rpc("increment_event_views", { p_event_id: eventId });
 
@@ -88,7 +88,7 @@ export async function incrementEventViews(
     }
 
     return { success: true, error: null };
-  } catch (err: unknown) {
+  } catch (err) {
     console.error("Unexpected error in incrementEventViews:", err);
     return { success: false, error: err };
   }
@@ -102,7 +102,7 @@ export async function incrementEventViews(
  */
 export async function getEventByIdWithPopularity(
   eventId: string,
-): Promise<{ data: EventWithPopularity | null; error: unknown }> {
+): Promise<{ data: EventWithPopularity | null; error: any }> {
   try {
     // We join with the rsvp count and calculate popularity on the fly for a single event
     const { data, error } = await supabase
@@ -159,7 +159,7 @@ export async function getEventByIdWithPopularity(
     };
 
     return { data: transformedData, error: null };
-  } catch (err: unknown) {
+  } catch (err) {
     console.error("Unexpected error in getEventByIdWithPopularity:", err);
     return { data: null, error: err };
   }

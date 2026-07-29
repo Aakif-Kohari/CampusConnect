@@ -10,17 +10,18 @@ import { Upload, FileText, AlertCircle, CheckCircle } from "lucide-react";
 import { parseMarkdownToTiptap } from "../../lib/tiptap/markdown-parser";
 
 interface MarkdownUploadProps {
-  onContentLoaded: (jsonContent: Record<string, unknown>) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onContentLoaded: (jsonContent: Record<string, any>) => void;
 }
 
 export const MarkdownUpload: React.FC<MarkdownUploadProps> = ({
   onContentLoaded,
 }: MarkdownUploadProps) => {
-  const [isDragging, setIsDragging] = React.useState(false);
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const [success, setSuccess] = React.useState<string | null>(null);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = async (file: File) => {
     const { useState, useRef } = React;

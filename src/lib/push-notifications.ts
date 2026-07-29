@@ -8,9 +8,9 @@
 import { supabase } from "./supabase/client";
 
 // Public VAPID Key (Replace with your actual generated VAPID public key)
+// @ts-ignore - import.meta.env is provided by Vite
 const VAPID_PUBLIC_KEY =
-  (import.meta as unknown as { env?: { VITE_VAPID_PUBLIC_KEY?: string } }).env
-    ?.VITE_VAPID_PUBLIC_KEY || "your-vapid-public-key-here";
+  (import.meta as any).env?.VITE_VAPID_PUBLIC_KEY || "your-vapid-public-key-here";
 
 /**
  * Checks if the browser supports service workers and push notifications.
@@ -75,12 +75,9 @@ export async function subscribeToPushNotifications(): Promise<{
     }
 
     return { success: true };
-  } catch (err: unknown) {
+  } catch (err: any) {
     console.error("Error subscribing to push notifications:", err);
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : "An unexpected error occurred.",
-    };
+    return { success: false, error: err.message || "An unexpected error occurred." };
   }
 }
 

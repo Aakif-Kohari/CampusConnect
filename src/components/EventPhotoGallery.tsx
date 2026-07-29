@@ -213,8 +213,7 @@ export function EventPhotoGallery({ eventId, user }: EventPhotoGalleryProps) {
           </div>
         );
       })()}
-        </div>
-      )}
+
     </div>
   );
 }

@@ -38,8 +38,8 @@ export async function parseMarkdownToTiptap(file: File): Promise<TiptapParseResp
     }
 
     return { success: true, data: data.data, fileName: data.fileName };
-  } catch (err: unknown) {
+  } catch (err: any) {
     console.error("Unexpected error in parseMarkdownToTiptap:", err);
-    return { success: false, error: err instanceof Error ? err.message : "Network error" };
+    return { success: false, error: err.message || "Network error" };
   }
 }
