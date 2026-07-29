@@ -1,9 +1,9 @@
 import { useState, useEffect, lazy, Suspense } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, Link } from "react-router-dom";
 import { SiteShell } from "@/components/site/SiteShell";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
-import { ShieldAlert, CheckCircle, XCircle } from "lucide-react";
+import { ShieldAlert, CheckCircle, XCircle, Trash2 } from "lucide-react";
 import { useQuery } from "@/hooks/useReactQueryReplacement";
 
 const AdminCharts = lazy(() => import("@/components/AdminCharts"));
@@ -213,13 +213,22 @@ export default function AdminReportsPage() {
     <SiteShell>
       <div className="bg-cream min-h-screen">
         <header className="border-b-2 border-black bg-white px-4 py-8">
-          <div className="max-w-5xl mx-auto">
-            <h1 className="font-display text-4xl font-bold uppercase tracking-tight text-black">
-              Moderation Reports Queue
-            </h1>
-            <p className="font-mono text-sm text-gray-600 mt-2">
-              Review flagged posts, comments, clubs, and events.
-            </p>
+          <div className="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <h1 className="font-display text-4xl font-bold uppercase tracking-tight text-black">
+                Moderation Reports Queue
+              </h1>
+              <p className="font-mono text-sm text-gray-600 mt-2">
+                Review flagged posts, comments, clubs, and events.
+              </p>
+            </div>
+            <Link
+              to="/admin/restore"
+              className="neu-border inline-flex items-center gap-2 bg-white px-4 py-2 font-mono text-xs font-bold uppercase hover:bg-gray-50 transition-all text-black"
+            >
+              <Trash2 size={14} />
+              View Trash Panel
+            </Link>
           </div>
         </header>
 

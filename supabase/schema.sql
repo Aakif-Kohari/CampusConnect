@@ -158,7 +158,7 @@ CREATE TABLE event_waitlist (
 CREATE TABLE posts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   club_id UUID REFERENCES clubs(id) ON DELETE CASCADE,
-  author_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  author_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
   content TEXT NOT NULL,
   pinned BOOLEAN NOT NULL DEFAULT FALSE,
   like_count INTEGER NOT NULL DEFAULT 0,
@@ -194,10 +194,11 @@ CREATE POLICY "Users can delete their own likes."
 CREATE TABLE comments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     post_id UUID REFERENCES posts(id) ON DELETE CASCADE,
-    author_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    author_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
     content TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    deleted_at TIMESTAMPTZ
 );
 
 CREATE TABLE certificates (
@@ -476,23 +477,23 @@ CREATE POLICY "Club admins can update RSVPs (check in)." ON event_rsvps FOR UPDA
   EXISTS (SELECT 1 FROM clubs WHERE id = (SELECT club_id FROM events WHERE id = event_rsvps.event_id) AND created_by = auth.uid())
 );
 
--- posts/comments: club members can read/write within their club, authors can edit/delete their own
-CREATE POLICY "Anyone can read posts." ON posts FOR SELECT USING (true);
+-- posts/comments: club members can read/write within their club, authors/admins can edit/soft-delete their own
+CREATE POLICY "Anyone can read posts." ON posts FOR SELECT USING (deleted_at IS NULL OR public.is_system_admin());
 CREATE POLICY "Club members can insert posts." ON posts FOR INSERT WITH CHECK (
   EXISTS (SELECT 1 FROM club_members WHERE club_id = posts.club_id AND user_id = auth.uid() AND status = 'approved') OR
   EXISTS (SELECT 1 FROM clubs WHERE id = posts.club_id AND created_by = auth.uid())
 );
-CREATE POLICY "Authors can update own posts." ON posts FOR UPDATE USING (auth.uid() = author_id);
-CREATE POLICY "Authors can delete own posts." ON posts FOR DELETE USING (auth.uid() = author_id);
+CREATE POLICY "Authors or system admins can update posts." ON posts FOR UPDATE USING (auth.uid() = author_id OR public.is_system_admin());
+CREATE POLICY "System admins can delete posts." ON posts FOR DELETE USING (public.is_system_admin());
 
-CREATE POLICY "Anyone can read comments." ON comments FOR SELECT USING (true);
+CREATE POLICY "Anyone can read comments." ON comments FOR SELECT USING (deleted_at IS NULL OR public.is_system_admin());
 CREATE POLICY "Club members can insert comments." ON comments FOR INSERT WITH CHECK (
   EXISTS (SELECT 1 FROM club_members WHERE club_id = (SELECT club_id FROM posts WHERE id = comments.post_id) AND user_id = auth.uid() AND status = 'approved') OR
   EXISTS (SELECT 1 FROM clubs WHERE id = (SELECT club_id FROM posts WHERE id = comments.post_id) AND created_by = auth.uid())
 );
-CREATE POLICY "Authors can update own comments." ON comments FOR UPDATE USING (auth.uid() = author_id);
-CREATE POLICY "Authors or club admins can delete comments." ON comments FOR DELETE USING (
+CREATE POLICY "Authors or club admins or system admins can update comments." ON comments FOR UPDATE USING (
   auth.uid() = author_id OR
+  public.is_system_admin() OR
   public.is_club_admin((SELECT club_id FROM posts WHERE id = comments.post_id), auth.uid()) OR
   EXISTS (
     SELECT 1 FROM clubs
@@ -500,6 +501,7 @@ CREATE POLICY "Authors or club admins can delete comments." ON comments FOR DELE
       AND created_by = auth.uid()
   )
 );
+CREATE POLICY "System admins can delete comments." ON comments FOR DELETE USING (public.is_system_admin());
 
 -- certificates: users can read only their own
 CREATE POLICY "Users can read own certificates." ON certificates FOR SELECT USING (auth.uid() = user_id);
@@ -848,6 +850,27 @@ FOR EACH ROW EXECUTE PROCEDURE public.update_updated_at_column();
 CREATE TRIGGER set_updated_at_comments
 BEFORE UPDATE ON comments
 FOR EACH ROW EXECUTE PROCEDURE public.update_updated_at_column();
+
+-- Trigger to cascade soft-delete to user's posts & comments on profile deletion
+CREATE OR REPLACE FUNCTION public.handle_profile_soft_delete_cascade()
+RETURNS TRIGGER AS $$
+BEGIN
+  UPDATE public.posts
+  SET deleted_at = NOW()
+  WHERE author_id = OLD.id;
+
+  UPDATE public.comments
+  SET deleted_at = NOW()
+  WHERE author_id = OLD.id;
+
+  RETURN OLD;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER trigger_profile_soft_delete_cascade
+BEFORE DELETE ON profiles
+FOR EACH ROW
+EXECUTE FUNCTION public.handle_profile_soft_delete_cascade();
 
 -- ------------------------------------------------------------
 -- 5. Storage Buckets & Policies
