@@ -1,0 +1,186 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.110.0";
+import { PDFDocument, rgb, StandardFonts, PDFFont } from "https://esm.sh/pdf-lib@1.17.1";
+import { limitRate } from "../shared/rate_limiter.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
+  // Rate Limiting: 30 requests per minute per IP
+  const rateLimitResponse = await limitRate(req, "generate-event-certs", {
+    limit: 30,
+    windowMs: 60000,
+  });
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
+
+  const authHeader = req.headers.get("Authorization");
+  const webhookSecret = Deno.env.get("WEBHOOK_SECRET");
+  if (!webhookSecret || authHeader !== `Bearer ${webhookSecret}`) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error("Missing environment variables.");
+    }
+
+    // Initialize Supabase client with admin privileges since this is a background webhook
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    let payload;
+    try {
+      payload = await req.json();
+    } catch (e) {
+      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const record = payload.record || payload;
+    const eventId = record.event_id || record.eventId;
+    const userId = record.user_id || record.userId;
+
+    if (!eventId || !userId) {
+      return new Response(JSON.stringify({ error: "Missing eventId or userId" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // 1. Fetch event details
+    const { data: event, error: eventError } = await supabase
+      .from("events")
+      .select("title, event_date, clubs(name)")
+      .eq("id", eventId)
+      .single();
+
+    if (eventError || !event) {
+      throw new Error("Event not found");
+    }
+
+    if (new Date(event.event_date).getTime() > Date.now()) {
+      return new Response(
+        JSON.stringify({ error: "Cannot generate certificates for future events" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    const clubName = Array.isArray(event.clubs) ? event.clubs[0]?.name : event.clubs?.name;
+
+    // 2. Fetch specific attendee profile
+    const { data: attendee, error: attendeeError } = await supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("id", userId)
+      .single();
+
+    if (attendeeError) {
+      console.warn(`Failed to fetch profile for user ${userId}, using default name`);
+    }
+
+    const fullName = attendee?.full_name || "Student";
+
+    // 3. Generate PDF
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([600, 400]);
+    const helveticaFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const helveticaNormal = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+    const drawCenteredScaledText = (
+      text: string,
+      y: number,
+      font: PDFFont,
+      defaultSize: number,
+      color = rgb(0, 0, 0),
+    ) => {
+      const maxWidth = 500;
+      let size = defaultSize;
+      let textWidth = font.widthOfTextAtSize(text, size);
+
+      if (textWidth > maxWidth) {
+        size = Math.max(10, (maxWidth / textWidth) * size);
+        textWidth = font.widthOfTextAtSize(text, size);
+      }
+
+      const x = (page.getWidth() - textWidth) / 2;
+      page.drawText(text, { x, y, size, font, color });
+    };
+
+    drawCenteredScaledText("Certificate of Participation", 320, helveticaFont, 30, rgb(0, 0, 0));
+    drawCenteredScaledText(`This certifies that`, 270, helveticaNormal, 16);
+    drawCenteredScaledText(fullName, 230, helveticaFont, 24);
+    drawCenteredScaledText(`has successfully participated in`, 190, helveticaNormal, 16);
+    drawCenteredScaledText(event.title, 150, helveticaFont, 20);
+    drawCenteredScaledText(`Organized by ${clubName || "CampusConnect"}`, 110, helveticaNormal, 14);
+
+    const dateStr = event.event_date
+      ? new Date(event.event_date).toLocaleDateString()
+      : new Date().toLocaleDateString();
+    page.drawText(`Date: ${dateStr}`, { x: 250, y: 70, size: 12, font: helveticaNormal });
+
+    const pdfBytes = await pdfDoc.save();
+
+    // Upload to storage
+    const fileName = `${userId}/${eventId}.pdf`;
+    const { error: uploadError } = await supabase.storage
+      .from("certificates")
+      .upload(fileName, pdfBytes, {
+        contentType: "application/pdf",
+        upsert: true,
+      });
+
+    if (uploadError) {
+      throw new Error(`Failed to upload certificate for user ${userId}: ${uploadError.message}`);
+    }
+
+    const { data: publicUrlData } = supabase.storage.from("certificates").getPublicUrl(fileName);
+
+    // Save to database
+    const { error: insertError } = await supabase.from("certificates").upsert(
+      {
+        event_id: eventId,
+        user_id: userId,
+        certificate_url: publicUrlData.publicUrl,
+      },
+      { onConflict: "event_id,user_id" },
+    );
+
+    if (insertError) {
+      throw new Error(`Failed to save record for user ${userId}: ${insertError.message}`);
+    }
+
+    return new Response(JSON.stringify({ success: true, url: publicUrlData.publicUrl }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200,
+    });
+  } catch (error: unknown) {
+    console.error("Internal Error:", error);
+    return new Response(
+      JSON.stringify({
+        error: error instanceof Error ? error.message : "An unexpected error occurred.",
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      },
+    );
+  }
+});

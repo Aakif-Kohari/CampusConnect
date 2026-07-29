@@ -4,9 +4,25 @@ import globals from "globals";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
+import noCrossPageImports from "./tools/eslint-rules/no-cross-page-imports.js";
+
+const localRulesPlugin = {
+  rules: {
+    "no-cross-page-imports": noCrossPageImports,
+  },
+};
 
 export default tseslint.config(
-  { ignores: ["dist", ".output", ".vinxi"] },
+  {
+    ignores: [
+      "dist",
+      ".output",
+      ".vinxi",
+      "supabase/functions",
+      ".history/**",
+      "wasm/image-compressor/pkg",
+    ],
+  },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
@@ -17,23 +33,20 @@ export default tseslint.config(
     plugins: {
       "react-hooks": reactHooks,
       "react-refresh": reactRefresh,
+      "local-rules": localRulesPlugin,
     },
     rules: {
-      ...reactHooks.configs.recommended.rules,
-      "no-restricted-imports": [
-        "error",
-        {
-          paths: [
-            {
-              name: "server-only",
-              message:
-                "TanStack Start does not use the Next.js `server-only` package. Rename the module to `*.server.ts` or mark it with `@tanstack/react-start/server-only`.",
-            },
-          ],
-        },
-      ],
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
+      "local-rules/no-cross-page-imports": "error",
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "ImportNamespaceSpecifier[parent.source.value='lucide-react']",
+          message:
+            'Import icons individually, e.g. `import { ChevronDown } from "lucide-react"`. A wildcard import (`import * as Icons from "lucide-react"`) pulls the entire icon library into the bundle and defeats tree-shaking.',
+        },
+      ],
     },
   },
   {
