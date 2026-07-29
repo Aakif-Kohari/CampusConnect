@@ -1,18 +1,28 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { SiteShell } from "@/components/site/SiteShell";
 import { useQuery, useMutation } from "@/hooks/useReactQueryReplacement";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { User } from "@supabase/supabase-js";
-import { Settings, Users, Calendar, ShieldCheck, XCircle, CheckCircle } from "lucide-react";
+import { Settings, Users, Calendar } from "lucide-react";
+import { Settings, Users, Calendar, ShieldCheck, XCircle, CheckCircle, Download } from "lucide-react";
 import { PromoVideoUploader } from "@/components/PromoVideoUploader";
 import { ClubManageSkeleton } from "@/components/DashboardWidgetSkeleton";
+import { RosterExport } from "@/components/RosterExport";
+import { ImageCropUpload } from "@/components/ImageCropUpload";
+import { ClubMembersTable } from "@/components/Clubs/ClubMembersTable";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+} from "@/components/ui/alert-dialog";
 
 // ⚠️ Adjust if your Supabase Storage bucket for club banners has a different name
 const BUCKET_NAME = "club-banners";
-const ACCEPTED_BANNER_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const MAX_BANNER_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
 
 export default function ClubManageRoute() {
   const { slug = "" } = useParams();
@@ -32,13 +42,8 @@ export default function ClubManageRoute() {
   const [instagramUrl, setInstagramUrl] = useState("");
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [promoVideoUrl, setPromoVideoUrl] = useState("");
-
-  // Banner drag-and-drop upload state
-  const [bannerPreview, setBannerPreview] = useState("");
-  const [isDraggingBanner, setIsDraggingBanner] = useState(false);
-  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
-  const [bannerError, setBannerError] = useState("");
-  const bannerInputRef = useRef<HTMLInputElement>(null);
+  const [isConflictDialogOpen, setIsConflictDialogOpen] = useState(false);
+  const [serverClub, setServerClub] = useState<any>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
@@ -57,8 +62,8 @@ export default function ClubManageRoute() {
         .from("clubs")
         .select(
           `
-          id, name, slug, description, banner_url, logo_url, visibility, github_repo_url, social_links, promo_video_url,
-          club_members (id, role, status, user_id, profiles (full_name, avatar_url, handle)),
+          id, name, slug, description, banner_url, logo_url, visibility, github_repo_url, social_links, promo_video_url, version,
+          club_members (id, role, status, user_id, joined_at, profiles (full_name, avatar_url, handle)),
           events (id, title, event_date, max_attendees, event_rsvps(id))
         `,
         )
@@ -95,88 +100,48 @@ export default function ClubManageRoute() {
     }
   }, [club]);
 
-  const validateBannerFile = (file: File): string | null => {
-    if (!ACCEPTED_BANNER_TYPES.includes(file.type)) {
-      return "Only JPEG, PNG, or WEBP images are allowed.";
+  const getDifferences = () => {
+    if (!serverClub) return [];
+    const diffs: { field: string; draft: string; server: string }[] = [];
+
+    if (name !== serverClub.name) {
+      diffs.push({ field: "Club Name", draft: name, server: serverClub.name });
     }
-    if (file.size > MAX_BANNER_SIZE_BYTES) {
-      return "File must be smaller than 5MB.";
+    if (description !== (serverClub.description || "")) {
+      diffs.push({ field: "Description", draft: description, server: serverClub.description || "" });
     }
-    return null;
-  };
-
-  const uploadBannerFile = async (file: File) => {
-    const validationError = validateBannerFile(file);
-    if (validationError) {
-      setBannerError(validationError);
-      return;
+    if (bannerUrl !== (serverClub.banner_url || "")) {
+      diffs.push({ field: "Banner URL", draft: bannerUrl, server: serverClub.banner_url || "" });
     }
-    setBannerError("");
-
-    // Instant local preview before the actual Supabase Storage upload happens
-    const localPreviewUrl = URL.createObjectURL(file);
-    setBannerPreview(localPreviewUrl);
-
-    setIsUploadingBanner(true);
-    try {
-      if (!club?.id) throw new Error("Club not loaded yet");
-
-      const ext = file.name.split(".").pop();
-      const filePath = `${club.id}/banner-${Date.now()}.${ext}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from(BUCKET_NAME)
-        .upload(filePath, file, { cacheControl: "3600", upsert: false });
-
-      if (uploadError) throw uploadError;
-
-      const { data: publicUrlData } = supabase.storage.from(BUCKET_NAME).getPublicUrl(filePath);
-
-      setBannerUrl(publicUrlData.publicUrl);
-      toast.success("Banner uploaded");
-    } catch (err) {
-      setBannerError("Upload failed. Please try again.");
-      toast.error(err instanceof Error ? err.message : "Failed to upload banner");
-    } finally {
-      setIsUploadingBanner(false);
-      URL.revokeObjectURL(localPreviewUrl);
+    if (logoUrl !== (serverClub.logo_url || "")) {
+      diffs.push({ field: "Logo URL", draft: logoUrl, server: serverClub.logo_url || "" });
     }
+    if (promoVideoUrl !== (serverClub.promo_video_url || "")) {
+      diffs.push({ field: "Promo Video URL", draft: promoVideoUrl, server: serverClub.promo_video_url || "" });
+    }
+    if (visibility !== (serverClub.visibility || "public")) {
+      diffs.push({ field: "Visibility", draft: visibility, server: serverClub.visibility || "public" });
+    }
+    if (githubRepoUrl !== (serverClub.github_repo_url || "")) {
+      diffs.push({ field: "GitHub Repo URL", draft: githubRepoUrl, server: serverClub.github_repo_url || "" });
+    }
+
+    const serverLinks = (serverClub.social_links || {}) as Record<string, string>;
+    if (twitterUrl !== (serverLinks.twitter || "")) {
+      diffs.push({ field: "Twitter Link", draft: twitterUrl, server: serverLinks.twitter || "" });
+    }
+    if (instagramUrl !== (serverLinks.instagram || "")) {
+      diffs.push({ field: "Instagram Link", draft: instagramUrl, server: serverLinks.instagram || "" });
+    }
+    if (websiteUrl !== (serverLinks.website || "")) {
+      diffs.push({ field: "Website Link", draft: websiteUrl, server: serverLinks.website || "" });
+    }
+
+    return diffs;
   };
 
-  const handleBannerDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDraggingBanner(true);
-  };
-
-  const handleBannerDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDraggingBanner(true);
-  };
-
-  const handleBannerDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDraggingBanner(false);
-  };
-
-  const handleBannerDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDraggingBanner(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) uploadBannerFile(file);
-  };
-
-  const handleBannerFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) uploadBannerFile(file);
-    e.target.value = "";
-  };
-
-  const updateClubMutation = useMutation({
-    mutationFn: async () => {
+  const updateClubMutation = useMutation<void, Error, boolean | undefined>({
+    mutationFn: async (force?: boolean) => {
       if (!club) throw new Error("Club not found");
 
       const githubRepo = githubRepoUrl.trim() || null;
@@ -198,7 +163,18 @@ export default function ClubManageRoute() {
         }
       }
 
-      const { error } = await supabase
+      let targetVersion = club.version || 1;
+      if (force) {
+        const { data: latest, error: fetchErr } = await supabase
+          .from("clubs")
+          .select("version")
+          .eq("id", club.id)
+          .single();
+        if (fetchErr) throw fetchErr;
+        targetVersion = latest.version;
+      }
+
+      const { data, error } = await supabase
         .from("clubs")
         .update({
           name,
@@ -209,15 +185,38 @@ export default function ClubManageRoute() {
           visibility,
           github_repo_url: githubRepo,
           social_links: socialLinks,
+          version: targetVersion + 1,
         })
-        .eq("id", club.id);
+        .eq("id", club.id)
+        .eq("version", targetVersion)
+        .select();
+
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error("CONCURRENT_EDIT_CONFLICT");
+      }
     },
     onSuccess: () => {
       toast.success("Club settings updated");
+      setIsConflictDialogOpen(false);
       refetch();
     },
-    onError: (err: Error) => toast.error(err.message || "Failed to update settings"),
+    onError: async (err: Error) => {
+      if (err.message === "CONCURRENT_EDIT_CONFLICT") {
+        toast.error("Conflict detected: Another user updated this profile.");
+        const { data: latest } = await supabase
+          .from("clubs")
+          .select("name, description, banner_url, logo_url, promo_video_url, visibility, github_repo_url, social_links, version")
+          .eq("id", club.id)
+          .single();
+        if (latest) {
+          setServerClub(latest);
+          setIsConflictDialogOpen(true);
+        }
+      } else {
+        toast.error(err.message || "Failed to update settings");
+      }
+    },
   });
 
   const updateMemberMutation = useMutation({
@@ -347,44 +346,13 @@ export default function ClubManageRoute() {
                       <label className="font-mono text-sm font-bold uppercase mb-1 block">
                         Banner Image
                       </label>
-                      <div
-                        onClick={() => bannerInputRef.current?.click()}
-                        onDragEnter={handleBannerDragEnter}
-                        onDragOver={handleBannerDragOver}
-                        onDragLeave={handleBannerDragLeave}
-                        onDrop={handleBannerDrop}
-                        className={`neu-border cursor-pointer p-4 font-mono text-sm transition-all flex flex-col items-center justify-center gap-2 min-h-[120px] ${
-                          isDraggingBanner
-                            ? "bg-lime/40 -translate-y-1"
-                            : "bg-white hover:bg-gray-50"
-                        }`}
-                      >
-                        <input
-                          ref={bannerInputRef}
-                          type="file"
-                          accept="image/jpeg,image/png,image/webp"
-                          className="hidden"
-                          onChange={handleBannerFileSelect}
-                        />
-                        {isUploadingBanner ? (
-                          <p className="text-xs uppercase font-bold">Uploading...</p>
-                        ) : bannerPreview || bannerUrl ? (
-                          <img
-                            src={bannerPreview || bannerUrl}
-                            alt="Banner preview"
-                            className="max-h-24 object-cover rounded"
-                          />
-                        ) : (
-                          <p className="text-xs text-gray-500 text-center">
-                            Drag & drop an image here, or click to browse
-                            <br />
-                            <span className="text-[10px]">JPEG, PNG, WEBP — max 5MB</span>
-                          </p>
-                        )}
-                      </div>
-                      {bannerError && (
-                        <p className="text-xs text-red-500 font-mono mt-1">{bannerError}</p>
-                      )}
+                      <ImageCropUpload
+                        aspect={16 / 9}
+                        bucket={BUCKET_NAME}
+                        value={bannerUrl || undefined}
+                        onUploaded={(url) => setBannerUrl(url)}
+                        hint="JPEG, PNG, WEBP — max 5MB · 16:9 crop"
+                      />
                     </div>
                     <div>
                       <label className="font-mono text-sm font-bold uppercase mb-1 block">
@@ -476,85 +444,55 @@ export default function ClubManageRoute() {
               </div>
             )}
 
-            {activeTab === "members" && (
+            {activeTab === "members" && (() => {
+              const rosterMembers = (club?.club_members || []).map(
+                (m: {
+                  id: string;
+                  role: string;
+                  status: string;
+                  user_id: string;
+                  joined_at: string | null;
+                  profiles: unknown;
+                }) => {
+                  const profile = Array.isArray(m.profiles)
+                    ? m.profiles[0]
+                    : (m.profiles as { full_name: string; handle: string });
+                  return {
+                    id: m.id,
+                    full_name: profile?.full_name || null,
+                    handle: profile?.handle || null,
+                    role: m.role,
+                    status: m.status,
+                    joined_at: m.joined_at || null,
+                  };
+                },
+              );
+
+              return (
               <div className="neu-border bg-white p-6 space-y-6">
                 <h2 className="font-display text-2xl font-bold border-b-2 border-black pb-2">
                   Manage Members
                 </h2>
-                <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
-                  {club.club_members.map(
-                    (m: {
-                      id: string;
-                      role: string;
-                      status: string;
-                      user_id: string;
-                      profiles: unknown;
-                    }) => {
-                      const profile = Array.isArray(m.profiles)
-                        ? m.profiles[0]
-                        : (m.profiles as { full_name: string; handle: string; avatar_url: string });
-                      return (
-                        <div
-                          key={m.id}
-                          className="neu-border bg-gray-50 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-                        >
-                          <div>
-                            <p className="font-bold font-mono">
-                              {profile?.full_name || "Unknown User"}
-                            </p>
-                            <p className="text-xs text-gray-500 font-mono">
-                              Role: {m.role} | Status: {m.status}
-                            </p>
-                          </div>
-                          <div className="flex gap-2">
-                            {m.status === "pending" && (
-                              <>
-                                <button
-                                  onClick={() =>
-                                    updateMemberMutation.mutate({
-                                      memberId: m.id,
-                                      updates: { status: "approved" },
-                                    })
-                                  }
-                                  className="neu-border bg-green-300 p-2 text-xs font-bold uppercase hover:bg-green-400"
-                                >
-                                  <CheckCircle size={16} />
-                                </button>
-                                <button
-                                  onClick={() =>
-                                    updateMemberMutation.mutate({
-                                      memberId: m.id,
-                                      updates: { status: "rejected" },
-                                    })
-                                  }
-                                  className="neu-border bg-red-300 p-2 text-xs font-bold uppercase hover:bg-red-400"
-                                >
-                                  <XCircle size={16} />
-                                </button>
-                              </>
-                            )}
-                            {m.status === "approved" && m.user_id !== user?.id && (
-                              <button
-                                onClick={() =>
-                                  updateMemberMutation.mutate({
-                                    memberId: m.id,
-                                    updates: { role: m.role === "admin" ? "member" : "admin" },
-                                  })
-                                }
-                                className="neu-border bg-blue-200 p-2 text-xs font-bold uppercase hover:bg-blue-300"
-                                title="Toggle Role"
-                              >
-                                <ShieldCheck size={16} />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    },
-                  )}
-                </div>
+                <ClubMembersTable
+                  members={club.club_members}
+                  currentUserId={user?.id}
+                  isMutating={updateMemberMutation.isPending}
+                  onApprove={(memberId) =>
+                    updateMemberMutation.mutate({ memberId, updates: { status: "approved" } })
+                  }
+                  onReject={(memberId) =>
+                    updateMemberMutation.mutate({ memberId, updates: { status: "rejected" } })
+                  }
+                  onToggleRole={(memberId, currentRole) =>
+                    updateMemberMutation.mutate({
+                      memberId,
+                      updates: { role: currentRole === "admin" ? "member" : "admin" },
+                    })
+                  }
+                />
               </div>
-            )}
+            );
+            })()}
 
             {activeTab === "events" && (
               <div className="neu-border bg-white p-6 space-y-6">
@@ -606,6 +544,59 @@ export default function ClubManageRoute() {
           </main>
         </div>
       </div>
+
+      <AlertDialog open={isConflictDialogOpen} onOpenChange={setIsConflictDialogOpen}>
+        <AlertDialogContent className="max-w-2xl border-2 border-black bg-white rounded-none p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl font-bold font-mono text-red-600 flex items-center gap-2">
+              <XCircle className="h-6 w-6 text-red-600 shrink-0" />
+              Editing Conflict Detected
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-700 font-mono text-sm">
+              Another administrator has saved changes to this club profile while you were editing. Below is a comparison of the conflicting changes:
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="my-4 overflow-x-auto border-2 border-black">
+            <table className="w-full text-left font-mono text-xs border-collapse">
+              <thead>
+                <tr className="bg-black text-white">
+                  <th className="p-2 border-r border-white">Field</th>
+                  <th className="p-2 border-r border-white">Your Draft</th>
+                  <th className="p-2">Server State</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-black">
+                {getDifferences().map((diff, index) => (
+                  <tr key={index} className="hover:bg-gray-50">
+                    <td className="p-2 border-r border-black font-bold bg-gray-100">{diff.field}</td>
+                    <td className="p-2 border-r border-black text-red-600 bg-red-50/50 break-all">{diff.draft || <em className="text-gray-400">Empty</em>}</td>
+                    <td className="p-2 text-green-700 bg-green-50/50 break-all">{diff.server || <em className="text-gray-400">Empty</em>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <AlertDialogFooter className="mt-4 flex gap-3 sm:justify-end">
+            <button
+              onClick={() => {
+                setIsConflictDialogOpen(false);
+                refetch();
+              }}
+              className="px-4 py-2 border-2 border-black font-mono font-bold text-sm bg-white hover:bg-gray-100 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+            >
+              Discard My Changes
+            </button>
+            <button
+              onClick={() => updateClubMutation.mutate(true)}
+              className="px-4 py-2 border-2 border-black font-mono font-bold text-sm bg-red-600 text-white hover:bg-red-700 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+            >
+              Force Overwrite Server
+            </button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </SiteShell>
   );
 }
