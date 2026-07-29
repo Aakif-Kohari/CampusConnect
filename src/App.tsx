@@ -1,3 +1,5 @@
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "@/hooks/useReactQueryReplacement";
 import { Suspense, lazy, useEffect, useState } from "react";
 
 import { AnimatePresence } from "framer-motion";
@@ -14,29 +16,12 @@ import {
 import Layout from "./components/Layout";
 import { ErrorBoundary, RouteErrorBoundary } from "./components/ErrorBoundary";
 import { PageWrapper } from "./components/PageWrapper";
-import ThemeToggle from "./components/ThemeToggle"; // <-- Added Import
-
+import { ThemeToggle } from "@/components/ThemeToggle";
+import AriaAnnouncer from "./components/accessibility/AriaAnnouncer";
+import { ThemeProvider } from "@/components/theme-provider";
+import { TooltipProvider } from "@/components/ui/tooltip";
 // Pages
-import Index from "./routes/index";
-import Auth from "./routes/auth";
-import Certificates from "./routes/certificates";
-import ClubsIndex from "./routes/clubs.index";
-import ClubDetails from "./routes/clubs.$slug";
-import ClubManageRoute from "./routes/clubs.$slug.manage";
-import ClubsLayout from "./routes/clubs";
-import Dashboard from "./routes/dashboard";
-import DashboardOverview from "./routes/dashboard.index";
-import DashboardRsvps from "./routes/dashboard.rsvps";
-import DashboardBookmarks from "./routes/dashboard.bookmarks";
-import DashboardCalendar from "./routes/dashboard.calendar";
-import Feed from "./routes/feed";
-import EventsMapPage from "./routes/events.map";
-import ForgotPassword from "./routes/forgot-password";
-import ResetPassword from "./routes/reset-password";
-import Settings from "./routes/settings";
-import VerifyEmail from "./routes/verify-email";
-const PendingClubsAdmin = lazy(() => import("./routes/admin.clubs.pending"));
-const AdminReportsPage = lazy(() => import("./routes/admin.reports"));
+
 import { NotFoundPage } from "./components/NotFoundPage";
 import { createClient } from "./lib/supabase/client";
 
@@ -104,6 +89,7 @@ const VerifyEmail = lazy(() => import("./routes/verify-email"));
 const MessagesRoute = lazy(() => import("./routes/messages"));
 const PendingClubsAdmin = lazy(() => import("./routes/admin.clubs.pending"));
 const AdminReportsPage = lazy(() => import("./routes/admin.reports"));
+const AdminUsersPage = lazy(() => import("./routes/admin.users"));
 const ChallengeArena = lazy(() => import("./routes/challenge"));
 const EventDashboard = lazy(() => import("./routes/events.$eventId.dashboard"));
 const Leaderboard = lazy(() =>
@@ -263,9 +249,11 @@ export default function App() {
   }
 
   return (
-    // Assuming QueryClientProvider and queryClient are injected/imported properly
+<ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+  <TooltipProvider>
     <QueryClientProvider client={queryClient}>
       <ErrorBoundary>
+        <AriaAnnouncer />
         {/* Floating Dark Mode Toggle */}
         <div className="fixed bottom-4 right-4 z-[9999]">
           <ThemeToggle />
@@ -274,5 +262,7 @@ export default function App() {
         <RouterProvider router={router} />
       </ErrorBoundary>
     </QueryClientProvider>
+  </TooltipProvider>
+</ThemeProvider>
   );
 }
