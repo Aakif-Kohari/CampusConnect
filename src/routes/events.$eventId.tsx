@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useState, useEffect, lazy, Suspense, useMemo } from "react";
 import { TableOfContents } from "@/components/events/TableOfContents";
 import NotFound from "./NotFound";
+import LazyHydrate from "@/components/LazyHydrate";
 import { User } from "@supabase/supabase-js";
 import { useEmailVerification } from "@/hooks/useEmailVerification";
 import { SiteShell } from "@/components/site/SiteShell";
@@ -1495,13 +1496,15 @@ export default function EventDetailsPage() {
               coordsCheck.lat != null &&
               coordsCheck.lng != null ? (
                 <>
-                  <Suspense fallback={<MapSkeleton className="mt-4 h-[300px] w-full" />}>
-                    <EventMap
-                      lat={coordsCheck.lat}
-                      lng={coordsCheck.lng}
-                      locationName={event.location}
-                    />
-                  </Suspense>
+                  <LazyHydrate height="300px" placeholder={<MapSkeleton className="mt-4 h-[300px] w-full" />}>
+                    <Suspense fallback={<MapSkeleton className="mt-4 h-[300px] w-full" />}>
+                      <EventMap
+                        lat={coordsCheck.lat}
+                        lng={coordsCheck.lng}
+                        locationName={event.location}
+                      />
+                    </Suspense>
+                  </LazyHydrate>
                   <a
                     href={buildGoogleMapsSearchUrl(event.location)}
                     target="_blank"

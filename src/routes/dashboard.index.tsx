@@ -19,6 +19,7 @@ import {
 import TrendingCarousel from "@/components/Clubs/TrendingCarousel";
 import { WidgetListSkeleton, TrendingCarouselSkeleton } from "@/components/DashboardWidgetSkeleton";
 import { AttendanceHeatmap } from "@/components/AttendanceHeatmap";
+import LazyHydrate from "@/components/LazyHydrate";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 interface SavedEventDetails {
@@ -637,7 +638,9 @@ export default function DashboardOverview() {
       </Widget>
 
       <Widget title="Campus Engagement Map" className="lg:col-span-3">
-        <AttendanceHeatmap userId={user.id} />
+        <LazyHydrate height="260px">
+          <AttendanceHeatmap userId={user.id} />
+        </LazyHydrate>
       </Widget>
                   </li>
                 );

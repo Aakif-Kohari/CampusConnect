@@ -7,6 +7,7 @@ import { ShieldAlert, CheckCircle, XCircle, Trash2 } from "lucide-react";
 import { useQuery } from "@/hooks/useReactQueryReplacement";
 
 const AdminCharts = lazy(() => import("@/components/AdminCharts"));
+import LazyHydrate from "@/components/LazyHydrate";
 
 interface Profile {
   full_name: string | null;
@@ -234,9 +235,11 @@ export default function AdminReportsPage() {
 
         <div className="max-w-5xl mx-auto px-4 py-8">
           <div className="mb-8">
-            <Suspense fallback={<div className="h-[300px] neu-border bg-white animate-pulse" />}>
-              <AdminCharts />
-            </Suspense>
+            <LazyHydrate height="300px" placeholder={<div className="h-[300px] neu-border bg-white animate-pulse" />}>
+              <Suspense fallback={<div className="h-[300px] neu-border bg-white animate-pulse" />}>
+                <AdminCharts />
+              </Suspense>
+            </LazyHydrate>
           </div>
 
           <div className="flex flex-wrap gap-2 mb-6 border-b-2 border-black pb-4">
