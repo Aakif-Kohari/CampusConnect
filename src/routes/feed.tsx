@@ -53,6 +53,7 @@ import {
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import PullToRefresh from "@/components/PullToRefresh";
 import { useEmailVerification } from "@/hooks/useEmailVerification";
+import { announce } from "@/store/ariaAnnouncer";
 import { ReportDialog } from "@/components/ReportDialog";
 import CompressWorker from "@/workers/compress.worker?worker";
 
@@ -438,6 +439,7 @@ export default function Feed() {
           const alreadyExists = postsRef.current.some((p) => p.id === payload.new.id);
           if (!isOwnPost && !alreadyExists) {
             setShowNewPostsBanner(true);
+            announce("New post in feed");
             return;
           }
         }

@@ -4,6 +4,7 @@ import { SiteShell } from "@/components/site/SiteShell";
 import { useEffect, useRef, useState, useId, type ChangeEvent, type KeyboardEvent } from "react";
 import { Camera, Loader2, X, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { announce } from "@/store/ariaAnnouncer";
 import { createClient } from "@/lib/supabase/client";
 import { withAuth, WithAuthProps } from "@/hoc/withAuth";
 
@@ -232,8 +233,10 @@ function SettingsPageContent({ user }: WithAuthProps) {
         });
         if (authError) throw authError;
         toast.success("Profile updated! Verification email sent to your new address.");
+        announce("Profile updated! Verification email sent to your new address.");
       } else {
         toast.success("Profile updated successfully!");
+        announce("Profile updated successfully");
       }
 
       refetch();
