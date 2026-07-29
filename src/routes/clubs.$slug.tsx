@@ -18,6 +18,7 @@ import { ReportDialog } from "@/components/ReportDialog";
 import { EmptyState } from "@/components/EmptyState";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { AudioReactiveBackground } from "@/components/media/AudioReactiveBackground";
+import LazyHydrate from "@/components/LazyHydrate";
 import NotFound from "./NotFound";
 import {
   Breadcrumb,
@@ -465,7 +466,9 @@ export default function ClubProfile() {
                   Featured Club Promo
                 </h3>
                 <div className="neu-border bg-black aspect-video mt-4 overflow-hidden">
-                  <VideoPlayer src={club.promo_video_url} title="Club Promo" />
+                  <LazyHydrate height="360px">
+                    <VideoPlayer src={club.promo_video_url} title="Club Promo" />
+                  </LazyHydrate>
                 </div>{" "}
               </div>
             )}
