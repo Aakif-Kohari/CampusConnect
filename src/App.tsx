@@ -1,7 +1,6 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/hooks/useReactQueryReplacement";
 import { Suspense, lazy, useEffect, useState } from "react";
-
 import { AnimatePresence } from "framer-motion";
 import {
   createBrowserRouter,
@@ -20,6 +19,13 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 // <-- Added Import
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
+
+declare global {
+  interface Window {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    dataLayer: any[];
+  }
+}
 // Pages
 import Index from "./routes/index";
 import Auth from "./routes/auth";
@@ -239,11 +245,37 @@ export default function App() {
     return () => clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    const loadAnalytics = () => {
+      const script = document.createElement("script");
+      script.src = "https://www.googletagmanager.com/gtag/js?id=GA_ID";
+      script.async = true;
+      document.body.appendChild(script);
+
+      window.dataLayer = window.dataLayer || [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      function gtag(...args: any[]) {
+        window.dataLayer.push(args);
+      }
+      gtag("js", new Date());
+      gtag("config", "GA_ID");
+    };
+
+    if ("requestIdleCallback" in window) {
+      requestIdleCallback(loadAnalytics);
+    } else {
+      window.addEventListener("load", loadAnalytics, {
+        once: true,
+      });
+    }
+  }, []);
+
   if (dbStatus === "offline") {
     // Assuming MaintenancePage is imported somewhere else in your environment
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const MaintenancePage = (window as any).MaintenancePage || (() => <div>Maintenance Mode</div>);
     return <MaintenancePage />;
   }
-
   return (
 <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
   <TooltipProvider>
