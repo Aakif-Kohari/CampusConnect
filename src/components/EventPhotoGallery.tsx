@@ -182,10 +182,10 @@ export function EventPhotoGallery({ eventId, user }: EventPhotoGalleryProps) {
       )}
 
       {/* Swipeable Lightbox */}
-      {selectedPhoto && (() => {
-        const selectedIdx = photos?.findIndex(
-          (p: { url: string }) => p.url === selectedPhoto,
-        ) ?? 0;
+      {selectedPhoto &&
+        (() => {
+          const selectedIdx =
+            photos?.findIndex((p: { url: string }) => p.url === selectedPhoto) ?? 0;
 
         return (
           <div className="relative">
@@ -213,7 +213,6 @@ export function EventPhotoGallery({ eventId, user }: EventPhotoGalleryProps) {
           </div>
         );
       })()}
-
     </div>
   );
 }
