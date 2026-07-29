@@ -1128,12 +1128,6 @@ export default function Feed() {
                             )}
                           </div>
                         </header>
-                              >
-                                <Trash2 size={14} strokeWidth={2.5} />
-                              </button>
-                            )}
-                          </div>
-                        </header>
 
                         <div className="markdown-content mt-2 font-mono text-sm leading-relaxed">
                           <ReactMarkdown
