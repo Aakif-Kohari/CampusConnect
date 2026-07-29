@@ -138,6 +138,7 @@
     "@commitlint/cli": "^19.5.0",
     "@commitlint/config-conventional": "^19.5.0",
     "@eslint/js": "^9.32.0",
+    "@lovable.dev/vite-tanstack-config": "2.7.0",
     "@module-federation/vite": "^1.9.4",
     "@playwright/test": "^1.61.1",
     "@rolldown/binding-win32-x64-msvc": "1.1.5",
