@@ -4,8 +4,9 @@ import { SiteShell } from "@/components/site/SiteShell";
 import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
 import { Camera, Loader2, X, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { announce } from "@/store/ariaAnnouncer";
 import { createClient, getSupabaseUrl } from "@/lib/supabase/client";
-
+import { checkPushSubscription, subscribeToPushNotifications, unsubscribeFromPushNotifications } from "@/lib/push-notifications";
 import { Progress } from "@/components/ui/progress";
 import { OptimizedImage } from "@/components/media/OptimizedImage";
 
@@ -69,6 +70,45 @@ export default function SettingsPage() {
   const [borderThickness, setBorderThickness] = useState(2);
   const [borderRadius, setBorderRadius] = useState(0);
   const { fontSize, increment, decrement, reset } = useFontSize();
+  
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [isPushLoading, setIsPushLoading] = useState(true);
+
+  useEffect(() => {
+    checkPushSubscription().then((isEnabled) => {
+      setPushEnabled(isEnabled);
+      setIsPushLoading(false);
+    });
+  }, []);
+
+  const handlePushToggle = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const isChecked = e.target.checked;
+    setIsPushLoading(true);
+    try {
+      if (isChecked) {
+        const permission = await Notification.requestPermission();
+        if (permission !== "granted") {
+          toast.error("Notification permission denied");
+          setPushEnabled(false);
+          setIsPushLoading(false);
+          return;
+        }
+        await subscribeToPushNotifications();
+        setPushEnabled(true);
+        toast.success("Push notifications enabled");
+      } else {
+        await unsubscribeFromPushNotifications();
+        setPushEnabled(false);
+        toast.success("Push notifications disabled");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to toggle push notifications");
+      // Revert the toggle on error
+      setPushEnabled(!isChecked);
+    } finally {
+      setIsPushLoading(false);
+    }
+  };
 
   // --- Skills tags state ---
   const [skills, setSkills] = useState<string[]>([]);
@@ -211,8 +251,10 @@ export default function SettingsPage() {
         });
         if (authError) throw authError;
         toast.success("Profile updated! Verification email sent to your new address.");
+        announce("Profile updated! Verification email sent to your new address.");
       } else {
         toast.success("Profile updated successfully!");
+        announce("Profile updated successfully");
       }
 
       refetch();
@@ -543,6 +585,16 @@ export default function SettingsPage() {
             <Toggle label="Email me about upcoming RSVPs" defaultChecked />
             <Toggle label="Weekly digest of club activity" defaultChecked />
             <Toggle label="New certificates" />
+            <label className="flex cursor-pointer items-center justify-between gap-3">
+              <span className="font-mono text-sm">Critical Campus Announcements (Push)</span>
+              <input 
+                type="checkbox" 
+                checked={pushEnabled}
+                onChange={handlePushToggle}
+                disabled={isPushLoading}
+                className="h-5 w-5 accent-black disabled:opacity-50" 
+              />
+            </label>
           </Panel>
           <Panel title="Danger zone" tone="bg-red-50">
             <button

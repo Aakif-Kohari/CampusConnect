@@ -13,6 +13,7 @@ import Layout from "./components/Layout";
 import { ErrorBoundary, RouteErrorBoundary } from "./components/ErrorBoundary";
 import MaintenancePage from "./components/MaintenancePage";
 import { createClient } from "./lib/supabase/client";
+import AriaAnnouncer from "./components/accessibility/AriaAnnouncer";
 // Pages
 import Index from "./routes/index";
 import Auth from "./routes/auth";
@@ -31,6 +32,7 @@ import ForgotPassword from "./routes/forgot-password";
 import ResetPassword from "./routes/reset-password";
 import Settings from "./routes/settings";
 import PendingClubsAdmin from "./routes/admin.clubs.pending";
+import AdminBroadcast from "./routes/admin.broadcast";
 
 const HEALTH_CHECK_URL =
   (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_HEALTH_URL) ||
@@ -140,6 +142,7 @@ const router = createBrowserRouter(
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/settings" element={<Settings />} />
       <Route path="/admin/clubs/pending" element={<PendingClubsAdmin />} />
+      <Route path="/admin/broadcast" element={<AdminBroadcast />} />
     </Route>,
   ),
 );
@@ -215,6 +218,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
+      <AriaAnnouncer />
       {!emailVerified && (
         <div className="bg-yellow-100 border border-yellow-300 text-yellow-900 px-4 py-3 text-center">
           📧 Please verify your email address to unlock posting, commenting, and RSVP features.
