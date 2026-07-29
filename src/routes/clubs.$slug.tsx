@@ -6,16 +6,18 @@ import { SiteShell } from "@/components/site/SiteShell";
 import { useQuery, useMutation } from "@/hooks/useReactQueryReplacement";
 import { createClient } from "@/lib/supabase/client";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { User } from "@supabase/supabase-js";
+import type { User } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { parse } from "@/lib/markdown";
 import type { MarkdownNodeChild, HeadingNode } from "@/lib/markdown";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getPresenceBadgeClass, usePresence } from "@/hooks/usePresence";
 import { ArrowLeft, Github, Loader2, CheckCircle, Flag } from "lucide-react";
 import { ReportDialog } from "@/components/ReportDialog";
 import { EmptyState } from "@/components/EmptyState";
 import { VideoPlayer } from "@/components/VideoPlayer";
+import { AudioReactiveBackground } from "@/components/media/AudioReactiveBackground";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -61,6 +63,7 @@ interface MemberItem {
   handle: string;
   role: "admin" | "member" | "organizer" | "alumni";
   avatarUrl: string | null;
+  userId: string;
 }
 
 // Small building block for the skeleton below. Deliberately a plain div
@@ -167,6 +170,7 @@ export default function ClubProfile() {
   const { slug } = useParams();
   const supabase = createClient();
   const [user, setUser] = useState<User | null>(null);
+  const { presenceMap } = usePresence(user?.id);
   const [isExpanded, setIsExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false);
@@ -215,7 +219,7 @@ export default function ClubProfile() {
   );
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
+    supabase.auth.getUser().then(({ data }) => setUser(data?.user ?? null));
   }, [supabase]);
 
   const {
@@ -316,6 +320,7 @@ export default function ClubProfile() {
       handle: profile?.handle || "",
       role: m.role as "admin" | "member" | "organizer" | "alumni",
       avatarUrl: profile?.avatar_url || null,
+      userId: m.user_id,
     };
   });
 
@@ -359,7 +364,15 @@ export default function ClubProfile() {
       </Helmet>
 
       <SiteShell>
-        <section className="border-b-2 border-black px-4 py-14 md:px-6">
+        {/* Audio Reactive WebGL Hero Background */}
+        <section className="relative border-b-2 border-black px-4 py-8 md:px-6 bg-slate-950 overflow-hidden">
+          <div className="mx-auto max-w-6xl relative z-10">
+            <AudioReactiveBackground
+              className="h-64 md:h-80 mb-6 border-2 border-black rounded-lg shadow-xl"
+              defaultPreset="neonPulse"
+              interactive={true}
+            />
+          </div>
           <div className="mx-auto max-w-6xl">
             {/* Breadcrumb — full on sm+, back-link only on mobile */}
             <Link
@@ -470,12 +483,7 @@ export default function ClubProfile() {
                     />
                   </div>
                   {filteredMembers.length === 0 ? (
-                    <EmptyState
-                      size="sm"
-                      bordered={false}
-                      illustration="no-results"
-                      title="No members match your search."
-                    />
+                    <EmptyState illustration="no-results" title="No members match your search." />
                   ) : (
                     <>
                       <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -485,7 +493,10 @@ export default function ClubProfile() {
                             className="neu-border bg-white flex items-center gap-3 p-3 font-mono text-sm"
                           >
                             {m.handle ? (
-                              <Link to={`/profile/${m.handle}`} className="h-10 w-10 shrink-0">
+                              <Link
+                                to={`/profile/${m.handle}`}
+                                className="relative h-10 w-10 shrink-0"
+                              >
                                 <Avatar className="h-10 w-10 border-2 border-black rounded-full transition-transform hover:scale-105">
                                   <AvatarImage
                                     src={m.avatarUrl || undefined}
@@ -496,18 +507,36 @@ export default function ClubProfile() {
                                     {getInitials(m.name)}
                                   </AvatarFallback>
                                 </Avatar>
+                                <span className="absolute bottom-0 right-0 rounded-full border-2 border-white bg-white p-0.5">
+                                  <span
+                                    className={getPresenceBadgeClass(
+                                      presenceMap[m.userId]?.status ?? "offline",
+                                    )}
+                                    aria-hidden="true"
+                                  />
+                                </span>
                               </Link>
                             ) : (
-                              <Avatar className="h-10 w-10 border-2 border-black rounded-full">
-                                <AvatarImage
-                                  src={m.avatarUrl || undefined}
-                                  alt={m.name}
-                                  className="rounded-full"
-                                />
-                                <AvatarFallback className="rounded-full bg-brand-blue-light text-black font-bold">
-                                  {getInitials(m.name)}
-                                </AvatarFallback>
-                              </Avatar>
+                              <div className="relative h-10 w-10 shrink-0">
+                                <Avatar className="h-10 w-10 border-2 border-black rounded-full">
+                                  <AvatarImage
+                                    src={m.avatarUrl || undefined}
+                                    alt={m.name}
+                                    className="rounded-full"
+                                  />
+                                  <AvatarFallback className="rounded-full bg-brand-blue-light text-black font-bold">
+                                    {getInitials(m.name)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span className="absolute bottom-0 right-0 rounded-full border-2 border-white bg-white p-0.5">
+                                  <span
+                                    className={getPresenceBadgeClass(
+                                      presenceMap[m.userId]?.status ?? "offline",
+                                    )}
+                                    aria-hidden="true"
+                                  />
+                                </span>
+                              </div>
                             )}
                             <div className="flex-1 min-w-0">
                               {m.handle ? (
@@ -605,7 +634,7 @@ export default function ClubProfile() {
                         Cancel
                       </AlertDialogCancel>
                       <AlertDialogAction
-                        onClick={(e) => {
+                        onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                           e.preventDefault();
                           joinMutation.mutate();
                         }}
@@ -656,7 +685,6 @@ export default function ClubProfile() {
               </h2>
               {events.length === 0 ? (
                 <EmptyState
-                  bordered={false}
                   illustration="no-events"
                   title="No upcoming events."
                   description="Check back soon — this club hasn't scheduled anything yet."

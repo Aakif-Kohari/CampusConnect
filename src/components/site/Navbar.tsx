@@ -1,13 +1,21 @@
-import { usePresence } from "@/hooks/usePresence";
+import { getPresenceBadgeClass, usePresence } from "@/hooks/usePresence";
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { UserDropdown } from "../Navigation/UserDropdown";
+
 import { ThemeToggle } from "../ThemeToggle";
 import { NavbarNotificationDropdown } from "./NavbarNotificationDropdown";
 
 import { Menu, X } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const links = [
   { to: "/events", label: "Events" },
@@ -18,6 +26,11 @@ const links = [
   { to: "/dashboard", label: "Dashboard" },
   { to: "/messages", label: "Messages" },
 ] as const;
+const landingLinks = [
+  { href: "#features", label: "Features" },
+  { href: "#faq", label: "FAQ" },
+  { href: "#contact", label: "Contact" },
+] as const;
 
 export function Navbar() {
   const location = useLocation();
@@ -26,7 +39,7 @@ export function Navbar() {
   const supabase = createClient();
 
   const [user, setUser] = useState<User | null>(null);
-  const onlineUsers = usePresence(user?.id);
+  const { onlineUsers } = usePresence(user?.id);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const hamburgerRef = useRef<HTMLButtonElement>(null);
@@ -126,6 +139,20 @@ export function Navbar() {
 
         {/* Desktop Navbar */}
         <nav aria-label="Main navigation" className="hidden items-center gap-6 md:flex">
+          {/* Landing page section links */}
+          {currentPath === "/" &&
+            landingLinks.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                className="font-mono text-sm font-bold uppercase hover:underline"
+                style={{ letterSpacing: "0.05em" }}
+              >
+                {link.label}
+              </a>
+            ))}
+
+          {/* Route links */}
           {links.map((link) => {
             const isActive = currentPath === link.to || currentPath.startsWith(link.to + "/");
 
@@ -233,6 +260,18 @@ export function Navbar() {
           className="border-t-2 border-black bg-cream p-4 dark:border-cream dark:bg-black md:hidden"
         >
           <div className="flex flex-col gap-2">
+            {currentPath === "/" &&
+              landingLinks.map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  className="neu-border w-full px-4 py-2.5 text-left font-mono text-sm font-bold uppercase bg-white text-black hover:bg-lime"
+                  style={{ letterSpacing: "0.05em" }}
+                >
+                  {link.label}
+                </a>
+              ))}
+
             {links.map((link) => {
               const isActive = currentPath === link.to || currentPath.startsWith(link.to + "/");
 
