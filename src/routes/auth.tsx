@@ -16,10 +16,14 @@ import { getFriendlyAuthError } from "@/utils/authErrors";
 import { PasskeyLoginButton } from "@/components/PasskeyLoginButton";
 import { useWebAuthn } from "@/hooks/useWebAuthn";
 
+import { AuthSocialProviderGrid } from "@/components/auth/AuthSocialProviderGrid";
+import { PasskeyAuthModal } from "@/components/auth/PasskeyAuthModal";
+
 export default function AuthPage() {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isPasskeyModalOpen, setIsPasskeyModalOpen] = useState(false);
   const navigate = useNavigate();
   const supabase = createClient();
   const { registerPasskey } = useWebAuthn();
@@ -395,18 +399,20 @@ export default function AuthPage() {
 
             <div className="my-6 flex items-center gap-3">
               <div className="h-[2px] flex-1 bg-black" />
-              <span className="eyebrow font-bold text-black">or</span>
+              <span className="eyebrow font-bold text-black">or sign in with</span>
               <div className="h-[2px] flex-1 bg-black" />
             </div>
 
-            <Button
-              onClick={handleGoogleSignIn}
-              disabled={loading}
-              variant="outline"
-              className="w-full bg-white border-2 border-black hover:bg-gray-100 cursor-pointer shadow-[3px_3px_0_0_var(--color-ink)]"
-            >
-              Continue with Google
-            </Button>
+            <AuthSocialProviderGrid
+              onPasskeyClick={() => setIsPasskeyModalOpen(true)}
+              onMagicLinkSent={() => toast.info("Check your email to complete login.")}
+            />
+
+            <PasskeyAuthModal
+              isOpen={isPasskeyModalOpen}
+              onClose={() => setIsPasskeyModalOpen(false)}
+              onSuccess={() => navigate("/dashboard", { replace: true })}
+            />
 
             {mode === "signin" && (
               <div className="mt-3">
