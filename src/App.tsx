@@ -271,16 +271,19 @@ export default function App() {
   }
 
   return (
-    // Assuming QueryClientProvider and queryClient are injected/imported properly
-    <QueryClientProvider client={queryClient}>
-      <ErrorBoundary>
-        {/* Floating Dark Mode Toggle */}
-        <div className="fixed bottom-4 right-4 z-[9999]">
-          <ThemeToggle />
-        </div>
-        
-        <RouterProvider router={router} />
-      </ErrorBoundary>
-    </QueryClientProvider>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+      <TooltipProvider>
+        <QueryClientProvider client={queryClient}>
+          <ErrorBoundary>
+            {/* Floating Dark Mode Toggle */}
+            <div className="fixed bottom-4 right-4 z-[9999]">
+              <ThemeToggle />
+            </div>
+
+            <RouterProvider router={router} />
+          </ErrorBoundary>
+        </QueryClientProvider>
+      </TooltipProvider>
+    </ThemeProvider>
   );
 }
