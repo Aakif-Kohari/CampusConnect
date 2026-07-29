@@ -769,27 +769,26 @@ export default function Feed() {
   };
 
   return (
-    <ErrorBoundary>
-      <SiteShell>
-        <PullToRefresh onRefresh={handleRefetch}>
-          <section className="border-b-2 border-black bg-peach px-4 py-14 md:px-6">
-            <div className="mx-auto max-w-4xl">
-              <p className="eyebrow font-bold">Discussion feed</p>
-              <h1 className="mt-2 text-3xl font-bold sm:text-4xl md:text-6xl">
-                What clubs are talking about.
-              </h1>
-            </div>
-          </section>
+    <SiteShell>
+      <PullToRefresh onRefresh={handleRefetch}>
+        <section className="border-b-2 border-black bg-peach px-4 py-14 md:px-6">
+          <div className="mx-auto max-w-4xl">
+            <p className="eyebrow font-bold">Discussion feed</p>
+            <h1 className="mt-2 text-3xl font-bold sm:text-4xl md:text-6xl">
+              What clubs are talking about.
+            </h1>
+          </div>
+        </section>
 
-          <section className="bg-cream px-4 py-12 md:px-6">
-            <div className="mx-auto max-w-4xl space-y-6">
-              <div className="space-y-3">
-                <MarkdownEditorWithMentions
-                  ref={editorRef}
-                  value={newPost}
-                  onChange={setNewPost}
-                  clubId={selectedClubId}
-                />
+        <section className="bg-cream px-4 py-12 md:px-6">
+          <div className="mx-auto max-w-4xl space-y-6">
+            <div className="space-y-3">
+              <MarkdownEditorWithMentions
+                ref={editorRef}
+                value={newPost}
+                onChange={setNewPost}
+                clubId={selectedClubId}
+              />
 
               {imagePreviewUrl && (
                 <div className="relative inline-block mt-2">
