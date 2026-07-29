@@ -1,7 +1,6 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/hooks/useReactQueryReplacement";
 import { Suspense, lazy, useEffect, useState } from "react";
-
 import { AnimatePresence } from "framer-motion";
 import {
   createBrowserRouter,
@@ -20,10 +19,32 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 // <-- Added Import
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
-// Pages
 
-import { NotFoundPage } from "./components/NotFoundPage";
-import { createClient } from "./lib/supabase/client";
+declare global {
+  interface Window {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    dataLayer: any[];
+  }
+}
+// Pages
+import Index from "./routes/index";
+import Auth from "./routes/auth";
+import Certificates from "./routes/certificates";
+import ClubsIndex from "./routes/clubs.index";
+import ClubDetails from "./routes/clubs.$slug";
+import ClubsLayout from "./routes/clubs";
+import Dashboard from "./routes/dashboard";
+import DashboardOverview from "./routes/dashboard.index";
+import DashboardRsvps from "./routes/dashboard.rsvps";
+import DashboardBookmarks from "./routes/dashboard.bookmarks";
+import EventsIndex from "./routes/events";
+import EventDetails from "./routes/events.$eventId";
+import Feed from "./routes/feed";
+import ForgotPassword from "./routes/forgot-password";
+import ResetPassword from "./routes/reset-password";
+import Settings from "./routes/settings";
+import PendingClubsAdmin from "./routes/admin.clubs.pending";
+import AnalyticsAdmin from "./routes/admin.analytics";
 
 const HEALTH_CHECK_URL =
   (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_HEALTH_URL) ||
@@ -162,29 +183,12 @@ const router = createBrowserRouter(
         <Route path="/challenge" element={<ChallengeArena />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
 
-        <Route path="/feed" element={<Feed />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/verify-email" element={<VerifyEmail />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route
-          path="/admin/clubs/pending"
-          element={
-            <Suspense fallback={<div className="h-64 bg-cream animate-pulse" />}>
-              <PendingClubsAdmin />
-            </Suspense>
-          }
-        />
-        <Route
-          path="/admin/reports"
-          element={
-            <Suspense fallback={<div className="h-64 bg-cream animate-pulse" />}>
-              <AdminReportsPage />
-            </Suspense>
-          }
-        />
-        <Route path="*" element={<NotFoundPage />} />
-      </Route>
+      <Route path="/feed" element={<Feed />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/settings" element={<Settings />} />
+      <Route path="/admin/clubs/pending" element={<PendingClubsAdmin />} />
+      <Route path="/admin/analytics" element={<AnalyticsAdmin />} />
     </Route>,
   ),
 );
@@ -241,25 +245,51 @@ export default function App() {
     return () => clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    const loadAnalytics = () => {
+      const script = document.createElement("script");
+      script.src = "https://www.googletagmanager.com/gtag/js?id=GA_ID";
+      script.async = true;
+      document.body.appendChild(script);
+
+      window.dataLayer = window.dataLayer || [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      function gtag(...args: any[]) {
+        window.dataLayer.push(args);
+      }
+      gtag("js", new Date());
+      gtag("config", "GA_ID");
+    };
+
+    if ("requestIdleCallback" in window) {
+      requestIdleCallback(loadAnalytics);
+    } else {
+      window.addEventListener("load", loadAnalytics, {
+        once: true,
+      });
+    }
+  }, []);
+
   if (dbStatus === "offline") {
     // Assuming MaintenancePage is imported somewhere else in your environment
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const MaintenancePage = (window as any).MaintenancePage || (() => <div>Maintenance Mode</div>);
     return <MaintenancePage />;
   }
-
   return (
-<ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-  <TooltipProvider>
-    <QueryClientProvider client={queryClient}>
-      <ErrorBoundary>
-        {/* Floating Dark Mode Toggle */}
-        <div className="fixed bottom-4 right-4 z-[9999]">
-          <ThemeToggle />
-        </div>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+      <TooltipProvider>
+        <QueryClientProvider client={queryClient}>
+          <ErrorBoundary>
+            {/* Floating Dark Mode Toggle */}
+            <div className="fixed bottom-4 right-4 z-[9999]">
+              <ThemeToggle />
+            </div>
 
-        <RouterProvider router={router} />
-      </ErrorBoundary>
-    </QueryClientProvider>
-  </TooltipProvider>
-</ThemeProvider>
+            <RouterProvider router={router} />
+          </ErrorBoundary>
+        </QueryClientProvider>
+      </TooltipProvider>
+    </ThemeProvider>
   );
 }
