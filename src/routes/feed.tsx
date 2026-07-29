@@ -211,8 +211,16 @@ export default function Feed() {
   }, []);
 
   useEffect(() => {
+    const channelName = "realtime_feed";
+    // Prevent duplicate subscriptions by removing any existing channel with this topic
+    supabase.getChannels().forEach((c) => {
+      if (c.topic === `realtime:${channelName}` || c.topic === channelName) {
+        void supabase.removeChannel(c);
+      }
+    });
+
     const channel = supabase
-      .channel("realtime_feed")
+      .channel(channelName)
       .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, (payload) => {
         if (payload.eventType === "INSERT") {
           const isOwnPost = payload.new && payload.new.author_id === userRef.current?.id;
@@ -233,7 +241,8 @@ export default function Feed() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      void channel.unsubscribe();
+      void supabase.removeChannel(channel);
     };
   }, [supabase, refetchPosts]);
   useEffect(() => {

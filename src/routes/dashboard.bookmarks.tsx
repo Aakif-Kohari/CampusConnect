@@ -78,9 +78,17 @@ export default function DashboardBookmarks() {
 
   useEffect(() => {
     if (!user?.id) return;
+    
+    const channelName = `bookmarks-${user.id}`;
+    // Prevent duplicate subscriptions by removing any existing channel with this topic
+    supabase.getChannels().forEach((c) => {
+      if (c.topic === `realtime:${channelName}` || c.topic === channelName) {
+        void supabase.removeChannel(c);
+      }
+    });
 
     const channel = supabase
-      .channel(`bookmarks-${user.id}`)
+      .channel(channelName)
       .on(
         "postgres_changes",
         {
@@ -96,6 +104,7 @@ export default function DashboardBookmarks() {
       .subscribe();
 
     return () => {
+      void channel.unsubscribe();
       void supabase.removeChannel(channel);
     };
   }, [refetch, supabase, user?.id]);
