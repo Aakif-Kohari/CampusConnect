@@ -14,6 +14,14 @@ import {
 import Layout from "./components/Layout";
 import { ErrorBoundary, RouteErrorBoundary } from "./components/ErrorBoundary";
 import { PageWrapper } from "./components/PageWrapper";
+import { QueryClientProvider, queryClient } from "@/hooks/useReactQueryReplacement";
+import { CommandPalette } from "./components/ui/command-palette";
+import MaintenancePage from "./components/MaintenancePage";
+import { NotFoundPage } from "./components/NotFoundPage";
+import { createClient } from "./lib/supabase/client";
+// Pages are mostly lazy-loaded below
+import MessagesRoute from "./routes/messages";
+import ThemeToggle from "./components/ThemeToggle"; // <-- Added Import
 
 // Pages
 import Index from "./routes/index";
@@ -74,6 +82,8 @@ async function checkDatabaseHealth(): Promise<HealthStatus> {
     }
 
     return { ok: true };
+  } catch (err: any) {
+    return { ok: false, error: err.message };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     return { ok: false, error: message };
@@ -102,6 +112,8 @@ const VerifyEmail = lazy(() => import("./routes/verify-email"));
 const MessagesRoute = lazy(() => import("./routes/messages"));
 const PendingClubsAdmin = lazy(() => import("./routes/admin.clubs.pending"));
 const AdminReportsPage = lazy(() => import("./routes/admin.reports"));
+const AdminUsersPage = lazy(() => import("./routes/admin.users"));
+const NotFound = lazy(() => import("./routes/NotFound"));
 const ChallengeArena = lazy(() => import("./routes/challenge"));
 const EventDashboard = lazy(() => import("./routes/events.$eventId.dashboard"));
 const Leaderboard = lazy(() =>
@@ -157,6 +169,23 @@ const router = createBrowserRouter(
           <Route path="calendar" element={<DashboardCalendar />} />
         </Route>
 
+        {/* Events — loaded from remote micro-frontend when available */}
+        <Route
+          path="/events"
+          element={
+            <Suspense fallback={<RemoteLoadingScreen />}>
+              <LazyEventsIndex />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/events/:eventId"
+          element={
+            <Suspense fallback={<RemoteLoadingScreen />}>
+              <LazyEventDetails />
+            </Suspense>
+          }
+        />
         <Route path="/events" element={<LazyEventsIndex />} />
         <Route path="/events/:eventId" element={<LazyEventDetails />} />
         <Route path="/events/:eventId/dashboard" element={<EventDashboard />} />
@@ -165,17 +194,20 @@ const router = createBrowserRouter(
         <Route path="/challenge" element={<ChallengeArena />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
 
-        <Route path="/feed" element={<Feed />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/verify-email" element={<VerifyEmail />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/messages" element={<MessagesRoute />} />
-        <Route path="/admin/clubs/pending" element={<PendingClubsAdmin />} />
-        <Route path="/admin/reports" element={<AdminReportsPage />} />
-        <Route path="/admin/users" element={<AdminUsersPage />} />
-        <Route path="*" element={<NotFoundPage />} />
-      </Route>
+      <Route path="/feed" element={<Feed />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/settings" element={<Settings />} />
+      <Route path="/admin/clubs/pending" element={<PendingClubsAdmin />} />
+      <Route path="/admin/analytics" element={<AnalyticsAdmin />} />
+      <Route path="/verify-email" element={<VerifyEmail />} />
+      <Route path="/messages" element={<MessagesRoute />} />
+      <Route path="/admin/clubs/pending" element={<PendingClubsAdmin />} />
+      <Route path="/admin/reports" element={<AdminReportsPage />} />
+      <Route path="/admin/users" element={<AdminUsersPage />} />
+      <Route path="*" element={<NotFoundPage />} />
+      {/* Catch-all route for 404 errors */}
+      <Route path="*" element={<NotFound />} />
     </Route>,
   ),
 );
@@ -233,12 +265,19 @@ export default function App() {
   }, []);
 
   if (dbStatus === "offline") {
+    // Assuming MaintenancePage is imported somewhere else in your environment
     return <MaintenancePage />;
   }
 
   return (
+    // Assuming QueryClientProvider and queryClient are injected/imported properly
     <QueryClientProvider client={queryClient}>
       <ErrorBoundary>
+        {/* Floating Dark Mode Toggle */}
+        <div className="fixed bottom-4 right-4 z-[9999]">
+          <ThemeToggle />
+        </div>
+        
         <RouterProvider router={router} />
       </ErrorBoundary>
     </QueryClientProvider>

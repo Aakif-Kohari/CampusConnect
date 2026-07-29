@@ -3,11 +3,13 @@ import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { UserDropdown } from "../Navigation/UserDropdown";
+
 import { ThemeToggle } from "../ThemeToggle";
 import { NavbarNotificationDropdown } from "./NavbarNotificationDropdown";
 
 import { Menu, X } from "lucide-react";
+import { useAuthHydration } from "@/hooks/useAuthHydration";
+import { ProfileHeaderSkeleton } from "@/components/ProfileHeaderSkeleton";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,14 +28,19 @@ const links = [
   { to: "/dashboard", label: "Dashboard" },
   { to: "/messages", label: "Messages" },
 ] as const;
+const landingLinks = [
+  { href: "#features", label: "Features" },
+  { href: "#faq", label: "FAQ" },
+  { href: "#contact", label: "Contact" },
+] as const;
 
 export function Navbar() {
+  const { user, isInitializing } = useAuthHydration();
   const location = useLocation();
   const navigate = useNavigate();
   const currentPath = location.pathname;
   const supabase = createClient();
 
-  const [user, setUser] = useState<User | null>(null);
   const { onlineUsers } = usePresence(user?.id);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -92,20 +99,6 @@ export function Navbar() {
   }, [mobileMenuOpen]);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  useEffect(() => {
     setMobileMenuOpen(false);
   }, [location.pathname]);
 
@@ -134,6 +127,20 @@ export function Navbar() {
 
         {/* Desktop Navbar */}
         <nav aria-label="Main navigation" className="hidden items-center gap-6 md:flex">
+          {/* Landing page section links */}
+          {currentPath === "/" &&
+            landingLinks.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                className="font-mono text-sm font-bold uppercase hover:underline"
+                style={{ letterSpacing: "0.05em" }}
+              >
+                {link.label}
+              </a>
+            ))}
+
+          {/* Route links */}
           {links.map((link) => {
             const isActive = currentPath === link.to || currentPath.startsWith(link.to + "/");
 
@@ -163,7 +170,9 @@ export function Navbar() {
             <ThemeToggle />
 
             {user && <NavbarNotificationDropdown />}
-            {user ? (
+            {isInitializing ? (
+                <ProfileHeaderSkeleton />
+              ) : user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
@@ -214,7 +223,7 @@ export function Navbar() {
               >
                 Sign in
               </Link>
-            )}
+          )}
           </div>
 
           {/* Mobile menu toggle button */}
@@ -241,6 +250,18 @@ export function Navbar() {
           className="border-t-2 border-black bg-cream p-4 dark:border-cream dark:bg-black md:hidden"
         >
           <div className="flex flex-col gap-2">
+            {currentPath === "/" &&
+              landingLinks.map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  className="neu-border w-full px-4 py-2.5 text-left font-mono text-sm font-bold uppercase bg-white text-black hover:bg-lime"
+                  style={{ letterSpacing: "0.05em" }}
+                >
+                  {link.label}
+                </a>
+              ))}
+
             {links.map((link) => {
               const isActive = currentPath === link.to || currentPath.startsWith(link.to + "/");
 

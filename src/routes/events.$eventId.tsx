@@ -1,7 +1,9 @@
 import { Link, useParams } from "react-router-dom";
-import { useQuery, useMutation } from "@/hooks/useReactQueryReplacement";
+import { useQuery, useMutation, setQueryData } from "@/hooks/useReactQueryReplacement";
 import { createClient } from "@/lib/supabase/client";
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect, lazy, Suspense, useMemo } from "react";
+import { TableOfContents } from "@/components/events/TableOfContents";
+import NotFound from "./NotFound";
 import { User } from "@supabase/supabase-js";
 import { useEmailVerification } from "@/hooks/useEmailVerification";
 import { SiteShell } from "@/components/site/SiteShell";
@@ -11,6 +13,7 @@ import { MapSkeleton } from "@/components/ui/MapSkeleton";
 const EventMap = lazy(() => import("@/components/EventMap").then((m) => ({ default: m.EventMap })));
 import { formatEventDateRange } from "@/lib/utils";
 import { downloadIcs, getGoogleCalendarUrl } from "@/lib/calendarUtils";
+import { EventCapacityGauge } from "@/components/events/EventCapacityGauge";
 import { formatStandardDate } from "@/utils/dateUtils";
 import { toast } from "sonner";
 import { ShareMenu } from "@/components/ui/ShareMenu";
@@ -45,6 +48,13 @@ import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { OptimizedImage } from "@/components/media/OptimizedImage";
 import { LazyImage } from "@/components/ui/LazyImage";
 import { parseCoordinates } from "@/lib/eventUtils";
+import {
+  buildKanbanColumns,
+  buildRsvpStatus,
+  buildFeedbackStatus,
+  buildWaitlistInfo,
+  buildGoogleMapsSearchUrl,
+} from "@/lib/eventTransformUtils";
 import { isCaptchaConfigured, shouldRequireCaptcha } from "@/lib/captcha";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { CreatePollDialog } from "@/components/polls/CreatePollDialog";
@@ -240,6 +250,35 @@ export default function EventDetailsPage() {
     enabled: !!eventId,
   });
 
+    // Extract headings from HTML description for TOC
+  const tocItems = useMemo(() => {
+    if (!event?.description) return [];
+    
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(event.description, "text/html");
+    const headings = doc.querySelectorAll("h2, h3");
+    
+    return Array.from(headings).map((heading) => {
+      const text = heading.textContent || "";
+      // Simple slugify for ID
+      const id = text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      return { id, text, level: heading.tagName === "H2" ? 2 : 3 };
+    });
+  }, [event?.description]);
+
+  // Inject IDs into the rendered DOM nodes so the TOC can scroll to them
+  useEffect(() => {
+    const container = document.getElementById("event-description-container");
+    if (!container) return;
+
+    const headings = container.querySelectorAll("h2, h3");
+    headings.forEach((heading) => {
+      const text = heading.textContent || "";
+      const id = text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      heading.id = id;
+    });
+  }, [event?.description]);
+
   useEffect(() => {
     if (!lightboxSrc) return;
 
@@ -355,17 +394,19 @@ export default function EventDetailsPage() {
   } = useQuery({
     queryKey: ["event", eventId],
     queryFn: async () => {
+      // Try to lookup by short_id first, then fall back to UUID for backwards compatibility
       const { data, error } = await supabase
         .from("events")
         .select(
           `
+          id, title, description, event_date, start_date, end_date, location, banner_url, created_by, short_id,
           id, title, description, event_date, start_date, end_date, location, banner_url, created_by, max_attendees, requires_approval,
           clubs (name, slug),
           event_rsvps (id, user_id, status, checked_in, rsvp_at, profiles (first_name, last_name, avatar_url)),
           event_waitlist (id, user_id, created_at, profiles (first_name, last_name, avatar_url))
         `,
         )
-        .eq("id", eventId)
+        .or(`short_id.eq.${eventId},id.eq.${eventId}`)
         .single();
 
       if (error) {
@@ -526,10 +567,37 @@ export default function EventDetailsPage() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
-      refetch();
+    onMutate: async ({ hasRsvpd }) => {
+      // Snapshot the previous value
+      const previousEvent = event;
+
+      // Optimistically update the cache
+      if (event) {
+        const eventRsvps = Array.isArray(event.event_rsvps) ? event.event_rsvps : [];
+        const updatedRsvps = hasRsvpd
+          ? eventRsvps.filter((r) => r.user_id !== user?.id)
+          : [...eventRsvps, { id: `temp-${Date.now()}`, user_id: user?.id || "" }];
+
+        const updatedEvent = {
+          ...event,
+          event_rsvps: updatedRsvps,
+          attendee_count: hasRsvpd
+            ? (event.attendee_count || 0) - 1
+            : (event.attendee_count || 0) + 1,
+        };
+
+        setQueryData(["event", eventId], updatedEvent);
+      }
+
+      // Return context with previous data for rollback
+      return { previousEvent };
     },
-    onError: (error: (Error & { details?: string; context?: string }) | unknown) => {
+    onError: (error: unknown, _variables: unknown, context: { previousEvent: unknown } | undefined) => {
+      // Rollback to previous value on error
+      if (context?.previousEvent) {
+        setQueryData(["event", eventId], context.previousEvent);
+      }
+
       const err = error as Record<string, unknown>;
       if (
         (typeof err?.message === "string" && err.message.includes("Rate limit")) ||
@@ -539,8 +607,14 @@ export default function EventDetailsPage() {
       ) {
         toast.error("Please wait a minute before toggling RSVP again.");
       } else {
-        toast.error((err?.message as string) || "Failed to update RSVP. Please try again.");
+        toast.error(
+          (err?.message as string) || error?.message || "Failed to update RSVP. Please try again.",
+        );
       }
+    },
+    onSuccess: () => {
+      // Refetch to ensure server state matches
+      refetch();
     },
   });
 
@@ -708,60 +782,7 @@ export default function EventDetailsPage() {
       event_rsvps: EventRsvp[];
     };
 
-    const waitlistCards = (typedEvent.event_waitlist || []).map((w: EventWaitlist) => {
-      const profile = (Array.isArray(w.profiles) ? w.profiles[0] : w.profiles) as Profile | null;
-      return {
-        id: `waitlist-${w.id}`,
-        userId: w.user_id,
-        name: profile ? `${profile.first_name} ${profile.last_name}` : "Unknown User",
-        avatarUrl: profile?.avatar_url || null,
-      };
-    });
-
-    const rsvpWaitlistCards = (typedEvent.event_rsvps || [])
-      .filter((r: EventRsvp) => r.status === "waitlisted")
-      .map((r: EventRsvp) => {
-        const profile = (Array.isArray(r.profiles) ? r.profiles[0] : r.profiles) as Profile | null;
-        return {
-          id: `rsvp-${r.id}`,
-          userId: r.user_id,
-          rsvpId: r.id,
-          name: profile ? `${profile.first_name} ${profile.last_name}` : "Unknown User",
-          avatarUrl: profile?.avatar_url || null,
-        };
-      });
-
-    const approvedCards = (typedEvent.event_rsvps || [])
-      .filter((r: EventRsvp) => r.status === "approved" || !r.status)
-      .map((r: EventRsvp) => {
-        const profile = (Array.isArray(r.profiles) ? r.profiles[0] : r.profiles) as Profile | null;
-        return {
-          id: `rsvp-${r.id}`,
-          userId: r.user_id,
-          rsvpId: r.id,
-          name: profile ? `${profile.first_name} ${profile.last_name}` : "Unknown User",
-          avatarUrl: profile?.avatar_url || null,
-        };
-      });
-
-    const rejectedCards = (typedEvent.event_rsvps || [])
-      .filter((r: EventRsvp) => r.status === "rejected")
-      .map((r: EventRsvp) => {
-        const profile = (Array.isArray(r.profiles) ? r.profiles[0] : r.profiles) as Profile | null;
-        return {
-          id: `rsvp-${r.id}`,
-          userId: r.user_id,
-          rsvpId: r.id,
-          name: profile ? `${profile.first_name} ${profile.last_name}` : "Unknown User",
-          avatarUrl: profile?.avatar_url || null,
-        };
-      });
-
-    setColumns({
-      waitlisted: [...waitlistCards, ...rsvpWaitlistCards],
-      approved: approvedCards,
-      rejected: rejectedCards,
-    });
+    setColumns(buildKanbanColumns(typedEvent.event_waitlist || [], typedEvent.event_rsvps || []));
   }, [event]);
 
   const updateRsvpStatus = useMutation({
@@ -895,29 +916,16 @@ export default function EventDetailsPage() {
     );
   }
 
-  const rsvps = Array.isArray(event.event_rsvps) ? event.event_rsvps : [];
-  const hasRsvpd = user ? rsvps.some((r: { user_id: string }) => r.user_id === user.id) : false;
-  const isCheckedIn = user
-    ? rsvps.some(
-        (r: { user_id: string; checked_in?: boolean }) => r.user_id === user.id && r.checked_in,
-      )
-    : false;
-  const hasEnded = event.end_date ? new Date() > new Date(event.end_date) : false;
+  const rsvps = Array.isArray(event.event_rsvps) ? (event.event_rsvps as EventRsvp[]) : [];
+  const { hasRsvpd, isCheckedIn, hasEnded } = buildRsvpStatus(rsvps, user?.id, event.end_date);
   const rawFeedbacks = (event as Record<string, unknown>).event_feedbacks;
-  const hasSubmittedFeedback =
-    user && Array.isArray(rawFeedbacks)
-      ? (rawFeedbacks as { user_id: string }[]).some((f) => f.user_id === user.id)
-      : false;
+  const { hasSubmittedFeedback } = buildFeedbackStatus(
+    Array.isArray(rawFeedbacks) ? (rawFeedbacks as { user_id: string }[]) : undefined,
+    user?.id,
+  );
 
   const rawWaitlist = (event as Record<string, unknown>).event_waitlist;
-  const waitlist = Array.isArray(rawWaitlist)
-    ? [...(rawWaitlist as { id: string; user_id: string; created_at?: string }[])].sort(
-        (a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime(),
-      )
-    : [];
-  const isOnWaitlist = user ? waitlist.some((w) => w.user_id === user.id) : false;
-  const waitlistPosition =
-    user && isOnWaitlist ? waitlist.findIndex((w) => w.user_id === user.id) + 1 : 0;
+  const { waitlist, isOnWaitlist, waitlistPosition } = buildWaitlistInfo(rawWaitlist, user?.id);
 
   const club = event.clubs ? (Array.isArray(event.clubs) ? event.clubs[0] : event.clubs) : null;
   const coordsCheck = event.location
@@ -1143,6 +1151,15 @@ export default function EventDetailsPage() {
               <Users className="h-5 w-5" />
               <span>{attendeeCount} RSVP&apos;d</span>
             </div>
+          </div>
+
+          <div className="mt-6 max-w-md">
+            <EventCapacityGauge
+              eventId={event.id}
+              initialCapacity={attendeeCount}
+              maxAttendees={maxAttendees || null}
+              showDetails={true}
+            />
           </div>
 
           <div className="mt-8 hidden items-center gap-4 md:flex">
@@ -1399,20 +1416,37 @@ export default function EventDetailsPage() {
             <ActivePoll eventId={eventId} userId={user?.id} />
           </div>
 
+          {/* Live Q&A */}
+          <div className="mt-8">
+            <LiveQA eventId={eventId} userId={user?.id} isOrganizer={isOrganizer} />
+          </div>
           {/* Description */}
           <div className="mt-8">
             <h2 className="font-display text-xl font-bold uppercase tracking-tight text-blue-900">
               About the Event
             </h2>
-            {event.description ? (
-              <p className="mt-4 whitespace-pre-line text-base leading-7 text-black/80">
-                {event.description}
-              </p>
-            ) : (
-              <p className="mt-4 font-mono text-sm italic text-black/40">
-                No description provided for this event.
-              </p>
-            )}
+            <div className="flex flex-col gap-8 lg:flex-row">
+              <main className="flex-1 min-w-0">
+                {event.description ? (
+                  <p className="mt-4 whitespace-pre-line text-base leading-7 text-black/80">
+                    {event.description}
+                  </p>
+                ) : (
+                  <p className="mt-4 font-mono text-sm italic text-black/40">
+                    No description provided for this event.
+                  </p>
+                )}
+            
+                <div 
+                  id="event-description-container" 
+                  className="prose prose-lg max-w-none dark:prose-invert prose-headings:scroll-mt-24"
+                  dangerouslySetInnerHTML={{ __html: event.description }} 
+                />
+              </main>
+              <aside className="lg:w-64 shrink-0">
+                <TableOfContents items={tocItems} />
+              </aside>
+            </div>
           </div>
 
           {/* FAQ Section */}
@@ -1469,7 +1503,7 @@ export default function EventDetailsPage() {
                     />
                   </Suspense>
                   <a
-                    href={`https://www.google.com/maps/search/?q=${encodeURIComponent(event.location)}`}
+                    href={buildGoogleMapsSearchUrl(event.location)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="mt-2 inline-block font-mono text-xs font-bold underline text-blue-500"
@@ -1491,7 +1525,7 @@ export default function EventDetailsPage() {
                       must be between -90 and 90, and Longitude between -180 and 180.
                     </p>
                     <a
-                      href={`https://www.google.com/maps/search/?q=${encodeURIComponent(event.location)}`}
+                      href={buildGoogleMapsSearchUrl(event.location)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 font-mono text-xs font-bold underline hover:no-underline text-black"
@@ -1502,7 +1536,7 @@ export default function EventDetailsPage() {
                 </div>
               ) : (
                 <a
-                  href={`https://www.google.com/maps/search/?q=${encodeURIComponent(event.location)}`}
+                  href={buildGoogleMapsSearchUrl(event.location)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="neu-border mt-4 inline-flex items-center gap-2 bg-white px-5 py-3 font-mono text-sm font-bold uppercase tracking-wider transition-all duration-300 hover:scale-105 active:scale-95"

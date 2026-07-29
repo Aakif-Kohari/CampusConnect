@@ -17,6 +17,8 @@ import { ArrowLeft, Github, Loader2, CheckCircle, Flag } from "lucide-react";
 import { ReportDialog } from "@/components/ReportDialog";
 import { EmptyState } from "@/components/EmptyState";
 import { VideoPlayer } from "@/components/VideoPlayer";
+import { AudioReactiveBackground } from "@/components/media/AudioReactiveBackground";
+import NotFound from "./NotFound";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -301,7 +303,8 @@ export default function ClubProfile() {
       .filter((h) => h.id);
   }, [club?.description]);
 
-  if (isLoading) return <ClubProfileSkeleton />;
+  if (isLoading) return <PageLoader />;
+  if (error || !club) return <NotFound />;
   if (!club)
     return (
       <SiteShell>
@@ -363,7 +366,15 @@ export default function ClubProfile() {
       </Helmet>
 
       <SiteShell>
-        <section className="border-b-2 border-black px-4 py-14 md:px-6">
+        {/* Audio Reactive WebGL Hero Background */}
+        <section className="relative border-b-2 border-black px-4 py-8 md:px-6 bg-slate-950 overflow-hidden">
+          <div className="mx-auto max-w-6xl relative z-10">
+            <AudioReactiveBackground
+              className="h-64 md:h-80 mb-6 border-2 border-black rounded-lg shadow-xl"
+              defaultPreset="neonPulse"
+              interactive={true}
+            />
+          </div>
           <div className="mx-auto max-w-6xl">
             {/* Breadcrumb — full on sm+, back-link only on mobile */}
             <Link
@@ -402,14 +413,24 @@ export default function ClubProfile() {
               <h1 className="mt-2 text-5xl font-bold text-brand-blue-dark md:text-7xl">
                 {club.name}
               </h1>
-              {membership?.role === "admin" && (
-                <Link
-                  to={`/clubs/${club.slug}/manage`}
-                  className="neu-border neu-press bg-brand-yellow-base mt-4 sm:mt-2 px-5 py-3 font-mono text-sm font-bold uppercase transition-transform hover:-translate-y-1 inline-block shrink-0"
-                >
-                  Manage Club
-                </Link>
-              )}
+              <div className="flex flex-col sm:flex-row gap-2 mt-4 sm:mt-2">
+                {membership && (
+                  <Link
+                    to={`/clubs/${club.slug}/tasks`}
+                    className="neu-border neu-press bg-brand-blue-base text-white px-5 py-3 font-mono text-sm font-bold uppercase transition-transform hover:-translate-y-1 inline-block shrink-0 text-center"
+                  >
+                    Tasks
+                  </Link>
+                )}
+                {membership?.role === "admin" && (
+                  <Link
+                    to={`/clubs/${club.slug}/manage`}
+                    className="neu-border neu-press bg-brand-yellow-base px-5 py-3 font-mono text-sm font-bold uppercase transition-transform hover:-translate-y-1 inline-block shrink-0 text-center"
+                  >
+                    Manage Club
+                  </Link>
+                )}
+              </div>
             </div>
             <div className="markdown-content mt-4 max-w-2xl font-mono text-sm md:text-base leading-relaxed border-b-2 border-black pb-6">
               {headings.length > 1 && (
