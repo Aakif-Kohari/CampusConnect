@@ -134,7 +134,7 @@ export default function Feed() {
   const [user, setUser] = useState<User | null>(null);
   const emailVerified = useEmailVerification();
   const [newPost, setNewPost] = useState("");
-  const editorRef = useRef<MarkdownEditorRef>(null);
+  const editorRef = useRef<MarkdownEditorWithMentionsRef>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [showNewPostsBanner, setShowNewPostsBanner] = useState(false);
   const [prependedPosts, setPrependedPosts] = useState<Post[]>([]);
@@ -906,9 +906,9 @@ export default function Feed() {
                   </AnimatedTooltip>
                 </div>
               </div>
-              </div>
+            </div>
 
-              <style>{`
+            <style>{`
               @keyframes slideDown {
                 from {
                   opacity: 0;

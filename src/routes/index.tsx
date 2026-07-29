@@ -13,6 +13,7 @@ import { HeroBackground } from "@/components/home/HeroBackground";
 import { HeroMidground } from "@/components/home/HeroMidground";
 import { HeroForeground } from "@/components/home/HeroForeground";
 import { EventCardSkeleton } from "@/components/EventCardSkeleton";
+import { useTranslation } from "react-i18next";
 
 function AnimatedCounter({ value }: { value: string }) {
   const [displayValue, setDisplayValue] = useState("0");
@@ -201,6 +202,7 @@ const FAQ_ITEMS: FAQItem[] = [
 ];
 
 export default function Landing() {
+  const { t } = useTranslation();
   const [activeCategory, setActiveCategory] = useState("All");
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
