@@ -113,6 +113,7 @@ const MessagesRoute = lazy(() => import("./routes/messages"));
 const PendingClubsAdmin = lazy(() => import("./routes/admin.clubs.pending"));
 const AdminReportsPage = lazy(() => import("./routes/admin.reports"));
 const AdminUsersPage = lazy(() => import("./routes/admin.users"));
+const AdminRestorePage = lazy(() => import("./routes/admin.restore"));
 const NotFound = lazy(() => import("./routes/NotFound"));
 const ChallengeArena = lazy(() => import("./routes/challenge"));
 const EventDashboard = lazy(() => import("./routes/events.$eventId.dashboard"));
@@ -202,9 +203,9 @@ const router = createBrowserRouter(
       <Route path="/admin/analytics" element={<AnalyticsAdmin />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
       <Route path="/messages" element={<MessagesRoute />} />
-      <Route path="/admin/clubs/pending" element={<PendingClubsAdmin />} />
       <Route path="/admin/reports" element={<AdminReportsPage />} />
       <Route path="/admin/users" element={<AdminUsersPage />} />
+      <Route path="/admin/restore" element={<AdminRestorePage />} />
       <Route path="*" element={<NotFoundPage />} />
       {/* Catch-all route for 404 errors */}
       <Route path="*" element={<NotFound />} />

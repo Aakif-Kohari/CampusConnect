@@ -1405,7 +1405,10 @@ function PostComments({ postId, user, userProfile, clubMembers, timeAgo }: PostC
   const deleteCommentMutation = useMutation({
     mutationFn: async (commentId: string) => {
       if (!user) throw new Error("Must be logged in");
-      const { error } = await supabase.from("comments").delete().eq("id", commentId);
+      const { error } = await supabase
+        .from("comments")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", commentId);
       if (error) throw error;
     },
     onSuccess: () => {
