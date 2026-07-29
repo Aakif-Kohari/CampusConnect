@@ -597,6 +597,7 @@ export default function EventDetailsPage() {
       if (context?.previousEvent) {
         setQueryData(["event", eventId], context.previousEvent);
       }
+
       const err = error as Record<string, unknown>;
       if (
         (typeof err?.message === "string" && err.message.includes("Rate limit")) ||
