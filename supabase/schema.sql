@@ -872,6 +872,58 @@ BEFORE DELETE ON profiles
 FOR EACH ROW
 EXECUTE FUNCTION public.handle_profile_soft_delete_cascade();
 
+-- Trigger function to request chat message moderation
+CREATE OR REPLACE FUNCTION public.handle_new_chat_message_moderation()
+RETURNS TRIGGER AS $$
+DECLARE
+    function_url TEXT := 'http://localhost:54321/functions/v1/chat-moderation';
+    payload JSONB;
+BEGIN
+    payload := jsonb_build_object(
+        'type', 'INSERT',
+        'table', 'chat_messages',
+        'record', jsonb_build_object(
+            'id', NEW.id,
+            'content', NEW.content,
+            'sender_id', NEW.sender_id,
+            'receiver_id', NEW.receiver_id,
+            'created_at', NEW.created_at
+        )
+    );
+
+    IF EXISTS (
+        SELECT 1 FROM pg_proc p 
+        JOIN pg_namespace n ON p.pronamespace = n.oid 
+        WHERE p.proname = 'http_post' AND n.nspname = 'net'
+    ) THEN
+        PERFORM net.http_post(
+            url := function_url,
+            headers := '{"Content-Type": "application/json"}'::jsonb,
+            body := payload
+        );
+    ELSIF EXISTS (
+        SELECT 1 FROM pg_proc p 
+        JOIN pg_namespace n ON p.pronamespace = n.oid 
+        WHERE p.proname = 'http_post' AND n.nspname = 'extensions'
+    ) THEN
+        PERFORM extensions.http_post(
+            url := function_url,
+            headers := '{"Content-Type": "application/json"}'::jsonb,
+            body := payload
+        );
+    END IF;
+
+    RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER on_chat_message_created_moderation
+AFTER INSERT ON public.chat_messages
+FOR EACH ROW
+EXECUTE FUNCTION public.handle_new_chat_message_moderation();
+
 -- ------------------------------------------------------------
 -- 5. Storage Buckets & Policies
 -- ------------------------------------------------------------
