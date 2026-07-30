@@ -14,7 +14,7 @@ import {
   CheckCircle,
   Download,
   BarChart2,
-  FolderOpen,
+  DollarSign,
 } from "lucide-react";
 import { PromoVideoUploader } from "@/components/PromoVideoUploader";
 import { FolderTree } from "@/components/club-documents/FolderTree";
@@ -25,6 +25,7 @@ import { RosterExport } from "@/components/RosterExport";
 import { ImageCropUpload } from "@/components/ImageCropUpload";
 import { ClubMembersTable } from "@/components/Clubs/ClubMembersTable";
 import { ClubAnalyticsDashboard } from "@/components/Clubs/ClubAnalyticsDashboard";
+import { ClubBudgetDashboard } from "@/components/Clubs/ClubBudgetDashboard";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -45,7 +46,7 @@ export default function ClubManageRoute() {
   const [user, setUser] = useState<User | null>(null);
   const initialTab = searchParams.get("tab");
   const [activeTab, setActiveTab] = useState<
-    "settings" | "members" | "events" | "analytics" | "documents"
+    "settings" | "members" | "events" | "analytics" | "budget"
   >(
     initialTab === "analytics"
       ? "analytics"
@@ -53,8 +54,8 @@ export default function ClubManageRoute() {
         ? "members"
         : initialTab === "events"
           ? "events"
-          : initialTab === "documents"
-            ? "documents"
+          : initialTab === "budget"
+            ? "budget"
             : "settings",
   );
 
@@ -379,14 +380,14 @@ export default function ClubManageRoute() {
                 <BarChart2 size={18} /> Analytics
               </button>
               <button
-                onClick={() => setActiveTab("documents")}
+                onClick={() => setActiveTab("budget")}
                 className={`neu-border flex items-center gap-3 p-4 font-mono text-sm font-bold uppercase transition-all ${
-                  activeTab === "documents"
+                  activeTab === "budget"
                     ? "bg-black text-white hover:-translate-y-1"
                     : "bg-white text-black hover:bg-gray-50"
                 }`}
               >
-                <FolderOpen size={18} /> Documents
+                <DollarSign size={18} /> Budget
               </button>
             </nav>
           </aside>
@@ -624,66 +625,7 @@ export default function ClubManageRoute() {
               </div>
             )}
             {activeTab === "analytics" && <ClubAnalyticsDashboard clubId={club.id} />}
-
-            {activeTab === "documents" && (
-              <div className="neu-border bg-white p-6 space-y-6">
-                <h2 className="font-display text-2xl font-bold border-b-2 border-black pb-2">
-                  Club Documents
-                </h2>
-                {isDocsLoading ? (
-                  <div className="space-y-2">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="h-8 w-full bg-gray-100 animate-pulse" />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex flex-col md:flex-row gap-6">
-                    <div className="w-full md:w-72 shrink-0 border-r-2 border-black pr-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-mono text-xs font-bold uppercase">Folders</span>
-                        <button
-                          onClick={() => {
-                            const name = prompt("Folder name:");
-                            if (name?.trim()) {
-                              createFolder.mutate({
-                                name: name.trim(),
-                                parentId: selectedFolderId,
-                              });
-                            }
-                          }}
-                          className="text-xs font-mono font-bold text-blue-600 hover:underline"
-                        >
-                          + New
-                        </button>
-                      </div>
-                      <FolderTree
-                        tree={tree}
-                        selectedFolderId={selectedFolderId}
-                        onSelectFolder={setSelectedFolderId}
-                        onMoveFolder={(folderId, parentId, orderIndex) =>
-                          moveFolder.mutate({ folderId, parentId, orderIndex })
-                        }
-                        onCreateSubfolder={(parentId, name) =>
-                          createFolder.mutate({ name, parentId })
-                        }
-                        onRenameFolder={(folderId, name) => renameFolder.mutate({ folderId, name })}
-                        onDeleteFolder={(folderId) => deleteFolder.mutate(folderId)}
-                        onDeleteDocument={(doc) => deleteDocument.mutate(doc)}
-                        isAdmin={isAdmin}
-                      />
-                    </div>
-                    <div className="flex-1 space-y-4">
-                      <DocumentUploader
-                        onUpload={(file) =>
-                          uploadDocument.mutate({ file, folderId: selectedFolderId })
-                        }
-                        isUploading={uploadDocument.isPending}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
+            {activeTab === "budget" && <ClubBudgetDashboard clubId={club.id} />}
           </main>
         </div>
       </div>

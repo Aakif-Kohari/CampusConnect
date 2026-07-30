@@ -251,6 +251,103 @@ VALUES
 )
 ON CONFLICT (id) DO NOTHING;
 
+-- 8. Budget seed data
+INSERT INTO budgets (id, club_id, fiscal_year, total_allocated, description)
+VALUES
+(
+  'b0000000-0000-0000-0000-000000000001',
+  'c0000000-0000-0000-0000-000000000001',
+  2026,
+  5000.00,
+  'Annual budget for Tech Club - 2026'
+),
+(
+  'b0000000-0000-0000-0000-000000000002',
+  'c0000000-0000-0000-0000-000000000002',
+  2026,
+  3000.00,
+  'Annual budget for Art Club - 2026'
+),
+(
+  'b0000000-0000-0000-0000-000000000003',
+  'c0000000-0000-0000-0000-000000000003',
+  2026,
+  4000.00,
+  'Annual budget for Music Club - 2026'
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- 9. Transaction seed data
+INSERT INTO transactions (id, club_id, type, amount, description, category, status, transaction_date, created_by)
+VALUES
+(
+  't0000000-0000-0000-0000-000000000001',
+  'c0000000-0000-0000-0000-000000000001',
+  'expense',
+  1200.00,
+  'Hackathon venue booking deposit',
+  'venue',
+  'approved',
+  NOW() - INTERVAL '10 days',
+  'd0000000-0000-0000-0000-000000000001'
+),
+(
+  't0000000-0000-0000-0000-000000000002',
+  'c0000000-0000-0000-0000-000000000001',
+  'expense',
+  350.00,
+  'Pizza and drinks for coding session',
+  'food',
+  'approved',
+  NOW() - INTERVAL '5 days',
+  'd0000000-0000-0000-0000-000000000001'
+),
+(
+  't0000000-0000-0000-0000-000000000003',
+  'c0000000-0000-0000-0000-000000000001',
+  'income',
+  200.00,
+  'Sponsorship from Local Tech Corp',
+  'sponsorship',
+  'approved',
+  NOW() - INTERVAL '3 days',
+  'd0000000-0000-0000-0000-000000000001'
+),
+(
+  't0000000-0000-0000-0000-000000000004',
+  'c0000000-0000-0000-0000-000000000002',
+  'expense',
+  450.00,
+  'Watercolor paper and paint set restock',
+  'supplies',
+  'approved',
+  NOW() - INTERVAL '7 days',
+  'd0000000-0000-0000-0000-000000000001'
+),
+(
+  't0000000-0000-0000-0000-000000000005',
+  'c0000000-0000-0000-0000-000000000002',
+  'expense',
+  150.00,
+  'Portable easels (3 units)',
+  'equipment',
+  'approved',
+  NOW() - INTERVAL '2 days',
+  'd0000000-0000-0000-0000-000000000001'
+),
+(
+  't0000000-0000-0000-0000-000000000006',
+  'c0000000-0000-0000-0000-000000000003',
+  'expense',
+  800.00,
+  'Sound system rental for Open Mic Night',
+  'equipment',
+  'approved',
+  NOW() - INTERVAL '4 days',
+  'd0000000-0000-0000-0000-000000000001'
+)
+ON CONFLICT (id) DO NOTHING;
+
 INSERT INTO
     comments (
         id,
