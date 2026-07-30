@@ -348,6 +348,43 @@ VALUES
 )
 ON CONFLICT (id) DO NOTHING;
 
+-- 10. Job board seed data
+INSERT INTO club_jobs (id, club_id, title, description, is_open, created_by)
+VALUES
+(
+  'j0000000-0000-0000-0000-000000000001',
+  'c0000000-0000-0000-0000-000000000001',
+  'Web Developer',
+  'Help build and maintain our club website. Experience with React and TypeScript preferred.',
+  TRUE,
+  'd0000000-0000-0000-0000-000000000001'
+),
+(
+  'j0000000-0000-0000-0000-000000000002',
+  'c0000000-0000-0000-0000-000000000001',
+  'Treasurer',
+  'Manage club finances, track expenses, and prepare budget reports for the academic year.',
+  TRUE,
+  'd0000000-0000-0000-0000-000000000001'
+),
+(
+  'j0000000-0000-0000-0000-000000000003',
+  'c0000000-0000-0000-0000-000000000002',
+  'Graphic Designer',
+  'Create promotional materials for art exhibitions and workshops. Proficiency in Adobe Creative Suite required.',
+  TRUE,
+  'd0000000-0000-0000-0000-000000000001'
+),
+(
+  'j0000000-0000-0000-0000-000000000004',
+  'c0000000-0000-0000-0000-000000000003',
+  'Sound Technician',
+  'Operate audio equipment during club events and open mic nights. Basic knowledge of mixing consoles required.',
+  TRUE,
+  'd0000000-0000-0000-0000-000000000001'
+)
+ON CONFLICT (id) DO NOTHING;
+
 INSERT INTO
     comments (
         id,

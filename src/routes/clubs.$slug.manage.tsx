@@ -15,6 +15,7 @@ import {
   Download,
   BarChart2,
   DollarSign,
+  Briefcase,
 } from "lucide-react";
 import { PromoVideoUploader } from "@/components/PromoVideoUploader";
 import { ClubManageSkeleton } from "@/components/DashboardWidgetSkeleton";
@@ -23,6 +24,7 @@ import { ImageCropUpload } from "@/components/ImageCropUpload";
 import { ClubMembersTable } from "@/components/Clubs/ClubMembersTable";
 import { ClubAnalyticsDashboard } from "@/components/Clubs/ClubAnalyticsDashboard";
 import { ClubBudgetDashboard } from "@/components/Clubs/ClubBudgetDashboard";
+import { ClubRecruitmentManage } from "@/components/Clubs/ClubRecruitmentManage";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -43,7 +45,7 @@ export default function ClubManageRoute() {
   const [user, setUser] = useState<User | null>(null);
   const initialTab = searchParams.get("tab");
   const [activeTab, setActiveTab] = useState<
-    "settings" | "members" | "events" | "analytics" | "budget"
+    "settings" | "members" | "events" | "analytics" | "budget" | "recruitment"
   >(
     initialTab === "analytics"
       ? "analytics"
@@ -53,7 +55,9 @@ export default function ClubManageRoute() {
           ? "events"
           : initialTab === "budget"
             ? "budget"
-            : "settings",
+            : initialTab === "recruitment"
+              ? "recruitment"
+              : "settings",
   );
 
   // Form State
@@ -373,6 +377,16 @@ export default function ClubManageRoute() {
               >
                 <DollarSign size={18} /> Budget
               </button>
+              <button
+                onClick={() => setActiveTab("recruitment")}
+                className={`neu-border flex items-center gap-3 p-4 font-mono text-sm font-bold uppercase transition-all ${
+                  activeTab === "recruitment"
+                    ? "bg-black text-white hover:-translate-y-1"
+                    : "bg-white text-black hover:bg-gray-50"
+                }`}
+              >
+                <Briefcase size={18} /> Recruitment
+              </button>
             </nav>
           </aside>
 
@@ -610,6 +624,7 @@ export default function ClubManageRoute() {
             )}
             {activeTab === "analytics" && <ClubAnalyticsDashboard clubId={club.id} />}
             {activeTab === "budget" && <ClubBudgetDashboard clubId={club.id} />}
+            {activeTab === "recruitment" && <ClubRecruitmentManage clubId={club.id} />}
           </main>
         </div>
       </div>
