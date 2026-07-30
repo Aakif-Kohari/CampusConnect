@@ -1,3 +1,4 @@
+import { AnimatePresence, motion } from "framer-motion";
 import { FeedPostSkeleton } from "@/components/FeedPostSkeleton";
 import {
   useMutation,
@@ -165,6 +166,38 @@ export default function Feed() {
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
+  }, [supabase]);
+
+  // Realtime broadcast listener for deleted posts (#1297)
+  useEffect(() => {
+    const channel = supabase
+      .channel("public:posts:delete")
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "posts" },
+        (payload) => {
+          const deletedPostId = payload.old?.id;
+          if (!deletedPostId) return;
+
+          setPrependedPosts((prev) => prev.filter((p) => p.id !== deletedPostId));
+          setQueryData(["posts"], (oldData: any) => {
+            if (!oldData?.pages) return oldData;
+            return {
+              ...oldData,
+              pages: oldData.pages.map((page: any) => ({
+                ...page,
+                posts: page.posts.filter((p: any) => p.id !== deletedPostId),
+              })),
+            };
+          });
+          toast.info("A post was deleted in real time");
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [supabase]);
 
   const { data: userClubs = [] } = useQuery({
