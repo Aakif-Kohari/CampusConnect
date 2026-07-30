@@ -32,11 +32,9 @@
 
         <span className="font-bold uppercase flex items-center gap-1">
           View Profile{" "}
-          <span className="transition-transform duration-300 group-hover:translate-x-1">
-            →
-          </span>
+          <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
         </span>
       </div>
     </div>
   </HoverLink>
-</div>
+</div>;

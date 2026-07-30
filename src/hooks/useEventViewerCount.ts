@@ -10,7 +10,7 @@ export function useEventViewerCount(eventId: string) {
     if (!eventId) return;
 
     const supabase = createClient();
-    
+
     // Create the presence channel specifically for this event ID
     const channel = supabase.channel(`room:event-${eventId}`, {
       config: {

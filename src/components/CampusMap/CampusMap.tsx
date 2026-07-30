@@ -1,138 +1,86 @@
-// src/components/CampusMap/CampusMap.tsx
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { TransformWrapper, TransformComponent, useControls } from 'react-zoom-pan-pinch';
-import { CampusMapSVG } from './CampusMapSVG';
-import { MapPin } from './MapPin';
-import { MapEvent } from './EventPopover';
-import { useMapCoordinates, PinCoordinate } from '../../hooks/useMapCoordinates';
-import { Button } from '../ui/button';
-import { ZoomIn, ZoomOut, Maximize2, MapPinned } from 'lucide-react';
-import { cn } from '../../lib/utils';
+import { useEffect, useState } from "react";
+import { MapContainer, TileLayer } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+
+import { useHeatmapData } from "./hooks/useHeatmapData";
+import { useMapView } from "./hooks/useMapView";
+import { HeatmapLayer } from "./HeatmapLayer";
+import { EventPins } from "./EventPins";
+import { MapToggle } from "./MapToggle";
+import { HeatmapLegend } from "./HeatmapLegend";
+import { LoadingOverlay } from "./LoadingOverlay";
+
+// Leaflet requires these to fix default icon issues
+import L from "leaflet";
+import icon from "leaflet/dist/images/marker-icon.png";
+import iconShadow from "leaflet/dist/images/marker-shadow.png";
+
+const DefaultIcon = L.icon({
+  iconUrl: icon,
+  shadowUrl: iconShadow,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+});
+L.Marker.prototype.options.icon = DefaultIcon;
+
+const THRESHOLD = 1000;
 
 interface CampusMapProps {
-  events: MapEvent[];
-  onEventClick?: (eventId: string) => void;
-  isAdminMode?: boolean;
-  onAdminPinDrop?: (coord: PinCoordinate, eventId: string) => void;
+  initialCenter?: [number, number];
+  initialZoom?: number;
   className?: string;
 }
 
-/**
- * Interactive, zoomable SVG map of the campus.
- * Wraps the SVG in `react-zoom-pan-pinch` to handle complex touch-panning
- * and pinch-to-zoom physics on mobile devices.
- */
-export const CampusMap: React.FC<CampusMapProps> = ({
-  events,
-  onEventClick,
-  isAdminMode = false,
-  onAdminPinDrop,
-  className,
-}) => {
-  const [scale, setScale] = useState<number>(1);
-  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const { getPercentageFromEvent } = useMapCoordinates();
-  
-  // Expose zoom controls from the inner component to the outer UI
-  const Controls = () => {
-    const { zoomIn, zoomOut, resetTransform } = useControls();
-    return (
-      <div className="absolute bottom-4 right-4 flex flex-col gap-2 z-20">
-        <Button variant="secondary" size="icon" className="shadow-md bg-background/90 backdrop-blur" onClick={() => zoomIn()}>
-          <ZoomIn className="w-4 h-4" />
-        </Button>
-        <Button variant="secondary" size="icon" className="shadow-md bg-background/90 backdrop-blur" onClick={() => zoomOut()}>
-          <ZoomOut className="w-4 h-4" />
-        </Button>
-        <Button variant="secondary" size="icon" className="shadow-md bg-background/90 backdrop-blur" onClick={() => resetTransform()}>
-          <Maximize2 className="w-4 h-4" />
-        </Button>
-      </div>
-    );
-  };
+export function CampusMap({
+  initialCenter = [40.7128, -74.006], // Default center
+  initialZoom = 14,
+  className = "w-full h-full",
+}: CampusMapProps) {
+  const { events, heatmapData, isLoading, error } = useHeatmapData();
+  const { view, setView, toggleView } = useMapView("pins");
+  const [initialized, setInitialized] = useState(false);
 
-  const handleMapClick = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
-    if (!isAdminMode || !containerRef.current || !selectedEventId) return;
-
-    const rect = containerRef.current.getBoundingClientRect();
-    const percentages = getPercentageFromEvent(e, rect);
-
-    onAdminPinDrop?.({
-      id: `pin-${Date.now()}`,
-      x: percentages.x,
-      y: percentages.y,
-      buildingName: 'Custom Location',
-    }, selectedEventId);
-  }, [isAdminMode, selectedEventId, getPercentageFromEvent, onAdminPinDrop]);
-
-  // Map events to their stored coordinates (in a real app, these come from the DB)
-  const mappedEvents = events.map(evt => ({
-    ...evt,
-    // Mock coordinates if not provided
-    x: 20 + Math.random() * 60,
-    y: 20 + Math.random() * 60,
-  }));
+  useEffect(() => {
+    // If we have a massive amount of events, default to heatmap to avoid performance issues
+    if (!initialized && events.length >= THRESHOLD) {
+      setView("heatmap");
+      setInitialized(true);
+    } else if (!initialized && events.length > 0) {
+      setInitialized(true);
+    }
+  }, [events, initialized, setView]);
 
   return (
-    <div 
-      ref={containerRef}
-      className={cn(
-        'relative w-full h-[600px] rounded-xl border overflow-hidden bg-muted shadow-inner',
-        isAdminMode && selectedEventId && 'cursor-crosshair ring-2 ring-primary',
-        className
-      )}
-    >
-      {isAdminMode && (
-        <div className="absolute top-4 left-4 z-20 bg-background/90 backdrop-blur p-3 rounded-lg shadow-md border max-w-xs">
-          <div className="flex items-center gap-2 mb-2">
-            <MapPinned className="w-4 h-4 text-primary" />
-            <span className="text-sm font-semibold">Admin Mode: Pin Drop</span>
-          </div>
-          {!selectedEventId ? (
-            <p className="text-xs text-muted-foreground">Select an event from the list to drop its pin on the map.</p>
-          ) : (
-            <p className="text-xs text-muted-foreground">
-              Click anywhere on the map to set the location for <span className="font-bold text-foreground">Event #{selectedEventId}</span>.
-            </p>
-          )}
-        </div>
+    <div className={`relative ${className}`}>
+      {isLoading && <LoadingOverlay />}
+      {!isLoading && events.length === 0 && <LoadingOverlay isEmpty />}
+
+      {!isLoading && events.length > 0 && (
+        <>
+          <MapToggle view={view} onToggle={toggleView} />
+          {view === "heatmap" && <HeatmapLegend />}
+        </>
       )}
 
-      <TransformWrapper
-        initialScale={1}
-        minScale={1}
-        maxScale={8}
-        limitToBounds={true}
-        centerOnInit={true}
-        onZoom={(ref) => setScale(ref.state.scale)}
-        doubleClick={{ disabled: true }} // Disable double click zoom to prevent accidental map movement when tapping pins
+      <MapContainer
+        center={initialCenter}
+        zoom={initialZoom}
+        className="w-full h-full z-0"
+        zoomControl={false}
       >
-        <TransformComponent
-          wrapperClass="!w-full !h-full"
-          contentClass="!w-full !h-full"
-        >
-          <div className="relative w-full h-full">
-            <CampusMapSVG 
-              className="w-full h-full" 
-              onMapClick={handleMapClick} 
-            />
-            
-            {/* Render Pins */}
-            {mappedEvents.map((evt) => (
-              <MapPin
-                key={evt.id}
-                event={evt}
-                x={evt.x}
-                y={evt.y}
-                scale={scale}
-                onViewDetails={(id) => onEventClick?.(id)}
-              />
-            ))}
-          </div>
-        </TransformComponent>
-        <Controls />
-      </TransformWrapper>
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+        />
+
+        {!isLoading &&
+          events.length > 0 &&
+          (view === "heatmap" ? (
+            <HeatmapLayer points={heatmapData} />
+          ) : (
+            <EventPins events={events} />
+          ))}
+      </MapContainer>
     </div>
   );
-};
+}

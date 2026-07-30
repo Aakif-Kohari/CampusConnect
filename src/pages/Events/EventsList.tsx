@@ -20,7 +20,6 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { EventFilters, FilterState } from "@/components/EventFilters";
 import { ScrollAwareFab } from "@/components/ScrollAwareFab";
-import confetti from "canvas-confetti";
 
 import {
   Select,
@@ -179,8 +178,9 @@ export default function EventsList() {
       let fetchedCount: number | null = null;
 
       if (searchQuery.trim()) {
-const { data, error } = await supabase
-          .rpc("search_events_advanced", { query_string: searchQuery })          .select(
+        const { data, error } = await supabase
+          .rpc("search_events_advanced", { query_string: searchQuery })
+          .select(
             `
             id, title, description, event_date, start_date, end_date, location, banner_url,
             clubs (name),
@@ -581,11 +581,17 @@ const { data, error } = await supabase
 
       // Show confetti only when successfully RSVPing (not when cancelling)
       if (!hasRsvpd) {
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 },
-        });
+        // @ts-expect-error - canvas-confetti lacks type declarations
+        import("canvas-confetti")
+          .then((m) => {
+            const fireConfetti = m.default || m;
+            fireConfetti({
+              particleCount: 100,
+              spread: 70,
+              origin: { y: 0.6 },
+            });
+          })
+          .catch(() => {});
       }
     } catch {
       setEvents(originalEvents);
@@ -702,7 +708,12 @@ const { data, error } = await supabase
           ))}
         </div>
       )}
-      <PullToRefresh isRefreshing={isFetching} onRefresh={() => refetch()}>
+      <PullToRefresh
+        isRefreshing={isFetching}
+        onRefresh={async () => {
+          await refetch();
+        }}
+      >
         <SidebarProvider>
           <div className="flex flex-col md:flex-row w-full bg-cream">
             <ErrorBoundary

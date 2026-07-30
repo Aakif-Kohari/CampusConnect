@@ -38,9 +38,10 @@ Deno.test("limitRate - handles missing headers and defaults gracefully", async (
 });
 
 Deno.test("getUserIdFromAuthHeader - decodes JWT user sub ID correctly", () => {
-  const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0Y2M3MWE3NC1iNTJlLTRiNDctYmE4OC03NTE3YzViNjFiMmUiLCJyb2xlIjoiYXV0aGVudGljYXRlZCJ9.signature";
+  const token =
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0Y2M3MWE3NC1iNTJlLTRiNDctYmE4OC03NTE3YzViNjFiMmUiLCJyb2xlIjoiYXV0aGVudGljYXRlZCJ9.signature";
   const authHeader = `Bearer ${token}`;
-  
+
   const userId = getUserIdFromAuthHeader(authHeader);
   assertEquals(userId, "4cc71a74-b52e-4b47-ba88-7517c5b61b2e");
 });
