@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { createClubProfileQueryOptions } from "@/lib/clubProfileQuery";
 import { ClubHeader } from "@/components/Clubs/ClubHeader";
+import { ClubJobsSection } from "@/components/Clubs/ClubJobsSection";
 
 interface ClubMemberProfile {
   full_name: string;
@@ -336,6 +337,20 @@ export default function ClubProfile() {
       : "Check out this club on CampusConnect."
   ).slice(0, 160);
   const currentUrl = typeof window !== "undefined" ? window.location.href : "";
+  const copyInvite = async () => {
+    const invite = `# ${club.name}
+
+  ${club.description || "Join this club on CampusConnect."}
+
+  Join here: ${currentUrl}`;
+
+    try {
+      await navigator.clipboard.writeText(invite);
+      toast.success("Markdown invite copied!");
+    } catch {
+      toast.error("Failed to copy invite.");
+    }
+  };
 
   // Renders the primary membership action (Join / Leave / Pending / Joined).
   // Shared by the sticky ClubHeader so the button can shrink alongside the
@@ -717,6 +732,8 @@ export default function ClubProfile() {
             </div>
           </div>
         </section>
+        <ClubJobsSection clubId={club.id} />
+
         <section className="px-4 py-12 md:px-6">
           <div className="mx-auto max-w-6xl">
             <div className="neu-border bg-white p-6">

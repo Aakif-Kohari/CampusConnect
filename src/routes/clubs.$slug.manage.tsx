@@ -25,6 +25,8 @@ import { RosterExport } from "@/components/RosterExport";
 import { ImageCropUpload } from "@/components/ImageCropUpload";
 import { ClubMembersTable } from "@/components/Clubs/ClubMembersTable";
 import { ClubAnalyticsDashboard } from "@/components/Clubs/ClubAnalyticsDashboard";
+import { ClubBudgetDashboard } from "@/components/Clubs/ClubBudgetDashboard";
+import { ClubRecruitmentManage } from "@/components/Clubs/ClubRecruitmentManage";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -70,7 +72,7 @@ export default function ClubManageRoute() {
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [promoVideoUrl, setPromoVideoUrl] = useState("");
   const [isConflictDialogOpen, setIsConflictDialogOpen] = useState(false);
-  const [serverClub, setServerClub] = useState<Club | null>(null);
+  const [serverClub, setServerClub] = useState<any>(null);
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
   }, [supabase]);
@@ -201,7 +203,7 @@ export default function ClubManageRoute() {
 
   const updateClubMutation = useMutation<void, Error, boolean | undefined>({
     mutationFn: async (force?: boolean) => {
-      if (!club) throw new Error("Club not found");
+      if (!user || !club) throw new Error("Club not found");
 
       const githubRepo = githubRepoUrl.trim() || null;
       if (githubRepo && !githubRepo.startsWith("https://github.com/")) {
@@ -400,7 +402,7 @@ export default function ClubManageRoute() {
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
-                    updateClubMutation.mutate();
+                    updateClubMutation.mutate(undefined);
                   }}
                   className="space-y-4"
                 >

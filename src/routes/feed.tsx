@@ -55,7 +55,7 @@ import {
 import { useActionQueue } from "@/store/actionQueue";
 import { type CommentNode } from "@/lib/feedUtils";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import PullToRefresh from "@/components/PullToRefresh";
+import { PullToRefresh } from "@/components/PullToRefresh";
 import { useEmailVerification } from "@/hooks/useEmailVerification";
 import { announce } from "@/store/ariaAnnouncer";
 import { ReportDialog } from "@/components/ReportDialog";
@@ -144,6 +144,7 @@ export default function Feed() {
   const [hiddenPosts, setHiddenPosts] = useState<Post[]>([]);
   const [confirmPostId, setConfirmPostId] = useState<string | null>(null);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const [optimisticReactions, setOptimisticReactions] = useState<Record<string, unknown>>({});
   const [reactionBursts, setReactionBursts] = useState<Record<string, string>>({});
   const [reportTarget, setReportTarget] = useState<{ type: "post" | "comment"; id: string } | null>(
     null,
@@ -244,15 +245,11 @@ export default function Feed() {
     fetchNextPage,
     hasNextPage,
     refetch: refetchPosts,
-  } = useInfiniteQuery<
-    { posts: Post[]; nextCursor?: { created_at: string; id: string } },
-    Error,
-    { created_at: string; id: string } | null
-  >({
+  } = useInfiniteQuery<unknown>({
     queryKey: ["posts"],
-    initialPageParam: null,
-    queryFn: async ({ pageParam = null }) => {
-      const cursor = pageParam as { created_at: string; id: string } | null;
+    initialPageParam: undefined,
+    queryFn: async ({ pageParam }) => {
+      const cursor = pageParam as unknown as { created_at: string; id: string } | null;
 
       const { data, error } = await supabase
         .rpc("get_posts_cursor", {
@@ -493,6 +490,16 @@ export default function Feed() {
           const isOwnPost = payload.new && payload.new.author_id === userRef.current?.id;
           const alreadyExists = postsRef.current.some((p) => p.id === payload.new.id);
           if (!isOwnPost && !alreadyExists) {
+            const incomingPost = payload.new as Post;
+
+            setQueuedPosts((prev) => {
+              if (prev.some((p) => p.id === incomingPost.id)) {
+                return prev;
+              }
+
+              return [incomingPost, ...prev];
+            });
+
             setShowNewPostsBanner(true);
             announce("New post in feed");
             return;
@@ -892,7 +899,7 @@ export default function Feed() {
 
   return (
     <SiteShell>
-      <PullToRefresh onRefresh={handleRefetch}>
+      <PullToRefresh isRefreshing={isFetching} onRefresh={handleRefetch}>
         <section className="border-b-2 border-black bg-peach px-4 py-14 md:px-6">
           <div className="mx-auto max-w-4xl">
             <p className="eyebrow font-bold">Discussion feed</p>
@@ -1076,7 +1083,7 @@ export default function Feed() {
               </button>
             </div>
 
-            {showNewPostsBanner && feedMode === "latest" && (
+            {queuedPosts.length > 0 && feedMode === "latest" && (
               <button
                 type="button"
                 onClick={handleLoadNewPosts}
@@ -1115,7 +1122,6 @@ export default function Feed() {
                 {rowVirtualizer.getVirtualItems().map((virtualRow) => {
                   const post = filteredPosts[virtualRow.index];
                   if (!post) return null;
-
                   return (
                     <MemoizedFeedPost
                       key={post.id}
@@ -1133,7 +1139,9 @@ export default function Feed() {
                       setLightboxSrc={setLightboxSrc}
                       isOptimisticallyDeleted={optimisticDeletedIds.includes(post.id)}
                       emailVerified={emailVerified}
-                      onReact={(postId, emoji, isReacted) => reactionMutation.mutate({ postId, emoji, isReacted })}
+                      onReact={(postId, emoji, isReacted) =>
+                        reactionMutation.mutate({ postId, emoji, isReacted })
+                      }
                     />
                   );
                 })}
@@ -1189,7 +1197,6 @@ export default function Feed() {
     </SiteShell>
   );
 }
-
 
 interface MemoizedFeedPostProps {
   post: Post;
@@ -1385,9 +1392,7 @@ const MemoizedFeedPost = React.memo(
             );
 
             const opt = optimisticReactions[`${post.id}-${emoji}`];
-            const reactionCount = opt
-              ? Math.max(0, baseCount + opt.countOffset)
-              : baseCount;
+            const reactionCount = opt ? Math.max(0, baseCount + opt.countOffset) : baseCount;
             const isReacted = opt ? opt.userReacted : baseIsReacted;
 
             const burstKey = `${post.id}-${emoji}`;
@@ -1399,8 +1404,7 @@ const MemoizedFeedPost = React.memo(
                 type="button"
                 onClick={() => {
                   if (!user) return alert("Log in first");
-                  if (!emailVerified)
-                    return alert("Please verify your email to react");
+                  if (!emailVerified) return alert("Please verify your email to react");
 
                   const optKey = `${post.id}-${emoji}`;
                   setOptimisticReactions((prev) => ({
@@ -1476,7 +1480,7 @@ const MemoizedFeedPost = React.memo(
       prev.isPinnedPending === next.isPinnedPending &&
       prev.user?.id === next.user?.id
     );
-  }
+  },
 );
 
 interface PostCommentsProps {
