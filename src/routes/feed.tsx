@@ -106,6 +106,7 @@ export default function Feed() {
   const [visibleCommentsCount, setVisibleCommentsCount] = useState<Record<string, number>>({});
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [showNewPostsBanner, setShowNewPostsBanner] = useState(false);
+  const [queuedPosts, setQueuedPosts] = useState<Post[]>([]);
   const [confirmPostId, setConfirmPostId] = useState<string | null>(null);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [reactionBursts, setReactionBursts] = useState<Record<string, string>>({});
@@ -257,7 +258,14 @@ export default function Feed() {
   }, [user]);
 
   const handleRefetch = useCallback(() => {
+    setQueuedPosts([]);
     setShowNewPostsBanner(false);
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+
     refetchPosts();
   }, [refetchPosts]);
 
@@ -288,6 +296,16 @@ export default function Feed() {
           const isOwnPost = payload.new && payload.new.author_id === userRef.current?.id;
           const alreadyExists = postsRef.current.some((p) => p.id === payload.new.id);
           if (!isOwnPost && !alreadyExists) {
+            const incomingPost = payload.new as Post;
+
+            setQueuedPosts((prev) => {
+              if (prev.some((p) => p.id === incomingPost.id)) {
+                return prev;
+              }
+
+              return [incomingPost, ...prev];
+            });
+
             setShowNewPostsBanner(true);
             return;
           }
@@ -625,7 +643,7 @@ export default function Feed() {
               </button>
             </div>
 
-            {showNewPostsBanner && feedMode === "latest" && (
+            {queuedPosts.length > 0 && feedMode === "latest" && (
               <button
                 type="button"
                 onClick={handleRefetch}
@@ -634,8 +652,8 @@ export default function Feed() {
                 }}
                 className="neu-border flex w-full items-center justify-center gap-2 bg-[#FFD93D] hover:bg-[#FFD93D]/90 py-3 text-center font-display text-sm font-bold uppercase transition-all shadow-[4px_4px_0_0_#000] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_0_#000] active:translate-x-[0px] active:translate-y-[0px] active:shadow-[4px_4px_0_0_#000] cursor-pointer"
               >
-                <Sparkles size={16} className="animate-pulse" />
-                New posts available (Refresh)
+                <Sparkles size={16} className="animate-pulse" />↑ {queuedPosts.length} New{" "}
+                {queuedPosts.length === 1 ? "Post" : "Posts"}
               </button>
             )}
 
