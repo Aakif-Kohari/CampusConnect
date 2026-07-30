@@ -477,8 +477,6 @@ export default function ClubProfile() {
                     {club.name}
                   </BreadcrumbPage>
                 </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
           </div>
         </div>
 

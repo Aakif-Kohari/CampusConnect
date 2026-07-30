@@ -158,27 +158,20 @@ const router = createBrowserRouter(
           path="/events"
           element={
             <Suspense fallback={<PageFallback />}>
-              <EventsLayout />
+              <LazyEventsIndex />
             </Suspense>
           }
-        >
-          <Route
-            index
-            element={
-              <Suspense fallback={<PageFallback />}>
-                <EmptyState />
-              </Suspense>
-            }
-          />
-          <Route
-            path=":eventId"
-            element={
-              <Suspense fallback={<PageFallback />}>
-                <LazyEventDetails />
-              </Suspense>
-            }
-          />
-        </Route>
+        />
+
+        <Route
+          path="/events/:eventId"
+          element={
+            <Suspense fallback={<PageFallback />}>
+              <LazyEventDetails />
+            </Suspense>
+          }
+        />
+
         <Route path="/events/:eventId/dashboard" element={<EventDashboard />} />
         {/* Events Map View with clustering */}
         <Route path="events/map" element={<EventsMapPage />} />

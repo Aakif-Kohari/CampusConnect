@@ -1112,10 +1112,6 @@ export default function Feed() {
                   position: "relative",
                 }}
               >
-                {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                  const post = filteredPosts[virtualRow.index];
-                  if (!post) return null;
-
                   return (
                     <MemoizedFeedPost
                       key={post.id}
