@@ -21,6 +21,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+const links = [
+  { to: "/events", label: "Events" },
+  { to: "/clubs", label: "Clubs" },
+  { to: "/feed", label: "Feed" },
+  { to: "/challenge", label: "Challenge" },
+  { to: "/certificates", label: "Certificates" },
+  { to: "/dashboard", label: "Dashboard" },
+  { to: "/messages", label: "Messages" },
+] as const;
+
 export function Navbar() {
   const { user, isInitializing } = useAuthHydration();
   const location = useLocation();
