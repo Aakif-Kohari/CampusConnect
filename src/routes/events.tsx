@@ -45,6 +45,8 @@ export interface EventItem {
   clubs: { name: string } | { name: string }[] | null;
   event_rsvps: { id: string; user_id: string }[] | null;
   saved_events: { id: string; user_id: string }[] | null;
+  rsvp_count?: number;
+  saved_count?: number;
   max_attendees?: number | null;
 }
 
@@ -180,10 +182,10 @@ export default function EventsPage() {
           .rpc("search_events", { query_text: searchQuery })
           .select(
             `
-            id, title, description, event_date, start_date, end_date, location, banner_url,
+            id, title, description, event_date, start_date, end_date, location, banner_url, created_at, max_attendees,
             clubs (name),
-            event_rsvps (id, user_id),
-            saved_events (id, user_id)
+            event_rsvps(count),
+            saved_events(count)
           `,
           );
         if (error) throw error;
@@ -192,21 +194,71 @@ export default function EventsPage() {
         fetchedCount = results.length;
       } else {
         const { data, count, error } = await supabase
-          .from("club_analytics_view")
+          .from("events")
           .select(
             `
-            id, title, description, event_date, start_date, end_date, location, banner_url,
+            id, title, description, event_date, start_date, end_date, location, banner_url, created_at, max_attendees,
             clubs (name),
-            event_rsvps (id, user_id),
-            saved_events (id, user_id)
+            event_rsvps(count),
+            saved_events(count)
           `,
             { count: "exact" },
           )
+          .neq("status", "archived")
           .order("event_date", { ascending: true })
           .range(0, PAGE_SIZE - 1);
         if (error) throw error;
         fetchedData = data as unknown[];
         fetchedCount = count;
+      }
+
+      if (user && fetchedData && fetchedData.length > 0) {
+        const eventIds = fetchedData.map((e: unknown) => (e as { id: string }).id);
+        const [rsvpRes, savedRes] = await Promise.all([
+          supabase
+            .from("event_rsvps")
+            .select("id, event_id, user_id")
+            .in("event_id", eventIds)
+            .eq("user_id", user.id),
+          supabase
+            .from("saved_events")
+            .select("id, event_id, user_id")
+            .in("event_id", eventIds)
+            .eq("user_id", user.id),
+        ]);
+
+        const userRsvps = rsvpRes.data || [];
+        const userSaved = savedRes.data || [];
+
+        fetchedData = fetchedData.map((e: unknown) => {
+          const typedE = e as EventItem & {
+            event_rsvps?: { count: number }[];
+            saved_events?: { count: number }[];
+          };
+          const myRsvp = userRsvps.find((r: { event_id: string }) => r.event_id === typedE.id);
+          const mySaved = userSaved.find((s: { event_id: string }) => s.event_id === typedE.id);
+          return {
+            ...typedE,
+            rsvp_count: typedE.event_rsvps?.[0]?.count ?? 0,
+            saved_count: typedE.saved_events?.[0]?.count ?? 0,
+            event_rsvps: myRsvp ? [myRsvp] : [],
+            saved_events: mySaved ? [mySaved] : [],
+          };
+        });
+      } else if (fetchedData) {
+        fetchedData = fetchedData.map((e: unknown) => {
+          const typedE = e as EventItem & {
+            event_rsvps?: { count: number }[];
+            saved_events?: { count: number }[];
+          };
+          return {
+            ...typedE,
+            rsvp_count: typedE.event_rsvps?.[0]?.count ?? 0,
+            saved_count: typedE.saved_events?.[0]?.count ?? 0,
+            event_rsvps: [],
+            saved_events: [],
+          };
+        });
       }
 
       if (fetchedCount !== null) {
@@ -316,8 +368,8 @@ export default function EventsPage() {
       let selectString = `
           id, title, description, event_date, start_date, end_date, location, banner_url, created_at, max_attendees,
           clubs (name),
-          event_rsvps (id, user_id),
-          saved_events (id, user_id)
+          event_rsvps(count),
+          saved_events(count)
       `;
 
       if (filters.categories.length > 0) {
@@ -359,7 +411,57 @@ export default function EventsPage() {
         throw error;
       }
 
-      const newEvents = data as unknown as EventItem[];
+      let fetchedData = data as unknown[];
+      if (user && fetchedData && fetchedData.length > 0) {
+        const eventIds = fetchedData.map((e: unknown) => (e as { id: string }).id);
+        const [rsvpRes, savedRes] = await Promise.all([
+          supabase
+            .from("event_rsvps")
+            .select("id, event_id, user_id")
+            .in("event_id", eventIds)
+            .eq("user_id", user.id),
+          supabase
+            .from("saved_events")
+            .select("id, event_id, user_id")
+            .in("event_id", eventIds)
+            .eq("user_id", user.id),
+        ]);
+
+        const userRsvps = rsvpRes.data || [];
+        const userSaved = savedRes.data || [];
+
+        fetchedData = fetchedData.map((e: unknown) => {
+          const typedE = e as EventItem & {
+            event_rsvps?: { count: number }[];
+            saved_events?: { count: number }[];
+          };
+          const myRsvp = userRsvps.find((r: { event_id: string }) => r.event_id === typedE.id);
+          const mySaved = userSaved.find((s: { event_id: string }) => s.event_id === typedE.id);
+          return {
+            ...typedE,
+            rsvp_count: typedE.event_rsvps?.[0]?.count ?? 0,
+            saved_count: typedE.saved_events?.[0]?.count ?? 0,
+            event_rsvps: myRsvp ? [myRsvp] : [],
+            saved_events: mySaved ? [mySaved] : [],
+          };
+        });
+      } else if (fetchedData) {
+        fetchedData = fetchedData.map((e: unknown) => {
+          const typedE = e as EventItem & {
+            event_rsvps?: { count: number }[];
+            saved_events?: { count: number }[];
+          };
+          return {
+            ...typedE,
+            rsvp_count: typedE.event_rsvps?.[0]?.count ?? 0,
+            saved_count: typedE.saved_events?.[0]?.count ?? 0,
+            event_rsvps: [],
+            saved_events: [],
+          };
+        });
+      }
+
+      const newEvents = fetchedData as unknown as EventItem[];
       setEvents((prev) => [...prev, ...newEvents]);
       setPage(nextPage);
 
@@ -546,11 +648,13 @@ export default function EventsPage() {
             return {
               ...e,
               event_rsvps: rsvpsList.filter((r) => r.user_id !== (user?.id || "")),
+              rsvp_count: Math.max(0, (e.rsvp_count ?? 0) - 1),
             };
           } else {
             return {
               ...e,
               event_rsvps: [...rsvpsList, { id: "temp-rsvp-id", user_id: user?.id || "" }],
+              rsvp_count: (e.rsvp_count ?? 0) + 1,
             };
           }
         }
@@ -584,11 +688,13 @@ export default function EventsPage() {
             return {
               ...e,
               saved_events: savedList.filter((s) => s.user_id !== (user?.id || "")),
+              saved_count: Math.max(0, (e.saved_count ?? 0) - 1),
             };
           } else {
             return {
               ...e,
               saved_events: [...savedList, { id: "temp-id", user_id: user?.id || "" }],
+              saved_count: (e.saved_count ?? 0) + 1,
             };
           }
         }

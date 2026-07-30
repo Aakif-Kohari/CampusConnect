@@ -309,17 +309,14 @@ export default function ChatBox() {
   useEffect(() => {
     if (!messages.length || !currentUser) return;
 
-    const hasUnread = messages.some(
-      (m) => m.receiver_id === currentUser.id && !m.read_at,
-    );
+    const hasUnread = messages.some((m) => m.receiver_id === currentUser.id && !m.read_at);
 
     if (!hasUnread) return;
 
     const container = messagesContainerRef.current;
     if (!container) return;
 
-    const isAtBottom =
-      container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+    const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
 
     if (isAtBottom) {
       markMessagesAsRead();
@@ -688,16 +685,37 @@ export default function ChatBox() {
                               <span className="flex items-center gap-0.5">
                                 {isMe ? (
                                   msg.read_at ? (
-                                    <span className="flex items-center gap-0.5 text-blue-600" title="Read">
+                                    <span
+                                      className="flex items-center gap-0.5 text-blue-600"
+                                      title="Read"
+                                    >
                                       <svg width="14" height="10" viewBox="0 0 14 10" fill="none">
-                                        <path d="M1 5.5L4 8.5L9 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                        <path d="M6 5.5L9 8.5L13 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                        <path
+                                          d="M1 5.5L4 8.5L9 1"
+                                          stroke="currentColor"
+                                          strokeWidth="2"
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                        />
+                                        <path
+                                          d="M6 5.5L9 8.5L13 1"
+                                          stroke="currentColor"
+                                          strokeWidth="2"
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                        />
                                       </svg>
                                     </span>
                                   ) : (
                                     <span className="flex items-center gap-0.5" title="Sent">
                                       <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                                        <path d="M1 5L4 8L9 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                        <path
+                                          d="M1 5L4 8L9 1"
+                                          stroke="currentColor"
+                                          strokeWidth="2"
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                        />
                                       </svg>
                                     </span>
                                   )
