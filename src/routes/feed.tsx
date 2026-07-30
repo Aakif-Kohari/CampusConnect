@@ -333,6 +333,23 @@ export default function Feed() {
     scrollMargin: parentRef.current?.offsetTop ?? 0,
   });
 
+  // Scroll position restoration (#1432)
+  useEffect(() => {
+    const savedScrollPos = sessionStorage.getItem("feed_scroll_position");
+    if (savedScrollPos) {
+      window.scrollTo(0, parseInt(savedScrollPos, 10));
+    }
+
+    const handleScrollSave = () => {
+      sessionStorage.setItem("feed_scroll_position", window.scrollY.toString());
+    };
+
+    window.addEventListener("scroll", handleScrollSave, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", handleScrollSave);
+    };
+  }, []);
+
   const postsRef = useRef(posts);
   const userRef = useRef(user);
 
