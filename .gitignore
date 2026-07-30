@@ -37,3 +37,7 @@ scripts/create-backend-issues.ts
 scripts/remove-assignees.ts
 .env
 .env.*
+coverage/
+
+# Local Supabase Auth signing-key ring. It contains private JWK material.
+supabase/signing_keys.json

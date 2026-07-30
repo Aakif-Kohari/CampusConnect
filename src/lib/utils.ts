@@ -33,6 +33,7 @@ export const formatDate = (dateString: string): string => {
     hour: "numeric",
     minute: "2-digit",
     hour12: true,
+    timeZoneName: "short",
   };
 
   const formattedDate = new Intl.DateTimeFormat("en-US", dateOptions).format(date);
@@ -135,6 +136,7 @@ export function formatEventDateRange(event: {
     hour: "numeric",
     minute: "2-digit",
     hour12: true,
+    timeZoneName: "short",
   });
 
   return `${dateFormatter.format(startDate)} at ${timeFormatter.format(startDate)} – ${timeFormatter.format(endDate)}`;
