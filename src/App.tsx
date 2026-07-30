@@ -1,5 +1,5 @@
+import { QueryClientProvider, queryClient } from "@/hooks/useReactQueryReplacement";
 import { Suspense, lazy, useEffect, useState } from "react";
-
 import { AnimatePresence } from "framer-motion";
 import {
   createBrowserRouter,
@@ -14,16 +14,13 @@ import {
 import Layout from "./components/Layout";
 import { ErrorBoundary, RouteErrorBoundary } from "./components/ErrorBoundary";
 import { PageWrapper } from "./components/PageWrapper";
-// <-- Added Import
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { ThemeProvider } from "@/components/theme-provider";
-import LanguageRouter from "./components/LanguageRouter";
-import { createClient } from "./lib/supabase/client";
-import { ThemeToggle } from "./components/ThemeToggle";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Navigate } from "react-router-dom";
-
-import { QueryClientProvider, queryClient } from "@/hooks/useReactQueryReplacement";
+import { CommandPalette } from "./components/ui/command-palette";
 import MaintenancePage from "./components/MaintenancePage";
+import { createClient } from "./lib/supabase/client";
+import RouteSkeleton from "@/components/RouteSkeleton";
 
 const HEALTH_CHECK_URL =
   (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_HEALTH_URL) ||
@@ -79,6 +76,7 @@ const DashboardOverview = lazy(() => import("./routes/dashboard.index"));
 const DashboardRsvps = lazy(() => import("./routes/dashboard.rsvps"));
 const DashboardBookmarks = lazy(() => import("./routes/dashboard.bookmarks"));
 const DashboardCalendar = lazy(() => import("./routes/dashboard.calendar"));
+const GlobalCalendar = lazy(() => import("./routes/calendar"));
 const Feed = lazy(() => import("./routes/feed"));
 const EventsMapPage = lazy(() => import("./routes/events.map"));
 const ForgotPassword = lazy(() => import("./routes/forgot-password"));
@@ -104,24 +102,27 @@ const LazyEventsIndex = lazy(() => import("./pages/Events/EventsList"));
 const LazyEventDetails = lazy(() => import("./pages/Events/EventDetail"));
 const EmptyState = lazy(() => import("./pages/Events/EmptyState"));
 
-function PageFallback() {
-  return (
-    <div className="flex h-[50vh] w-full items-center justify-center p-8">
-      <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-    </div>
-  );
-}
-
 // ---------------------------------------------------------------------------
-// Animated Outlet Wrapper for Framer Motion transitions
+// Animated Outlet Wrapper for Framer Motion transitions with Skeleton Fallback
 // ---------------------------------------------------------------------------
 function AnimatedOutlet() {
   const location = useLocation();
+  const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  if (prefersReduced) {
+    return (
+      <PageWrapper key={location.pathname}>
+        <Suspense fallback={<PageFallback />}>
+          <Outlet />
+        </Suspense>
+      </PageWrapper>
+    );
+  }
 
   return (
     <AnimatePresence mode="wait">
       <PageWrapper key={location.pathname}>
-        <Suspense fallback={<PageFallback />}>
+        <Suspense fallback={<RouteSkeleton />}>
           <Outlet />
         </Suspense>
       </PageWrapper>
@@ -133,20 +134,18 @@ const router = createBrowserRouter(
   createRoutesFromElements(
     <Route element={<Layout />} errorElement={<RouteErrorBoundary />}>
       <Route element={<AnimatedOutlet />}>
-        <Route path="/:lang" element={<LanguageRouter />}></Route>
         <Route index element={<Index />} />
-        <Route path="auth" element={<Auth />} />
-        <Route path="certificates" element={<Certificates />} />
-        <Route path="*" element={<Navigate to="/en" replace />} />
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/certificates" element={<Certificates />} />
 
-        <Route path="clubs" element={<ClubsLayout />}>
+        <Route path="/clubs" element={<ClubsLayout />}>
           <Route index element={<ClubsIndex />} />
           <Route path=":slug" element={<ClubDetails />} />
           <Route path=":slug/manage" element={<ClubManageRoute />} />
           <Route path=":slug/notes" element={<ClubNotesRoute />} />
         </Route>
 
-        <Route path="dashboard" element={<Dashboard />}>
+        <Route path="/dashboard" element={<Dashboard />}>
           <Route index element={<DashboardOverview />} />
           <Route path="rsvps" element={<DashboardRsvps />} />
           <Route path="bookmarks" element={<DashboardBookmarks />} />
@@ -158,27 +157,20 @@ const router = createBrowserRouter(
           path="/events"
           element={
             <Suspense fallback={<PageFallback />}>
-              <EventsLayout />
+              <LazyEventsIndex />
             </Suspense>
           }
-        >
-          <Route
-            index
-            element={
-              <Suspense fallback={<PageFallback />}>
-                <EmptyState />
-              </Suspense>
-            }
-          />
-          <Route
-            path=":eventId"
-            element={
-              <Suspense fallback={<PageFallback />}>
-                <LazyEventDetails />
-              </Suspense>
-            }
-          />
-        </Route>
+        />
+
+        <Route
+          path="/events/:eventId"
+          element={
+            <Suspense fallback={<PageFallback />}>
+              <LazyEventDetails />
+            </Suspense>
+          }
+        />
+
         <Route path="/events/:eventId/dashboard" element={<EventDashboard />} />
         {/* Events Map View with clustering */}
         <Route path="events/map" element={<EventsMapPage />} />
@@ -258,15 +250,16 @@ export default function App() {
   }, []);
 
   if (dbStatus === "offline") {
-    // Assuming MaintenancePage is imported somewhere else in your environment
     return <MaintenancePage />;
   }
 
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+    <ThemeProvider>
+      {" "}
       <TooltipProvider>
         <QueryClientProvider client={queryClient}>
           <ErrorBoundary>
+            <CommandPalette />
             {/* Floating Dark Mode Toggle */}
             <div className="fixed bottom-4 right-4 z-[9999]">
               <ThemeToggle />

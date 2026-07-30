@@ -9,17 +9,17 @@ import { CreateEventDialog } from "@/components/CreateEventDialog";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { toast } from "sonner";
 import { EventCardSkeleton } from "@/components/EventCardSkeleton";
-import { Search, Loader2, Calendar as CalendarIcon, Download } from "lucide-react";
+import { Search, Loader2, Calendar as CalendarIcon, Download, MapPin } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addMonths } from "date-fns";
 import { matchesDateFilter } from "@/lib/eventUtils";
 import { getMultiIcsContent } from "@/lib/utils";
+import { Link } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { EventFilters, FilterState } from "@/components/EventFilters";
 import { ScrollAwareFab } from "@/components/ScrollAwareFab";
-import confetti from "canvas-confetti";
 
 import {
   Select,
@@ -179,7 +179,7 @@ export default function EventsList() {
 
       if (searchQuery.trim()) {
         const { data, error } = await supabase
-          .rpc("search_events", { query_text: searchQuery })
+          .rpc("search_events_advanced", { query_string: searchQuery })
           .select(
             `
             id, title, description, event_date, start_date, end_date, location, banner_url,
@@ -581,11 +581,17 @@ export default function EventsList() {
 
       // Show confetti only when successfully RSVPing (not when cancelling)
       if (!hasRsvpd) {
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 },
-        });
+        // @ts-expect-error - canvas-confetti lacks type declarations
+        import("canvas-confetti")
+          .then((m) => {
+            const fireConfetti = m.default || m;
+            fireConfetti({
+              particleCount: 100,
+              spread: 70,
+              origin: { y: 0.6 },
+            });
+          })
+          .catch(() => {});
       }
     } catch {
       setEvents(originalEvents);
@@ -702,7 +708,12 @@ export default function EventsList() {
           ))}
         </div>
       )}
-      <PullToRefresh isRefreshing={isFetching} onRefresh={() => refetch()}>
+      <PullToRefresh
+        isRefreshing={isFetching}
+        onRefresh={async () => {
+          await refetch();
+        }}
+      >
         <SidebarProvider>
           <div className="flex flex-col md:flex-row w-full bg-cream">
             <ErrorBoundary
@@ -933,7 +944,7 @@ export default function EventsList() {
                           type="button"
                           onClick={() => setViewMode("calendar")}
                           aria-pressed={viewMode === "calendar"}
-                          className={`px-3 py-1.5 font-mono text-xs font-bold uppercase transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black} ${
+                          className={`px-3 py-1.5 font-mono text-xs font-bold uppercase transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black ${
                             viewMode === "calendar"
                               ? "bg-black text-cream"
                               : "bg-white text-black hover:bg-cream"
@@ -941,6 +952,13 @@ export default function EventsList() {
                         >
                           Calendar
                         </button>
+                        <Link
+                          to="/events/map"
+                          className="flex items-center gap-1 px-3 py-1.5 font-mono text-xs font-bold uppercase transition-colors bg-white text-black hover:bg-cream cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
+                        >
+                          <MapPin className="h-3.5 w-3.5 text-red-500" />
+                          Map
+                        </Link>
                       </div>
 
                       <button
