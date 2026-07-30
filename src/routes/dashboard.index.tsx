@@ -171,9 +171,15 @@ function AnalyticsLoadProgress({ isLoading }: { isLoading: boolean }) {
   );
 }
 
+import { useDashboardStore } from "@/store/useDashboardStore";
+
 export default function DashboardOverview() {
   const [supabase] = useState(() => createClient());
   const [user, setUser] = useState<User | null>(null);
+
+  const welcomeDismissed = useDashboardStore((state) => state.welcomeDismissed);
+  const setWelcomeDismissed = useDashboardStore((state) => state.setWelcomeDismissed);
+  const dismissed = welcomeDismissed;
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -195,10 +201,6 @@ export default function DashboardOverview() {
       return data;
     },
     enabled: !!user?.id,
-  });
-
-  const [dismissed, setDismissed] = useState(() => {
-    return localStorage.getItem("cc_welcome_dismissed") === "true";
   });
 
   const [animateIn, setAnimateIn] = useState(false);
