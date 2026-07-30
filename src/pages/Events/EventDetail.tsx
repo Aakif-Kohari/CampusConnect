@@ -65,6 +65,8 @@ import { CreatePollDialog } from "@/components/polls/CreatePollDialog";
 import { ActivePoll } from "@/components/polls/ActivePoll";
 import { SteganographicQRScanner } from "@/components/SteganographicQRScanner";
 import { CaptchaWidget } from "@/components/CaptchaWidget";
+import { SeatingChart } from "@/components/events/SeatingChart";
+import { useEventSeats } from "@/hooks/useEventSeats";
 
 interface SimilarEventItem {
   id: string;
@@ -728,6 +730,12 @@ export default function EventDetailsPage() {
     onSuccess: () => {
       // Refetch to ensure server state matches
       refetch();
+      // Reserve selected seats after successful RSVP
+      if (hasSeats && selectedSeats.length > 0) {
+        selectedSeats.forEach((seatId) => {
+          supabase.rpc("reserve_seat", { p_seat_id: seatId });
+        });
+      }
     },
   });
 
@@ -1040,6 +1048,15 @@ export default function EventDetailsPage() {
   const rawWaitlist = (event as Record<string, unknown>).event_waitlist;
   const { waitlist, isOnWaitlist, waitlistPosition } = buildWaitlistInfo(rawWaitlist, user?.id);
 
+  const {
+    seats: seatData,
+    reservedSeatIds,
+    selectedSeats,
+    toggleSeat,
+    hasSeats,
+    isLoading: isSeatsLoading,
+  } = useEventSeats(event?.id && !event.id.startsWith("mock-") ? event.id : undefined);
+
   const club = event.clubs ? (Array.isArray(event.clubs) ? event.clubs[0] : event.clubs) : null;
   const coordsCheck = event.location
     ? parseCoordinates(event.location)
@@ -1077,6 +1094,11 @@ export default function EventDetailsPage() {
 
     if (captchaEnabled && !shouldRequireCaptcha(captchaSiteKey, captchaSecretKey, captchaToken)) {
       toast.error("Please complete the CAPTCHA challenge to RSVP.");
+      return;
+    }
+
+    if (hasSeats && selectedSeats.length === 0) {
+      toast.error("Please select at least one seat before RSVPing.");
       return;
     }
 
@@ -1277,6 +1299,26 @@ export default function EventDetailsPage() {
               showDetails={true}
             />
           </div>
+
+          {hasSeats && !isSeatsLoading && (
+            <div className="mt-8">
+              <h3 className="font-display text-lg font-bold uppercase mb-3">
+                {hasRsvpd ? "Your Reserved Seats" : "Select Your Seats"}
+              </h3>
+              <SeatingChart
+                seats={seatData}
+                reservedSeats={reservedSeatIds}
+                selectedSeats={hasRsvpd ? [] : selectedSeats}
+                onSeatClick={hasRsvpd ? () => {} : toggleSeat}
+                maxSeats={maxAttendees || 4}
+              />
+              {!hasRsvpd && selectedSeats.length > 0 && (
+                <p className="font-mono text-sm mt-2">
+                  {selectedSeats.length} seat{selectedSeats.length > 1 ? "s" : ""} selected
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="mt-8 hidden items-center gap-4 md:flex">
             {hasRsvpd ? (
