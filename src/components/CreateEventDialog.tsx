@@ -70,9 +70,6 @@ import type { ParsedFlyer } from "@/lib/parser";
 import { TagMultiSelect } from "@/components/ui/TagMultiSelect";
 import { ImageCropUpload } from "@/components/ImageCropUpload";
 
-import { FlyerUploader } from "@/components/FlyerUploader";
-import type { ParsedFlyer } from "@/lib/parser";
-
 const STEPS = [
   { label: "Details", fields: ["title", "description"] as const },
   { label: "Logistics", fields: ["location", "startDate", "endDate"] as const },
@@ -129,6 +126,21 @@ export function CreateEventDialog({
     },
     staleTime: 1000 * 60 * 30,
   });
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("club_members")
+      .select("club_id")
+      .eq("user_id", user.id)
+      .eq("role", "admin")
+      .eq("status", "approved")
+      .limit(1)
+      .single()
+      .then(({ data }) => {
+        if (data) setClubId(data.club_id);
+      });
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;

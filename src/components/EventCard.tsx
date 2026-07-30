@@ -19,6 +19,7 @@ import { usePreloadEvent } from "@/hooks/usePreloadEvent";
 import { EventCapacityGauge } from "@/components/events/EventCapacityGauge";
 import { ShareMenu } from "@/components/ui/ShareMenu";
 import { ReadMore } from "@/components/ui/ReadMore";
+
 interface Event {
   id: string;
   short_id?: string | null;
@@ -46,6 +47,7 @@ interface EventCardProps {
   isRsvpPending: boolean;
   onBookmarkToggle: (eventId: string, isSaved: boolean) => void;
   isBookmarkPending: boolean;
+  active?: boolean;
 }
 
 // Assumed lead time (in days) used when an event has no `created_at` available
@@ -164,6 +166,7 @@ export function EventCard({
   isRsvpPending,
   onBookmarkToggle,
   isBookmarkPending,
+  active,
 }: EventCardProps) {
   const club = Array.isArray(event.clubs) ? event.clubs[0] : event.clubs;
   const rsvps = Array.isArray(event.event_rsvps) ? event.event_rsvps : [];
@@ -183,13 +186,7 @@ export function EventCard({
 
   const [ticketOpen, setTicketOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
-  const shouldTruncate = !!event.description && event.description.length > 220;
 
-  const displayedDescription =
-    shouldTruncate && !isDescriptionExpanded
-      ? `${event.description!.slice(0, 180)}...`
-      : event.description;
   const handleCopyLink = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
@@ -261,7 +258,9 @@ export function EventCard({
         id={`event-${event.id}`}
         onMouseEnter={preloadEvent.onMouseEnter}
         onMouseLeave={preloadEvent.onMouseLeave}
-        className={`neu-border p-5 relative ${colors[index % colors.length]} transition-transform duration-300 ease-out group-hover:scale-[1.02]`}
+        className={`neu-border p-5 relative ${
+          active ? "bg-blue-100 border-4 border-blue-600 ring-2 ring-blue-600" : colors[index % colors.length]
+        } transition-all duration-300 ease-out group-hover:scale-[1.02]`}
       >
         {" "}
         <div className="flex items-start justify-between gap-3">

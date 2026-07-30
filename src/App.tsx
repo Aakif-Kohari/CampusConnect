@@ -1,5 +1,4 @@
-import { QueryClientProvider } from "@tanstack/react-query";
-import { queryClient } from "@/hooks/useReactQueryReplacement";
+import { QueryClientProvider, queryClient } from "@/hooks/useReactQueryReplacement";
 import { Suspense, lazy, useEffect, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import {
@@ -16,35 +15,12 @@ import Layout from "./components/Layout";
 import { ErrorBoundary, RouteErrorBoundary } from "./components/ErrorBoundary";
 import { PageWrapper } from "./components/PageWrapper";
 import { ThemeToggle } from "@/components/ThemeToggle";
-// <-- Added Import
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
-
-declare global {
-  interface Window {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    dataLayer: any[];
-  }
-}
-// Pages
-import Index from "./routes/index";
-import Auth from "./routes/auth";
-import Certificates from "./routes/certificates";
-import ClubsIndex from "./routes/clubs.index";
-import ClubDetails from "./routes/clubs.$slug";
-import ClubsLayout from "./routes/clubs";
-import Dashboard from "./routes/dashboard";
-import DashboardOverview from "./routes/dashboard.index";
-import DashboardRsvps from "./routes/dashboard.rsvps";
-import DashboardBookmarks from "./routes/dashboard.bookmarks";
-import EventsIndex from "./routes/events";
-import EventDetails from "./routes/events.$eventId";
-import Feed from "./routes/feed";
-import ForgotPassword from "./routes/forgot-password";
-import ResetPassword from "./routes/reset-password";
-import Settings from "./routes/settings";
-import PendingClubsAdmin from "./routes/admin.clubs.pending";
-import AnalyticsAdmin from "./routes/admin.analytics";
+import { CommandPalette } from "./components/ui/command-palette";
+import MaintenancePage from "./components/MaintenancePage";
+import { createClient } from "./lib/supabase/client";
+import RouteSkeleton from "@/components/RouteSkeleton";
 
 const HEALTH_CHECK_URL =
   (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_HEALTH_URL) ||
@@ -93,6 +69,7 @@ const Certificates = lazy(() => import("./routes/certificates"));
 const ClubsIndex = lazy(() => import("./routes/clubs.index"));
 const ClubDetails = lazy(() => import("./routes/clubs.$slug"));
 const ClubManageRoute = lazy(() => import("./routes/clubs.$slug.manage"));
+const ClubNotesRoute = lazy(() => import("./routes/clubs.$slug.notes"));
 const ClubsLayout = lazy(() => import("./routes/clubs"));
 const Dashboard = lazy(() => import("./routes/dashboard"));
 const DashboardOverview = lazy(() => import("./routes/dashboard.index"));
@@ -106,37 +83,46 @@ const ForgotPassword = lazy(() => import("./routes/forgot-password"));
 const ResetPassword = lazy(() => import("./routes/reset-password"));
 const Settings = lazy(() => import("./routes/settings"));
 const VerifyEmail = lazy(() => import("./routes/verify-email"));
+const Directory = lazy(() => import("./routes/Directory"));
 const MessagesRoute = lazy(() => import("./routes/messages"));
 const PendingClubsAdmin = lazy(() => import("./routes/admin.clubs.pending"));
+const AnalyticsAdmin = lazy(() => import("./routes/admin.analytics"));
 const AdminReportsPage = lazy(() => import("./routes/admin.reports"));
 const AdminUsersPage = lazy(() => import("./routes/admin.users"));
+const AdminRestorePage = lazy(() => import("./routes/admin.restore"));
+const NotFound = lazy(() => import("./routes/NotFound"));
 const ChallengeArena = lazy(() => import("./routes/challenge"));
 const EventDashboard = lazy(() => import("./routes/events.$eventId.dashboard"));
 const Leaderboard = lazy(() =>
   import("./components/Leaderboard").then((m) => ({ default: m.Leaderboard })),
 );
 
-const LazyEventsIndex = lazy(() => import("./routes/events"));
-const LazyEventDetails = lazy(() => import("./routes/events.$eventId"));
-
-function PageFallback() {
-  return (
-    <div className="flex h-[50vh] w-full items-center justify-center p-8">
-      <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-    </div>
-  );
-}
+const EventsLayout = lazy(() => import("./pages/Events/EventsLayout"));
+const LazyEventsIndex = lazy(() => import("./pages/Events/EventsList"));
+const LazyEventDetails = lazy(() => import("./pages/Events/EventDetail"));
+const EmptyState = lazy(() => import("./pages/Events/EmptyState"));
 
 // ---------------------------------------------------------------------------
-// Animated Outlet Wrapper for Framer Motion transitions
+// Animated Outlet Wrapper for Framer Motion transitions with Skeleton Fallback
 // ---------------------------------------------------------------------------
 function AnimatedOutlet() {
   const location = useLocation();
+  const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  if (prefersReduced) {
+    return (
+      <PageWrapper key={location.pathname}>
+        <Suspense fallback={<PageFallback />}>
+          <Outlet />
+        </Suspense>
+      </PageWrapper>
+    );
+  }
 
   return (
     <AnimatePresence mode="wait">
       <PageWrapper key={location.pathname}>
-        <Suspense fallback={<PageFallback />}>
+        <Suspense fallback={<RouteSkeleton />}>
           <Outlet />
         </Suspense>
       </PageWrapper>
@@ -148,7 +134,7 @@ const router = createBrowserRouter(
   createRoutesFromElements(
     <Route element={<Layout />} errorElement={<RouteErrorBoundary />}>
       <Route element={<AnimatedOutlet />}>
-        <Route path="/" element={<Index />} />
+        <Route index element={<Index />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/certificates" element={<Certificates />} />
 
@@ -156,6 +142,7 @@ const router = createBrowserRouter(
           <Route index element={<ClubsIndex />} />
           <Route path=":slug" element={<ClubDetails />} />
           <Route path=":slug/manage" element={<ClubManageRoute />} />
+          <Route path=":slug/notes" element={<ClubNotesRoute />} />
         </Route>
 
         <Route path="/dashboard" element={<Dashboard />}>
@@ -165,30 +152,47 @@ const router = createBrowserRouter(
           <Route path="calendar" element={<DashboardCalendar />} />
         </Route>
 
+        {/* Events — loaded from remote micro-frontend when available */}
         <Route
-          path="/calendar"
+          path="/events"
           element={
             <Suspense fallback={<PageFallback />}>
-              {" "}
-              <GlobalCalendar />
+              <LazyEventsIndex />
             </Suspense>
           }
         />
 
-        <Route path="/events" element={<LazyEventsIndex />} />
-        <Route path="/events/:eventId" element={<LazyEventDetails />} />
+        <Route
+          path="/events/:eventId"
+          element={
+            <Suspense fallback={<PageFallback />}>
+              <LazyEventDetails />
+            </Suspense>
+          }
+        />
+
         <Route path="/events/:eventId/dashboard" element={<EventDashboard />} />
         {/* Events Map View with clustering */}
-        <Route path="/events/map" element={<EventsMapPage />} />
-        <Route path="/challenge" element={<ChallengeArena />} />
-        <Route path="/leaderboard" element={<Leaderboard />} />
+        <Route path="events/map" element={<EventsMapPage />} />
+        <Route path="challenge" element={<ChallengeArena />} />
+        <Route path="leaderboard" element={<Leaderboard />} />
 
-      <Route path="/feed" element={<Feed />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      <Route path="/settings" element={<Settings />} />
-      <Route path="/admin/clubs/pending" element={<PendingClubsAdmin />} />
-      <Route path="/admin/analytics" element={<AnalyticsAdmin />} />
+        <Route path="/feed" element={<Feed />} />
+        <Route path="/directory" element={<Directory />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="/admin/clubs/pending" element={<PendingClubsAdmin />} />
+        <Route path="/admin/analytics" element={<AnalyticsAdmin />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
+        <Route path="/messages" element={<MessagesRoute />} />
+        <Route path="/admin/reports" element={<AdminReportsPage />} />
+        <Route path="/admin/users" element={<AdminUsersPage />} />
+        <Route path="/admin/restore" element={<AdminRestorePage />} />
+        {/* Catch-all route for 404 errors */}
+        <Route path="*" element={<NotFound />} />
+      </Route>
+      ,
     </Route>,
   ),
 );
@@ -245,42 +249,17 @@ export default function App() {
     return () => clearTimeout(timer);
   }, []);
 
-  useEffect(() => {
-    const loadAnalytics = () => {
-      const script = document.createElement("script");
-      script.src = "https://www.googletagmanager.com/gtag/js?id=GA_ID";
-      script.async = true;
-      document.body.appendChild(script);
-
-      window.dataLayer = window.dataLayer || [];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      function gtag(...args: any[]) {
-        window.dataLayer.push(args);
-      }
-      gtag("js", new Date());
-      gtag("config", "GA_ID");
-    };
-
-    if ("requestIdleCallback" in window) {
-      requestIdleCallback(loadAnalytics);
-    } else {
-      window.addEventListener("load", loadAnalytics, {
-        once: true,
-      });
-    }
-  }, []);
-
   if (dbStatus === "offline") {
-    // Assuming MaintenancePage is imported somewhere else in your environment
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const MaintenancePage = (window as any).MaintenancePage || (() => <div>Maintenance Mode</div>);
     return <MaintenancePage />;
   }
+
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+    <ThemeProvider>
+      {" "}
       <TooltipProvider>
         <QueryClientProvider client={queryClient}>
           <ErrorBoundary>
+            <CommandPalette />
             {/* Floating Dark Mode Toggle */}
             <div className="fixed bottom-4 right-4 z-[9999]">
               <ThemeToggle />

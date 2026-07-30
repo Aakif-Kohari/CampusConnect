@@ -114,6 +114,12 @@ jobs:
               } else {
                 const hasAssignees = prData.assignees && prData.assignees.length > 0;
                 const hasECSoCLabel = currentLabels.some(l => l.toLowerCase().replace(/[^a-z0-9]/g, '').includes('ecsoc26'));
+                const hasDoNotMergeLabel = currentLabels.some(l => l.toLowerCase() === 'do-not-merge');
+
+                if (hasDoNotMergeLabel) {
+                  console.log(`PR #${prNumber} has 'do-not-merge' label. Skipping auto-merge.`);
+                  return false;
+                }
 
                 if (!hasClosingKeyword || !hasAssignees || !hasECSoCLabel) {
                   let missing = [];
@@ -146,7 +152,7 @@ jobs:
 
                 console.log(`PR mergeable state is: ${mergeableState}`);
                 
-                if (mergeableState === "clean") {
+                if (mergeable === true) {
                   console.log("No merge conflicts and requirements met. Proceeding with auto-merge.");
                   await addLabel("Blue");
                   
@@ -163,17 +169,8 @@ jobs:
                   } catch (e) {
                     console.error(`❌ Failed to auto-merge PR #${prNumber}:`, e.message);
                   }
-                } else if (mergeableState === "behind") {
-                  await removeLabel("Blue");
-                  console.log("🔄 PR is behind base branch, attempting to update branch...");
-                  try {
-                    await github.rest.pulls.updateBranch({ owner, repo, pull_number: prNumber });
-                    console.log(`✅ PR #${prNumber} branch successfully updated. It will re-trigger checks.`);
-                  } catch (updateError) {
-                    console.error(`❌ Failed to update branch: ${updateError.message}`);
-                  }
                 } else {
-                  console.log(`PR is not ready to merge yet (state: ${mergeableState}). Waiting for checks/approvals.`);
+                  console.log(`PR is not ready to merge yet (mergeable is ${mergeable}). Waiting for checks/approvals.`);
                   await removeLabel("Blue");
                 }
               }
