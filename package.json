@@ -175,7 +175,7 @@
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
     "husky": "^9.1.7",
-    "jsdom": "^27.3.0",
+    "jsdom": "^27.4.0",
     "lint-staged": "^17.0.8",
     "prettier": "^3.7.3",
     "rollup-plugin-visualizer": "^7.0.1",
