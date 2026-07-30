@@ -5,7 +5,6 @@ import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
 import { fileURLToPath } from "url";
 import { federation } from "@module-federation/vite";
-import { visualizer } from "rollup-plugin-visualizer";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -73,8 +72,15 @@ function lucideImportOptimizer() {
   };
 }
 
+/**
+ * Vite configuration for CampusConnect
+ * Handles custom asset inclusion for dotLottie compressed animations
+ * and optimizes chunk splitting for large SVG/JSON assets.
+ */
 export default defineConfig({
   server: {
+    port: 3000,
+    host: true,
     headers: {
       "Cross-Origin-Opener-Policy": "same-origin",
       "Cross-Origin-Embedder-Policy": "require-corp",
@@ -86,6 +92,8 @@ export default defineConfig({
       "Cross-Origin-Embedder-Policy": "require-corp",
     },
   },
+  // Ensure Vite treats .lottie and .json files as raw static assets
+  assetsInclude: ["**/*.lottie", "**/*.json"],
   plugins: [
     lucideImportOptimizer(),
     viteReact(),
@@ -105,11 +113,6 @@ export default defineConfig({
         },
       },
     }),
-    visualizer({
-      filename: "stats.html",
-      gzipSize: true,
-      brotliSize: true,
-    }),
   ],
   resolve: {
     alias: {
@@ -118,25 +121,10 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ["pdf-lib"],
+    include: ["pdf-lib", "@tanstack/react-virtual"],
   },
   build: {
     target: "esnext",
     chunkSizeWarningLimit: 1000,
-    rolldownOptions: {
-      output: {
-        manualChunks(id) {
-          if (id.includes("node_modules")) {
-            if (id.includes("react") || id.includes("react-dom")) {
-              return "vendor-react";
-            }
-            if (id.includes("lucide-react")) {
-              return "vendor-icons";
-            }
-            return "vendor";
-          }
-        },
-      },
-    },
   },
 });
