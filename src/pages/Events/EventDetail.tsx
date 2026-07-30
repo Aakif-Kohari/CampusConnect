@@ -9,7 +9,7 @@ import NotFound from "./NotFound";
 import LazyHydrate from "@/components/LazyHydrate";
 import { User } from "@supabase/supabase-js";
 import { useEmailVerification } from "@/hooks/useEmailVerification";
-import { SiteShell } from "@/components/site/SiteShell";
+// Removed SiteShell import
 import { SkeletonEventDetails } from "@/components/events/SkeletonEventDetails";
 import { MapSkeleton } from "@/components/ui/MapSkeleton";
 
@@ -1009,7 +1009,7 @@ export default function EventDetailsPage() {
 
   if (!event) {
     return (
-      <SiteShell>
+      <>
         <section className="bg-cream px-4 py-20 md:px-6">
           <div className="mx-auto max-w-md neu-border bg-white p-8 text-center">
             <h1 className="text-3xl font-black">Event Not Found</h1>
@@ -1025,7 +1025,7 @@ export default function EventDetailsPage() {
             </Link>
           </div>
         </section>
-      </SiteShell>
+      </>
     );
   }
 
@@ -1120,7 +1120,7 @@ export default function EventDetailsPage() {
     attendeeCount >= maxAttendees;
 
   return (
-    <SiteShell>
+    <>
       {/* Breadcrumb nav */}
       <nav className="border-b-2 border-black bg-white px-4 py-4 md:px-6" aria-label="Breadcrumb">
         <div className="mx-auto max-w-4xl">
@@ -2277,6 +2277,6 @@ export default function EventDetailsPage() {
           />
         </div>
       )}
-    </SiteShell>
+    </>
   );
 }

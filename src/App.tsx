@@ -99,8 +99,10 @@ const Leaderboard = lazy(() =>
   import("./components/Leaderboard").then((m) => ({ default: m.Leaderboard })),
 );
 
-const LazyEventsIndex = lazy(() => import("./routes/events"));
-const LazyEventDetails = lazy(() => import("./routes/events.$eventId"));
+const EventsLayout = lazy(() => import("./pages/Events/EventsLayout"));
+const LazyEventsIndex = lazy(() => import("./pages/Events/EventsList"));
+const LazyEventDetails = lazy(() => import("./pages/Events/EventDetail"));
+const EmptyState = lazy(() => import("./pages/Events/EmptyState"));
 
 function PageFallback() {
   return (
@@ -155,21 +157,29 @@ const router = createBrowserRouter(
         <Route
           path="/events"
           element={
+<<<<<<< HEAD
             <Suspense fallback={<PageFallback />}>
-              <LazyEventsIndex />
+              <EventsLayout />
             </Suspense>
           }
-        />
-
-        <Route
-          path="/events/:eventId"
-          element={
-            <Suspense fallback={<PageFallback />}>
-              <LazyEventDetails />
-            </Suspense>
-          }
-        />
-
+        >
+          <Route
+            index
+            element={
+              <Suspense fallback={<PageFallback />}>
+                <EmptyState />
+              </Suspense>
+            }
+          />
+          <Route
+            path=":eventId"
+            element={
+              <Suspense fallback={<PageFallback />}>
+                <LazyEventDetails />
+              </Suspense>
+            }
+          />
+        </Route>
         <Route path="/events/:eventId/dashboard" element={<EventDashboard />} />
         {/* Events Map View with clustering */}
         <Route path="events/map" element={<EventsMapPage />} />
