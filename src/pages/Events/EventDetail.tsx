@@ -9,6 +9,7 @@ import NotFound from "./NotFound";
 import LazyHydrate from "@/components/LazyHydrate";
 import { User } from "@supabase/supabase-js";
 import { useEmailVerification } from "@/hooks/useEmailVerification";
+import { useEventViewerCount } from "@/hooks/useEventViewerCount";
 // Removed SiteShell import
 import { SkeletonEventDetails } from "@/components/events/SkeletonEventDetails";
 import { MapSkeleton } from "@/components/ui/MapSkeleton";
@@ -214,6 +215,7 @@ export default function EventDetailsPage() {
   const [feedbackRating, setFeedbackRating] = useState(0);
   const [feedbackComment, setFeedbackComment] = useState("");
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+  const viewerCount = useEventViewerCount(eventId);
 
   // Safe window URL handling for SSR / hydration safety
   const shareUrl = typeof window !== "undefined" ? window.location.href : "";
@@ -1209,10 +1211,17 @@ export default function EventDetailsPage() {
         )}
 
         <div className="relative mx-auto flex min-h-[50vh] max-w-4xl flex-col justify-end px-4 py-16 md:min-h-[60vh] md:px-6 md:py-24">
-          <div className="mb-4">
+          <div className="mb-4 flex flex-wrap items-center gap-3">
             <span className="neu-border inline-block bg-white px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider text-black">
               Event Details
             </span>
+            <div className="neu-border inline-flex items-center gap-2 bg-black text-white px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span>{viewerCount} {viewerCount === 1 ? "person" : "people"} viewing</span>
+            </div>
           </div>
 
           <div className="flex items-center gap-3">
