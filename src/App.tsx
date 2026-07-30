@@ -157,7 +157,6 @@ const router = createBrowserRouter(
         <Route
           path="/events"
           element={
-<<<<<<< HEAD
             <Suspense fallback={<PageFallback />}>
               <EventsLayout />
             </Suspense>
