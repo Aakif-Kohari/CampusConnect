@@ -117,6 +117,17 @@ function PageFallback() {
 // ---------------------------------------------------------------------------
 function AnimatedOutlet() {
   const location = useLocation();
+  const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  if (prefersReduced) {
+    return (
+      <PageWrapper key={location.pathname}>
+        <Suspense fallback={<PageFallback />}>
+          <Outlet />
+        </Suspense>
+      </PageWrapper>
+    );
+  }
 
   return (
     <AnimatePresence mode="wait">
