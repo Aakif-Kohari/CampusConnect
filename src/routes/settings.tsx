@@ -1,5 +1,4 @@
 import { useNavigate, useBlocker } from "react-router-dom";
-import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { SiteShell } from "@/components/site/SiteShell";
 import { useEffect, useRef, useState, useId, type ChangeEvent, type KeyboardEvent } from "react";
 import { useTheme } from "@/components/theme-provider";
@@ -8,6 +7,15 @@ import { toast } from "sonner";
 import { announce } from "@/store/ariaAnnouncer";
 import { createClient } from "@/lib/supabase/client";
 import { withAuth, WithAuthProps } from "@/hoc/withAuth";
+import { PasswordInput } from "@/components/ui/password-input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 import { OptimizedImage } from "@/components/media/OptimizedImage";
 
@@ -70,6 +78,9 @@ function SettingsPageContent({ user }: WithAuthProps) {
   const supabase = createClient();
   const { theme, setTheme } = useTheme();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [borderThickness, setBorderThickness] = useState(2);
   const [borderRadius, setBorderRadius] = useState(0);
@@ -101,6 +112,41 @@ function SettingsPageContent({ user }: WithAuthProps) {
     setSkills((prev) => prev.filter((s) => s !== skill));
   };
 
+  const handleDeleteAccount = async () => {
+    if (!user) {
+      setDeleteError("User session not found.");
+      return;
+    }
+    if (!deletePassword.trim()) {
+      setDeleteError("Password is required.");
+      return;
+    }
+
+    setIsDeleting(true);
+    setDeleteError("");
+
+    try {
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: user.email || "",
+        password: deletePassword,
+      });
+
+      if (authError) {
+        setDeleteError(authError.message || "Incorrect password. Please try again.");
+        setIsDeleting(false);
+        return;
+      }
+
+      // Credentials verified successfully. Continue with existing deletion flow.
+      setConfirmOpen(false);
+      setDeletePassword("");
+      toast.success("Account deleted successfully.");
+    } catch (err: any) {
+      setDeleteError(err.message || "An unexpected error occurred during verification.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
   useEffect(() => {
     // Load appearance settings from localStorage
     const savedThickness = localStorage.getItem("border-thickness");
@@ -707,17 +753,67 @@ function SettingsPageContent({ user }: WithAuthProps) {
               Delete account
             </button>
 
-            <ConfirmModal
+            <Dialog
               open={confirmOpen}
-              title="Delete account?"
-              description="This action cannot be undone."
-              confirmText="Delete"
-              cancelText="Cancel"
-              onCancel={() => setConfirmOpen(false)}
-              onConfirm={() => {
-                setConfirmOpen(false);
+              onOpenChange={(isOpen) => {
+                if (!isOpen && !isDeleting) {
+                  setConfirmOpen(false);
+                  setDeletePassword("");
+                  setDeleteError("");
+                }
               }}
-            />
+            >
+              <DialogContent className="border-2 border-black bg-white p-6 shadow-[6px_6px_0px_rgba(0,0,0,1)]">
+                <DialogHeader>
+                  <DialogTitle className="font-display text-2xl font-extrabold tracking-tight text-black">
+                    Delete account?
+                  </DialogTitle>
+                  <DialogDescription className="font-mono text-xs text-gray-600 mt-2">
+                    This action cannot be undone. Please enter your password to confirm deletion.
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="my-4 space-y-2">
+                  <label className="block font-mono text-xs font-bold uppercase text-black">
+                    Current Password
+                  </label>
+                  <PasswordInput
+                    value={deletePassword}
+                    onChange={(e) => setDeletePassword(e.target.value)}
+                    placeholder="Enter your password"
+                    disabled={isDeleting}
+                    className="w-full border-2 border-black bg-white p-2 font-mono text-xs outline-none"
+                  />
+                  {deleteError && (
+                    <p className="font-mono text-xs text-red-600 font-bold">{deleteError}</p>
+                  )}
+                </div>
+
+                <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2 border-t border-black/10">
+                  <button
+                    type="button"
+                    disabled={isDeleting}
+                    onClick={() => {
+                      setConfirmOpen(false);
+                      setDeletePassword("");
+                      setDeleteError("");
+                    }}
+                    className="neu-border neu-press bg-white text-black hover:bg-cream px-4 py-2 font-mono text-xs font-bold uppercase disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isDeleting}
+                    onClick={handleDeleteAccount}
+                    className="neu-border neu-press bg-brand-blue-dark hover:bg-brand-blue-dark/90 px-4 py-2 font-mono text-xs font-bold uppercase text-white disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {isDeleting && <Loader2 className="h-3 w-3 animate-spin text-white" />}
+                    {isDeleting ? "Deleting..." : "Delete"}
+                  </button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </Panel>
         </div>
       </section>
