@@ -60,6 +60,7 @@ import { PullToRefresh } from "@/components/PullToRefresh";
 import { TimeAgo } from "@/components/TimeAgo";
 import { useEmailVerification } from "@/hooks/useEmailVerification";
 import { announce } from "@/store/ariaAnnouncer";
+import { RelayConnection, encodeRelayCursor, decodeRelayCursor } from "@/lib/relayPagination";
 import { ReportDialog } from "@/components/ReportDialog";
 import { TimeAgo } from "@/components/TimeAgo";
 import CompressWorker from "@/workers/compress.worker?worker";
@@ -248,16 +249,30 @@ export default function Feed() {
     fetchNextPage,
     hasNextPage,
     refetch: refetchPosts,
-  } = useInfiniteQuery<unknown>({
+  } = useInfiniteQuery<RelayConnection<Post>>({
     queryKey: ["posts"],
     initialPageParam: undefined,
     queryFn: async ({ pageParam }) => {
-      const cursor = pageParam as unknown as { created_at: string; id: string } | null;
+      const afterCursor = pageParam as string | undefined;
+
+      // Try get_posts_relay RPC first
+      const { data: relayData, error: relayError } = await supabase.rpc("get_posts_relay", {
+        p_after: afterCursor || null,
+        p_first: POSTS_PER_PAGE,
+      });
+
+      if (!relayError && relayData && typeof relayData === "object" && "edges" in relayData) {
+        const connection = relayData as unknown as RelayConnection<Post>;
+        return connection;
+      }
+
+      // Fallback using get_posts_cursor
+      const decoded = afterCursor ? decodeRelayCursor(afterCursor) : null;
 
       const { data, error } = await supabase
         .rpc("get_posts_cursor", {
-          last_created_at: cursor?.created_at || null,
-          last_id: cursor?.id || null,
+          last_created_at: decoded?.createdAt || null,
+          last_id: decoded?.id || null,
           fetch_limit: POSTS_PER_PAGE,
         })
         .select(
@@ -273,22 +288,30 @@ export default function Feed() {
       if (error) throw error;
 
       const posts = (data ?? []) as unknown as Post[];
+      const edges = posts.map((post) => ({
+        cursor: encodeRelayCursor(post.created_at, post.id),
+        node: post,
+      }));
 
-      let nextCursor: { created_at: string; id: string } | undefined;
-      if (posts.length === POSTS_PER_PAGE) {
-        const lastPost = posts[posts.length - 1];
-        nextCursor = { created_at: lastPost.created_at, id: lastPost.id };
-      }
+      const hasNext = posts.length === POSTS_PER_PAGE;
+      const startCursor = edges.length > 0 ? edges[0].cursor : null;
+      const endCursor = edges.length > 0 ? edges[edges.length - 1].cursor : null;
 
       return {
-        posts,
-        nextCursor,
+        edges,
+        pageInfo: {
+          hasNextPage: hasNext,
+          hasPreviousPage: !!afterCursor,
+          startCursor,
+          endCursor,
+        },
       };
     },
-    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    getNextPageParam: (lastPage) =>
+      lastPage.pageInfo.hasNextPage ? lastPage.pageInfo.endCursor : undefined,
   });
 
-  const allPosts = data?.pages.flatMap((page) => page.posts) ?? [];
+  const allPosts = data?.pages.flatMap((page) => page.edges.map((edge) => edge.node)) ?? [];
   const posts = combinePosts(prependedPosts, allPosts);
 
   // Trending posts — fetched lazily only when the Trending tab is active
@@ -826,7 +849,7 @@ export default function Feed() {
       // (not needed in this custom implementation, but kept for pattern consistency)
 
       // Snapshot the previous value
-      const previousData = data?.pages.flatMap((page) => page.posts) ?? [];
+      const previousData = data?.pages.flatMap((page) => page.edges.map((e) => e.node)) ?? [];
 
       // Optimistically update the cache
       const updatedPosts = previousData.map((post) => {
