@@ -3,7 +3,7 @@ import { useQuery, useMutation, setQueryData } from "@/hooks/useReactQueryReplac
 import { createClient } from "@/lib/supabase/client";
 import { useState, useEffect, lazy, Suspense, useMemo } from "react";
 import { TableOfContents } from "@/components/events/TableOfContents";
-import NotFound from "./NotFound";
+import { NotFound } from "@/components/NotFound";
 import LazyHydrate from "@/components/LazyHydrate";
 import { User } from "@supabase/supabase-js";
 import { useEmailVerification } from "@/hooks/useEmailVerification";
@@ -30,7 +30,26 @@ import {
   X,
   CheckCircle,
   Clock,
+  Calendar,
+  Star,
+  HelpCircle,
+  Flag,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from "@/components/ui/accordion";
+import PredictiveTurnout from "@/components/events/PredictiveTurnout";
+import LiveQA from "@/components/qa/LiveQA";
+import EventFeedbackForm from "@/components/EventFeedbackForm";
 import { ReportDialog } from "@/components/ReportDialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
@@ -55,7 +74,17 @@ import {
   buildFeedbackStatus,
   buildWaitlistInfo,
   buildGoogleMapsSearchUrl,
+  type EventRsvp,
+  type EventWaitlist,
 } from "@/lib/eventTransformUtils";
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { isCaptchaConfigured, shouldRequireCaptcha } from "@/lib/captcha";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { CreatePollDialog } from "@/components/polls/CreatePollDialog";
@@ -251,35 +280,6 @@ export default function EventDetailsPage() {
     enabled: !!eventId,
   });
 
-    // Extract headings from HTML description for TOC
-  const tocItems = useMemo(() => {
-    if (!event?.description) return [];
-    
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(event.description, "text/html");
-    const headings = doc.querySelectorAll("h2, h3");
-    
-    return Array.from(headings).map((heading) => {
-      const text = heading.textContent || "";
-      // Simple slugify for ID
-      const id = text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-      return { id, text, level: heading.tagName === "H2" ? 2 : 3 };
-    });
-  }, [event?.description]);
-
-  // Inject IDs into the rendered DOM nodes so the TOC can scroll to them
-  useEffect(() => {
-    const container = document.getElementById("event-description-container");
-    if (!container) return;
-
-    const headings = container.querySelectorAll("h2, h3");
-    headings.forEach((heading) => {
-      const text = heading.textContent || "";
-      const id = text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-      heading.id = id;
-    });
-  }, [event?.description]);
-
   useEffect(() => {
     if (!lightboxSrc) return;
 
@@ -400,8 +400,8 @@ export default function EventDetailsPage() {
         .from("events")
         .select(
           `
-          id, title, description, event_date, start_date, end_date, location, banner_url, created_by, short_id,
-          id, title, description, event_date, start_date, end_date, location, banner_url, created_by, max_attendees, requires_approval,
+          id, title, description, event_date, start_date, end_date, location, banner_url, created_by, short_id, max_attendees, requires_approval,
+          profiles (full_name, email),
           clubs (name, slug),
           event_rsvps (id, user_id, status, checked_in, rsvp_at, profiles (first_name, last_name, avatar_url)),
           event_waitlist (id, user_id, created_at, profiles (first_name, last_name, avatar_url))
@@ -511,6 +511,41 @@ export default function EventDetailsPage() {
     },
   });
 
+  // Extract headings from HTML description for TOC
+  const tocItems = useMemo(() => {
+    if (!event?.description) return [];
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(event.description, "text/html");
+    const headings = doc.querySelectorAll("h2, h3");
+
+    return Array.from(headings).map((heading) => {
+      const text = heading.textContent || "";
+      // Simple slugify for ID
+      const id = text
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
+      return { id, text, level: heading.tagName === "H2" ? 2 : 3 };
+    });
+  }, [event?.description]);
+
+  // Inject IDs into the rendered DOM nodes so the TOC can scroll to them
+  useEffect(() => {
+    const container = document.getElementById("event-description-container");
+    if (!container) return;
+
+    const headings = container.querySelectorAll("h2, h3");
+    headings.forEach((heading) => {
+      const text = heading.textContent || "";
+      const id = text
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
+      heading.id = id;
+    });
+  }, [event?.description]);
+
   const toggleWaitlist = useMutation({
     mutationFn: async ({ isOnWaitlist }: { isOnWaitlist: boolean }) => {
       if (!user) throw new Error("Please log in to join waitlist");
@@ -583,8 +618,8 @@ export default function EventDetailsPage() {
           ...event,
           event_rsvps: updatedRsvps,
           attendee_count: hasRsvpd
-            ? (event.attendee_count || 0) - 1
-            : (event.attendee_count || 0) + 1,
+            ? ((event as { attendee_count?: number }).attendee_count || 0) - 1
+            : ((event as { attendee_count?: number }).attendee_count || 0) + 1,
         };
 
         setQueryData(["event", eventId], updatedEvent);
@@ -593,7 +628,11 @@ export default function EventDetailsPage() {
       // Return context with previous data for rollback
       return { previousEvent };
     },
-    onError: (error: unknown, _variables: unknown, context: { previousEvent: unknown } | undefined) => {
+    onError: (
+      error: unknown,
+      _variables: unknown,
+      context: { previousEvent: unknown } | undefined,
+    ) => {
       // Rollback to previous value on error
       if (context?.previousEvent) {
         setQueryData(["event", eventId], context.previousEvent);
@@ -609,7 +648,9 @@ export default function EventDetailsPage() {
         toast.error("Please wait a minute before toggling RSVP again.");
       } else {
         toast.error(
-          (err?.message as string) || error?.message || "Failed to update RSVP. Please try again.",
+          (err?.message as string) ||
+            (error as Error)?.message ||
+            "Failed to update RSVP. Please try again.",
         );
       }
     },
@@ -721,6 +762,8 @@ export default function EventDetailsPage() {
     },
   });
 
+  const isOrganizer = !!(user && event?.created_by === user.id);
+
   useEffect(() => {
     if (!eventId || eventId.startsWith("mock-") || !event) return;
 
@@ -748,8 +791,6 @@ export default function EventDetailsPage() {
     };
   }, [eventId, event?.created_by, user?.id, supabase, refetch, isOrganizer]);
 
-  const isOrganizer = user && event?.created_by === user.id;
-
   // Local state for optimistic updates during dragging
   const [columns, setColumns] = useState<{
     waitlisted: {
@@ -764,14 +805,14 @@ export default function EventDetailsPage() {
       userId: string;
       name: string;
       avatarUrl: string | null;
-      rsvpId: string;
+      rsvpId?: string;
     }[];
     rejected: {
       id: string;
       userId: string;
       name: string;
       avatarUrl: string | null;
-      rsvpId: string;
+      rsvpId?: string;
     }[];
   }>({ waitlisted: [], approved: [], rejected: [] });
 
@@ -917,7 +958,9 @@ export default function EventDetailsPage() {
     );
   }
 
-  const rsvps = Array.isArray(event.event_rsvps) ? (event.event_rsvps as EventRsvp[]) : [];
+  const rsvps = Array.isArray(event.event_rsvps)
+    ? (event.event_rsvps as unknown as EventRsvp[])
+    : [];
   const { hasRsvpd, isCheckedIn, hasEnded } = buildRsvpStatus(rsvps, user?.id, event.end_date);
   const rawFeedbacks = (event as Record<string, unknown>).event_feedbacks;
   const { hasSubmittedFeedback } = buildFeedbackStatus(
@@ -1437,11 +1480,11 @@ export default function EventDetailsPage() {
                     No description provided for this event.
                   </p>
                 )}
-            
-                <div 
-                  id="event-description-container" 
+
+                <div
+                  id="event-description-container"
                   className="prose prose-lg max-w-none dark:prose-invert prose-headings:scroll-mt-24"
-                  dangerouslySetInnerHTML={{ __html: event.description }} 
+                  dangerouslySetInnerHTML={{ __html: event.description }}
                 />
               </main>
               <aside className="lg:w-64 shrink-0">
@@ -1496,7 +1539,10 @@ export default function EventDetailsPage() {
               coordsCheck.lat != null &&
               coordsCheck.lng != null ? (
                 <>
-                  <LazyHydrate height="300px" placeholder={<MapSkeleton className="mt-4 h-[300px] w-full" />}>
+                  <LazyHydrate
+                    height="300px"
+                    placeholder={<MapSkeleton className="mt-4 h-[300px] w-full" />}
+                  >
                     <Suspense fallback={<MapSkeleton className="mt-4 h-[300px] w-full" />}>
                       <EventMap
                         lat={coordsCheck.lat}

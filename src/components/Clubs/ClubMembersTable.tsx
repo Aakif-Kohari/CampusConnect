@@ -5,10 +5,10 @@ import {
   getPaginationRowModel,
   useReactTable,
   type ColumnDef,
+  type Row,
 } from "@tanstack/react-table";
 import { CheckCircle, ShieldCheck, XCircle } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MemberIdentity } from "./MemberIdentity";
 import { MemberContextMenu } from "./MemberContextMenu";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { EmptyState } from "@/components/EmptyState";
@@ -226,10 +226,10 @@ export function ClubMembersTable({
     columns,
     state: { globalFilter },
     onGlobalFilterChange: setGlobalFilter,
-    globalFilterFn: (row, _columnId, filterValue) => {
+    globalFilterFn: (row: Row<ClubMemberRow>, _columnId: string, filterValue: string) => {
       const query = String(filterValue).toLowerCase().trim();
       if (!query) return true;
-      const member = row.original as ClubMemberRow;
+      const member = row.original;
       return (
         member.fullName.toLowerCase().includes(query) ||
         member.handle.toLowerCase().includes(query) ||

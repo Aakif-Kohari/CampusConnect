@@ -19,34 +19,17 @@ import { CommandPalette } from "./components/ui/command-palette";
 import MaintenancePage from "./components/MaintenancePage";
 import { NotFoundPage } from "./components/NotFoundPage";
 import { createClient } from "./lib/supabase/client";
-// Pages are mostly lazy-loaded below
-import MessagesRoute from "./routes/messages";
-import ThemeToggle from "./components/ThemeToggle"; // <-- Added Import
+import { ThemeToggle } from "./components/ThemeToggle";
+import { ThemeProvider } from "./components/theme-provider";
+import { TooltipProvider } from "./components/ui/tooltip";
 
-// Pages
-import Index from "./routes/index";
-import Auth from "./routes/auth";
-import Certificates from "./routes/certificates";
-import ClubsIndex from "./routes/clubs.index";
-import ClubDetails from "./routes/clubs.$slug";
-import ClubManageRoute from "./routes/clubs.$slug.manage";
-import ClubsLayout from "./routes/clubs";
-import Dashboard from "./routes/dashboard";
-import DashboardOverview from "./routes/dashboard.index";
-import DashboardRsvps from "./routes/dashboard.rsvps";
-import DashboardBookmarks from "./routes/dashboard.bookmarks";
-import DashboardCalendar from "./routes/dashboard.calendar";
-import Feed from "./routes/feed";
-import EventsMapPage from "./routes/events.map";
-import ForgotPassword from "./routes/forgot-password";
-import ResetPassword from "./routes/reset-password";
-import Settings from "./routes/settings";
-import VerifyEmail from "./routes/verify-email";
-import PendingClubsAdmin from "./routes/admin.clubs.pending";
-import AdminReportsPage from "./routes/admin.reports";
-import AdminUsersPage from "./routes/admin.users";
-import { NotFoundPage } from "./components/NotFoundPage";
-import { createClient } from "./lib/supabase/client";
+function RemoteLoadingScreen() {
+  return (
+    <div className="flex h-screen w-full items-center justify-center bg-slate-950 text-white">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+    </div>
+  );
+}
 
 const HEALTH_CHECK_URL =
   (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_HEALTH_URL) ||
@@ -82,8 +65,6 @@ async function checkDatabaseHealth(): Promise<HealthStatus> {
     }
 
     return { ok: true };
-  } catch (err: any) {
-    return { ok: false, error: err.message };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     return { ok: false, error: message };
@@ -114,9 +95,11 @@ const PendingClubsAdmin = lazy(() => import("./routes/admin.clubs.pending"));
 const AdminReportsPage = lazy(() => import("./routes/admin.reports"));
 const AdminUsersPage = lazy(() => import("./routes/admin.users"));
 const AdminRestorePage = lazy(() => import("./routes/admin.restore"));
+const AnalyticsAdmin = lazy(() => import("./routes/admin.analytics"));
 const NotFound = lazy(() => import("./routes/NotFound"));
 const ChallengeArena = lazy(() => import("./routes/challenge"));
 const EventDashboard = lazy(() => import("./routes/events.$eventId.dashboard"));
+const LostFound = lazy(() => import("./routes/lost-found"));
 const Leaderboard = lazy(() =>
   import("./components/Leaderboard").then((m) => ({ default: m.Leaderboard })),
 );
@@ -195,20 +178,22 @@ const router = createBrowserRouter(
         <Route path="/challenge" element={<ChallengeArena />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
 
-      <Route path="/feed" element={<Feed />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      <Route path="/settings" element={<Settings />} />
-      <Route path="/admin/clubs/pending" element={<PendingClubsAdmin />} />
-      <Route path="/admin/analytics" element={<AnalyticsAdmin />} />
-      <Route path="/verify-email" element={<VerifyEmail />} />
-      <Route path="/messages" element={<MessagesRoute />} />
-      <Route path="/admin/reports" element={<AdminReportsPage />} />
-      <Route path="/admin/users" element={<AdminUsersPage />} />
-      <Route path="/admin/restore" element={<AdminRestorePage />} />
-      <Route path="*" element={<NotFoundPage />} />
-      {/* Catch-all route for 404 errors */}
-      <Route path="*" element={<NotFound />} />
+        <Route path="/feed" element={<Feed />} />
+        <Route path="/lost-found" element={<LostFound />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="/admin/clubs/pending" element={<PendingClubsAdmin />} />
+        <Route path="/admin/analytics" element={<AnalyticsAdmin />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
+        <Route path="/messages" element={<MessagesRoute />} />
+        <Route path="/admin/reports" element={<AdminReportsPage />} />
+        <Route path="/admin/users" element={<AdminUsersPage />} />
+        <Route path="/admin/restore" element={<AdminRestorePage />} />
+        <Route path="*" element={<NotFoundPage />} />
+        {/* Catch-all route for 404 errors */}
+        <Route path="*" element={<NotFound />} />
+      </Route>
     </Route>,
   ),
 );
@@ -271,7 +256,7 @@ export default function App() {
   }
 
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+    <ThemeProvider>
       <TooltipProvider>
         <QueryClientProvider client={queryClient}>
           <ErrorBoundary>

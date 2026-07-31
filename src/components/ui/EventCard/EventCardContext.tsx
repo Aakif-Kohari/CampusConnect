@@ -88,14 +88,15 @@ export function EventCardProvider({
   const colors = ["bg-lime", "bg-sky", "bg-peach"];
   const cardBg = colors[index % colors.length];
 
-  const googleCalendarUrl = getGoogleCalendarUrl({
-    title: event.title,
-    description: event.description,
-    event_date: event.event_date,
-    start_date: event.start_date,
-    end_date: event.end_date,
-    location: event.location,
-  });
+  const googleCalendarUrl =
+    getGoogleCalendarUrl({
+      title: event.title,
+      description: event.description,
+      event_date: event.event_date,
+      start_date: event.start_date,
+      end_date: event.end_date,
+      location: event.location,
+    }) || "";
 
   const countdown = event.event_date ? getCountdown(event.event_date) : "TBA";
 

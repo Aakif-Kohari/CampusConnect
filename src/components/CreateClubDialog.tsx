@@ -52,11 +52,15 @@ const generateSlug = (text: string) => {
     .replace(/-+/g, "-"); // remove duplicate hyphens
 };
 
+interface LocalClubFormValues extends ClubFormInput {
+  logo_url?: string;
+}
+
 export function CreateClubDialog({ user }: { user: User | null }) {
   const [open, setOpen] = useState(false);
   const supabase = createClient();
 
-  const form = useForm<ClubFormInput>({
+  const form = useForm<LocalClubFormValues>({
     resolver: zodResolver(clubFormSchema),
     defaultValues,
     mode: "onBlur",
@@ -72,7 +76,7 @@ export function CreateClubDialog({ user }: { user: User | null }) {
   }, [nameValue, form]);
 
   const createClub = useMutation({
-    mutationFn: async (values: ClubFormValues) => {
+    mutationFn: async (values: LocalClubFormValues) => {
       if (!user) {
         throw new Error("You must be logged in to create a club.");
       }
@@ -107,7 +111,6 @@ export function CreateClubDialog({ user }: { user: User | null }) {
       if (error) {
         throw new Error(error.message);
       }
-
     },
     onSuccess: () => {
       toast.success("Club submitted for administrator review.");
@@ -121,9 +124,9 @@ export function CreateClubDialog({ user }: { user: User | null }) {
     },
   });
 
-  const onSubmit = (values: ClubFormInput) => {
+  const onSubmit = (values: LocalClubFormValues) => {
     const parsed = clubFormSchema.parse(values);
-    createClub.mutate(parsed);
+    createClub.mutate({ ...parsed, logo_url: values.logo_url });
   };
 
   return (
@@ -173,7 +176,7 @@ export function CreateClubDialog({ user }: { user: User | null }) {
                             .watch("name")
                             .split(" ")
                             .filter(Boolean)
-                            .map((p) => p[0])
+                            .map((p: string) => p[0])
                             .join("")
                             .slice(0, 2)
                             .toUpperCase()

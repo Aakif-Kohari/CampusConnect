@@ -18,6 +18,20 @@ import { useWebAuthn } from "@/hooks/useWebAuthn";
 
 import { AuthSocialProviderGrid } from "@/components/auth/AuthSocialProviderGrid";
 import { PasskeyAuthModal } from "@/components/auth/PasskeyAuthModal";
+import {
+  signInSchema,
+  type SignInFormValues,
+  signUpSchema,
+  type SignUpFormValues,
+} from "@/lib/schemas";
+import {
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from "@/components/ui/form";
 
 export default function AuthPage() {
   const [mode, setMode] = useState<"signin" | "signup">("signin");

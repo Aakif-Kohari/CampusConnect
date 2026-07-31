@@ -23,6 +23,7 @@ const links = [
   { to: "/events", label: "Events" },
   { to: "/clubs", label: "Clubs" },
   { to: "/feed", label: "Feed" },
+  { to: "/lost-found", label: "Lost & Found" },
   { to: "/challenge", label: "Challenge" },
   { to: "/certificates", label: "Certificates" },
   { to: "/dashboard", label: "Dashboard" },
@@ -171,8 +172,8 @@ export function Navbar() {
 
             {user && <NavbarNotificationDropdown />}
             {isInitializing ? (
-                <ProfileHeaderSkeleton />
-              ) : user ? (
+              <ProfileHeaderSkeleton />
+            ) : user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
@@ -223,7 +224,7 @@ export function Navbar() {
               >
                 Sign in
               </Link>
-          )}
+            )}
           </div>
 
           {/* Mobile menu toggle button */}

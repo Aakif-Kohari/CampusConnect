@@ -2,10 +2,10 @@ import { useNavigate, useBlocker } from "react-router-dom";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { SiteShell } from "@/components/site/SiteShell";
 import { useEffect, useRef, useState, useId, type ChangeEvent, type KeyboardEvent } from "react";
-import { Camera, Loader2, X, Plus } from "lucide-react";
+import { Camera, Loader2, X, Plus, UploadCloud } from "lucide-react";
 import { toast } from "sonner";
 import { announce } from "@/store/ariaAnnouncer";
-import { createClient } from "@/lib/supabase/client";
+import { createClient, getSupabaseUrl } from "@/lib/supabase/client";
 import { withAuth, WithAuthProps } from "@/hoc/withAuth";
 
 import { OptimizedImage } from "@/components/media/OptimizedImage";
@@ -14,6 +14,10 @@ import type { User } from "@supabase/supabase-js";
 import { useQuery } from "@/hooks/useReactQueryReplacement";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useTheme } from "@/components/theme-provider";
+import { SecuritySection } from "@/components/Settings/SecuritySection";
+import { uploadFileWithProgress } from "@/lib/supabase/uploadFileWithProgress";
+import { Progress } from "@/components/ui/progress";
 import {
   profileSchema,
   AVATAR_THEMES,
@@ -550,30 +554,33 @@ function SettingsPageContent({ user }: WithAuthProps) {
                   <button
                     type="button"
                     onClick={() => setTheme("light")}
-                    className={`neu-border neu-press px-4 py-2 font-mono text-xs font-bold uppercase ${theme === "light"
-                      ? "bg-black text-cream dark:bg-cream dark:text-black"
-                      : "bg-white text-black hover:bg-lime dark:bg-brand-gray-base-800 dark:text-cream"
-                      }`}
+                    className={`neu-border neu-press px-4 py-2 font-mono text-xs font-bold uppercase ${
+                      theme === "light"
+                        ? "bg-black text-cream dark:bg-cream dark:text-black"
+                        : "bg-white text-black hover:bg-lime dark:bg-brand-gray-base-800 dark:text-cream"
+                    }`}
                   >
                     ☀️ Light
                   </button>
                   <button
                     type="button"
                     onClick={() => setTheme("dark")}
-                    className={`neu-border neu-press px-4 py-2 font-mono text-xs font-bold uppercase ${theme === "dark"
-                      ? "bg-black text-cream dark:bg-cream dark:text-black"
-                      : "bg-white text-black hover:bg-lime dark:bg-brand-gray-base-800 dark:text-cream"
-                      }`}
+                    className={`neu-border neu-press px-4 py-2 font-mono text-xs font-bold uppercase ${
+                      theme === "dark"
+                        ? "bg-black text-cream dark:bg-cream dark:text-black"
+                        : "bg-white text-black hover:bg-lime dark:bg-brand-gray-base-800 dark:text-cream"
+                    }`}
                   >
                     🌙 Dark
                   </button>
                   <button
                     type="button"
                     onClick={() => setTheme("system")}
-                    className={`neu-border neu-press px-4 py-2 font-mono text-xs font-bold uppercase ${theme === "system"
-                      ? "bg-black text-cream dark:bg-cream dark:text-black"
-                      : "bg-white text-black hover:bg-lime dark:bg-brand-gray-base-800 dark:text-cream"
-                      }`}
+                    className={`neu-border neu-press px-4 py-2 font-mono text-xs font-bold uppercase ${
+                      theme === "system"
+                        ? "bg-black text-cream dark:bg-cream dark:text-black"
+                        : "bg-white text-black hover:bg-lime dark:bg-brand-gray-base-800 dark:text-cream"
+                    }`}
                   >
                     💻 System
                   </button>
@@ -740,10 +747,11 @@ function AvatarThemePicker({
               aria-checked={isSelected}
               aria-label={`${theme.label} gradient`}
               title={theme.label}
-              className={`h-10 w-10 rounded-full border-2 border-black transition-transform ${theme.gradient} ${isSelected
-                ? "scale-110 ring-4 ring-black ring-offset-2 ring-offset-white"
-                : "hover:scale-105"
-                }`}
+              className={`h-10 w-10 rounded-full border-2 border-black transition-transform ${theme.gradient} ${
+                isSelected
+                  ? "scale-110 ring-4 ring-black ring-offset-2 ring-offset-white"
+                  : "hover:scale-105"
+              }`}
             />
           );
         })}
@@ -758,6 +766,109 @@ function AvatarUpload({ name, avatarTheme }: { name: string; avatarTheme?: Avata
   const [preview, setPreview] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
   const [initials, setInitials] = useState("");
+
+  const [uploading, setUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!uploading) setIsDragging(true);
+  };
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!uploading) setIsDragging(true);
+  };
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      await handleUpload(file);
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    if (uploading) return;
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      await handleUpload(file);
+    }
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  };
+
+  const handleUpload = async (file: File) => {
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image must be under 2 MB.");
+      return;
+    }
+    const allowed = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowed.includes(file.type)) {
+      toast.error("Only JPG, PNG and WEBP images are allowed.");
+      return;
+    }
+
+    setSelectedFile(file);
+    setUploading(true);
+    setUploadProgress(0);
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) throw new Error("No session");
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("No user");
+
+      const extension = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
+      const filePath = `${user.id}/${crypto.randomUUID()}.${extension}`;
+
+      const supabaseUrl = getSupabaseUrl();
+      await uploadFileWithProgress(
+        supabaseUrl,
+        session.access_token,
+        "avatars",
+        filePath,
+        file,
+        setUploadProgress,
+      );
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("avatars").getPublicUrl(filePath);
+
+      await handleUploaded(publicUrl);
+      toast.success("Profile picture updated.");
+    } catch (err) {
+      console.error(err);
+      toast.error((err as Error).message || "Failed to upload image.");
+    } finally {
+      setUploading(false);
+      setUploadProgress(null);
+      setSelectedFile(null);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -873,12 +984,13 @@ function AvatarUpload({ name, avatarTheme }: { name: string; avatarTheme?: Avata
             }
           }}
           aria-label="Upload profile picture. Click to browse, or drag and drop an image."
-          className={`neu-border flex cursor-pointer flex-col items-center justify-center gap-1.5 border-2 border-dashed p-5 text-center transition-colors duration-150 ${uploading
-            ? "cursor-not-allowed border-black bg-gray-100 opacity-70"
-            : isDragging
-              ? "border-black bg-lime/40 scale-[1.01]"
-              : "border-black bg-white hover:bg-cream"
-            }`}
+          className={`neu-border flex cursor-pointer flex-col items-center justify-center gap-1.5 border-2 border-dashed p-5 text-center transition-colors duration-150 ${
+            uploading
+              ? "cursor-not-allowed border-black bg-gray-100 opacity-70"
+              : isDragging
+                ? "border-black bg-lime/40 scale-[1.01]"
+                : "border-black bg-white hover:bg-cream"
+          }`}
         >
           {uploading ? (
             <Loader2 className="h-6 w-6 animate-spin" aria-hidden="true" />
@@ -946,34 +1058,6 @@ function AvatarUpload({ name, avatarTheme }: { name: string; avatarTheme?: Avata
           </div>
         )}
       </div>
-    </div>
-  );
-}
-function ThemeToggle({
-  theme,
-  setTheme,
-}: {
-  theme: "light" | "dark" | "system";
-  setTheme: (theme: "light" | "dark" | "system") => void;
-}) {
-  const id = useId();
-  return (
-    <div className="block">
-      <label htmlFor={id} className="eyebrow mb-1 block font-bold">
-        {label}
-        {required && (
-          <span className="text-destructive ml-1" aria-hidden="true">
-            *
-          </span>
-        )}
-      </label>
-      <input
-        id={id}
-        defaultValue={defaultValue}
-        required={required}
-        aria-required={required}
-        className="w-full border-0 border-b-2 border-black bg-transparent px-1 py-2 font-mono text-sm outline-none focus:bg-lime/40"
-      />
     </div>
   );
 }

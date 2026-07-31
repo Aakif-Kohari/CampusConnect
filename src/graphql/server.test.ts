@@ -1,6 +1,13 @@
 import { describe, it, expect, vi } from "vitest";
 import { yoga, schema } from "../../graphql/server";
-import { encodeCursor, decodeCursor, publishNotification, LRUCache, clubsCache, CLUBS_CACHE_KEY } from "../../graphql/resolvers";
+import {
+  encodeCursor,
+  decodeCursor,
+  publishNotification,
+  LRUCache,
+  clubsCache,
+  CLUBS_CACHE_KEY,
+} from "../../graphql/resolvers";
 
 vi.mock("../../src/lib/supabase/client", () => {
   const mockEvents = [
@@ -36,6 +43,10 @@ vi.mock("../../src/lib/supabase/client", () => {
 
   return {
     createClient: vi.fn().mockImplementation(() => ({
+      channel: vi.fn().mockImplementation(() => ({
+        on: vi.fn().mockReturnThis(),
+        subscribe: vi.fn().mockReturnThis(),
+      })),
       from: vi.fn().mockImplementation((table: string) => {
         if (table === "events") {
           return {
@@ -54,13 +65,16 @@ vi.mock("../../src/lib/supabase/client", () => {
           };
         }
         if (table === "clubs") {
+          const result = {
+            data: [{ id: "club-1", name: "Robotics Club" }],
+            error: null,
+          };
+          const selectObj = {
+            in: vi.fn().mockResolvedValue(result),
+            then: (resolve: (value: typeof result) => void) => resolve(result),
+          };
           return {
-            select: vi.fn().mockImplementation(() => ({
-              in: vi.fn().mockResolvedValue({
-                data: [{ id: "club-1", name: "Robotics Club" }],
-                error: null,
-              }),
-            })),
+            select: vi.fn().mockReturnValue(selectObj),
           };
         }
         if (table === "profiles") {
@@ -458,4 +472,3 @@ describe("GraphQL clubs Query Cached Resolver", () => {
     expect(body3.data.clubs[0].name).toBe("Robotics Club");
   });
 });
-

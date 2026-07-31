@@ -629,19 +629,6 @@ export default function DashboardOverview() {
                     <span className="neu-border bg-lime px-2 py-1 font-mono text-[10px] font-bold uppercase">
                       {c.role}
                     </span>
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </Widget>
-
-      <Widget title="Campus Engagement Map" className="lg:col-span-3">
-        <LazyHydrate height="260px">
-          <AttendanceHeatmap userId={user.id} />
-        </LazyHydrate>
-      </Widget>
                   </li>
                 );
               })}
@@ -649,6 +636,12 @@ export default function DashboardOverview() {
           )}
         </Widget>
       </ErrorBoundary>
+
+      <Widget title="Campus Engagement Map" className="lg:col-span-3">
+        <LazyHydrate height="260px">
+          <AttendanceHeatmap userId={user.id} />
+        </LazyHydrate>
+      </Widget>
 
       <ErrorBoundary fallback={<WidgetError title="Recent activity" />}>
         <Widget title="Recent activity" className="lg:col-span-3">

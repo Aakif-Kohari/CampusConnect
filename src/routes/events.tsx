@@ -408,25 +408,6 @@ export default function EventsPage() {
       .on("postgres_changes", { event: "*", schema: "public", table: "saved_events" }, () => {
         refetch();
       })
-      .channel("events-update")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "event_rsvps",
-        },
-        () => refetch(),
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "saved_events",
-        },
-        () => refetch(),
-      )
       .subscribe();
     return () => {
       void channel.unsubscribe();
@@ -696,7 +677,12 @@ export default function EventsPage() {
           ))}
         </div>
       )}
-      <PullToRefresh isRefreshing={isFetching} onRefresh={() => refetch()}>
+      <PullToRefresh
+        isRefreshing={isFetching}
+        onRefresh={async () => {
+          await refetch();
+        }}
+      >
         <SidebarProvider>
           <div className="flex flex-col md:flex-row w-full bg-cream">
             <ErrorBoundary
