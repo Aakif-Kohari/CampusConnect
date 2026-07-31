@@ -23,14 +23,9 @@ serve(async (req: Request) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  const ip =
-    req.headers.get("x-forwarded-for")
-      ?.split(",")[0]
-      .trim() ??
-    "unknown";
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
 
-  const result =
-    await loginLimiter.limit(ip);
+  const result = await loginLimiter.limit(ip);
 
   if (!result.success) {
     return new Response(
@@ -42,14 +37,11 @@ serve(async (req: Request) => {
         headers: {
           ...corsHeaders,
           "Content-Type": "application/json",
-          "Retry-After": String(
-            Math.ceil((result.reset - Date.now()) / 1000)
-          ),
+          "Retry-After": String(Math.ceil((result.reset - Date.now()) / 1000)),
         },
-      }
+      },
     );
   }
-
 
   try {
     const supabaseAdmin = createClient(

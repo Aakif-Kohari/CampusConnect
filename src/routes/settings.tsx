@@ -3,11 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { SiteShell } from "@/components/site/SiteShell";
 import { useEffect, useRef, useState, useId, type ChangeEvent, type KeyboardEvent } from "react";
-import { useTheme } from "@/components/theme-provider";
 import { Camera, Loader2, X, Plus, UploadCloud } from "lucide-react";
 import { toast } from "sonner";
 import { announce } from "@/store/ariaAnnouncer";
-import { createClient } from "@/lib/supabase/client";
+import { createClient, getSupabaseUrl } from "@/lib/supabase/client";
 import { withAuth, WithAuthProps } from "@/hoc/withAuth";
 import { PasswordInput } from "@/components/ui/password-input";
 import {
@@ -27,6 +26,10 @@ import type { User } from "@supabase/supabase-js";
 import { useQuery } from "@/hooks/useReactQueryReplacement";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useTheme } from "@/components/theme-provider";
+import { SecuritySection } from "@/components/Settings/SecuritySection";
+import { uploadFileWithProgress } from "@/lib/supabase/uploadFileWithProgress";
+import { Progress } from "@/components/ui/progress";
 import {
   profileSchema,
   AVATAR_THEMES,
@@ -915,33 +918,109 @@ function AvatarUpload({ name, avatarTheme }: { name: string; avatarTheme?: Avata
   const [uploadProgress, setUploadProgress] = useState(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  const handleDragEnter = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); };
-  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); };
-  const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(false); };
-  const handleDrop = async (e: React.DragEvent) => {
+  const [uploading, setUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
+    e.stopPropagation();
+    if (!uploading) setIsDragging(true);
+  };
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!uploading) setIsDragging(true);
+  };
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
     setIsDragging(false);
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const file = e.dataTransfer.files[0];
-      setSelectedFile(file);
-      setUploading(true);
-      // mock upload logic or actual supabase upload here
-      setTimeout(async () => {
-         setUploading(false);
-      }, 2000);
-    }
   };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0];
-      setSelectedFile(file);
-      setUploading(true);
-      setTimeout(async () => {
-         setUploading(false);
-      }, 2000);
+    const file = e.target.files?.[0];
+    if (file) {
+      await handleUpload(file);
     }
   };
-  function formatFileSize(bytes: number) { return bytes + " bytes"; }
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    if (uploading) return;
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      await handleUpload(file);
+    }
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  };
+
+  const handleUpload = async (file: File) => {
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image must be under 2 MB.");
+      return;
+    }
+    const allowed = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowed.includes(file.type)) {
+      toast.error("Only JPG, PNG and WEBP images are allowed.");
+      return;
+    }
+
+    setSelectedFile(file);
+    setUploading(true);
+    setUploadProgress(0);
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) throw new Error("No session");
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("No user");
+
+      const extension = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
+      const filePath = `${user.id}/${crypto.randomUUID()}.${extension}`;
+
+      const supabaseUrl = getSupabaseUrl();
+      await uploadFileWithProgress(
+        supabaseUrl,
+        session.access_token,
+        "avatars",
+        filePath,
+        file,
+        setUploadProgress,
+      );
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("avatars").getPublicUrl(filePath);
+
+      await handleUploaded(publicUrl);
+      toast.success("Profile picture updated.");
+    } catch (err) {
+      console.error(err);
+      toast.error((err as Error).message || "Failed to upload image.");
+    } finally {
+      setUploading(false);
+      setUploadProgress(null);
+      setSelectedFile(null);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  };
+
   useEffect(() => {
     let isMounted = true;
 
@@ -1119,6 +1198,7 @@ function AvatarUpload({ name, avatarTheme }: { name: string; avatarTheme?: Avata
     </div>
   );
 }
+
 function Toggle({ label, defaultChecked }: { label: string; defaultChecked?: boolean }) {
   const id = useId();
   return (

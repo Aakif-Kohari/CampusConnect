@@ -10,6 +10,7 @@ import { FloatingChat } from "@/components/FloatingChat";
 import { createClient } from "@/lib/supabase/client";
 import TopProgressBar from "@/components/TopProgressBar";
 import ShortcutsModal from "@/components/ShortcutsModal";
+import { WebRTCProvider } from "@/components/VideoCall/WebRTCProvider";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import { showAnnouncementToast } from "@/lib/announcements/sse";
 

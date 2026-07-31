@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { useState } from "react";
 import { CalendarDays, MapPin } from "lucide-react";
+import { Calendar, dateFnsLocalizer, View } from "react-big-calendar";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -154,12 +155,12 @@ export default function EventsCalendar({ events }: EventsCalendarProps) {
           style={{ height: "calc(100% - 48px)" }}
           views={["month", "week", "day"]}
           view={view}
-          onView={(newView) => setView(newView)}
-          eventPropGetter={(calendarEvent) => ({
-            className: getCategoryClass(getCategory((calendarEvent as CalendarEvent).resource)),
+          onView={(newView: View) => setView(newView)}
+          eventPropGetter={(calendarEvent: CalendarEvent) => ({
+            className: getCategoryClass(getCategory(calendarEvent.resource)),
           })}
-          onSelectEvent={(calendarEvent) => {
-            setSelectedEvent((calendarEvent as CalendarEvent).resource);
+          onSelectEvent={(calendarEvent: CalendarEvent) => {
+            setSelectedEvent(calendarEvent.resource);
           }}
         />
       </div>

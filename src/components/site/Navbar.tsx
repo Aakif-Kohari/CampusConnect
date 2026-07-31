@@ -9,6 +9,31 @@ import { UserAvatarWidget } from "./UserAvatarWidget";
 
 import { Menu, X, WifiOff } from "lucide-react";
 import { useAuthHydration } from "@/hooks/useAuthHydration";
+import { ProfileHeaderSkeleton } from "@/components/ProfileHeaderSkeleton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+const links = [
+  { to: "/events", label: "Events" },
+  { to: "/clubs", label: "Clubs" },
+  { to: "/feed", label: "Feed" },
+  { to: "/lost-found", label: "Lost & Found" },
+  { to: "/challenge", label: "Challenge" },
+  { to: "/certificates", label: "Certificates" },
+  { to: "/dashboard", label: "Dashboard" },
+  { to: "/messages", label: "Messages" },
+] as const;
+const landingLinks = [
+  { href: "#features", label: "Features" },
+  { href: "#faq", label: "FAQ" },
+  { href: "#contact", label: "Contact" },
+] as const;
 
 export function Navbar() {
   const { user } = useAuthHydration();
@@ -189,11 +214,64 @@ export function Navbar() {
               <WifiOff className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Offline Mode</span>
             </div>
-          )}
-          <div className="flex items-center gap-1 sm:gap-2">
+
             <ThemeToggle />
+
             {user && <NavbarNotificationDropdown />}
-            <UserAvatarWidget />
+            {isInitializing ? (
+              <ProfileHeaderSkeleton />
+            ) : user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="User menu"
+                    className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-black bg-lime font-mono text-xs font-bold uppercase focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 dark:focus-visible:ring-cream"
+                  >
+                    {user.email?.[0]?.toUpperCase() ?? "U"}
+                  </button>
+                </DropdownMenuTrigger>
+
+                <DropdownMenuContent align="end" className="w-56">
+                  {/* Email */}
+                  <DropdownMenuLabel className="break-all text-xs">{user.email}</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+
+                  {/* Dashboard */}
+                  <DropdownMenuItem asChild>
+                    <Link to="/dashboard">Dashboard</Link>
+                  </DropdownMenuItem>
+
+                  {/* Messages */}
+                  <DropdownMenuItem asChild>
+                    <Link to="/messages">Messages</Link>
+                  </DropdownMenuItem>
+
+                  {/* Settings */}
+                  <DropdownMenuItem asChild>
+                    <Link to="/settings">Settings</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+
+                  {/* Sign Out */}
+                  <DropdownMenuItem
+                    onClick={handleSignOut}
+                    className="cursor-pointer text-red-600 focus:text-red-600"
+                  >
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Link
+                to="/auth"
+                id="nav-signin-button"
+                className="neu-border neu-press bg-black px-3 py-1.5 font-mono text-xs font-bold uppercase text-cream hover:bg-cream hover:text-black dark:bg-cream dark:text-black dark:hover:bg-black dark:hover:text-cream"
+                style={{ letterSpacing: "0.08em" }}
+              >
+                Sign in
+              </Link>
+            )}
           </div>
 
           {/* Mobile menu toggle button */}

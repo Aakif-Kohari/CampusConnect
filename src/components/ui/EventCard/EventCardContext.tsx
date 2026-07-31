@@ -107,7 +107,15 @@ export function EventCardProvider({
     [user, savedEventsList],
   );
 
-  const cardBg = COLORS[index % COLORS.length];
+  const googleCalendarUrl =
+    getGoogleCalendarUrl({
+      title: event.title,
+      description: event.description,
+      event_date: event.event_date,
+      start_date: event.start_date,
+      end_date: event.end_date,
+      location: event.location,
+    }) || "";
 
   const googleCalendarUrl = useMemo(
     () =>

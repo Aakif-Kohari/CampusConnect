@@ -13,10 +13,6 @@ import {
   XCircle,
   CheckCircle,
   Download,
-  BarChart2,
-  DollarSign,
-  Briefcase,
-  FolderOpen,
 } from "lucide-react";
 import { PromoVideoUploader } from "@/components/PromoVideoUploader";
 import { FolderTree } from "@/components/club-documents/FolderTree";
@@ -40,6 +36,18 @@ import {
 
 // ⚠️ Adjust if your Supabase Storage bucket for club banners has a different name
 const BUCKET_NAME = "club-banners";
+
+interface ServerClub {
+  name: string;
+  description: string | null;
+  banner_url: string | null;
+  logo_url: string | null;
+  promo_video_url: string | null;
+  visibility: string | null;
+  github_repo_url: string | null;
+  social_links: Record<string, string> | null;
+  version: number;
+}
 
 export default function ClubManageRoute() {
   const { slug = "" } = useParams();
@@ -78,7 +86,8 @@ export default function ClubManageRoute() {
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [promoVideoUrl, setPromoVideoUrl] = useState("");
   const [isConflictDialogOpen, setIsConflictDialogOpen] = useState(false);
-  const [serverClub, setServerClub] = useState<any>(null);
+  const [serverClub, setServerClub] = useState<ServerClub | null>(null);
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
   }, [supabase]);
@@ -276,7 +285,7 @@ export default function ClubManageRoute() {
           .select(
             "name, description, banner_url, logo_url, promo_video_url, visibility, github_repo_url, social_links, version",
           )
-          .eq("id", club.id)
+          .eq("id", club?.id)
           .single();
         if (latest) {
           setServerClub(latest);
@@ -428,7 +437,7 @@ export default function ClubManageRoute() {
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
-                    updateClubMutation.mutate(undefined);
+                    updateClubMutation.mutate(false);
                   }}
                   className="space-y-4"
                 >

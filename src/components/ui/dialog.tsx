@@ -11,10 +11,13 @@ import { cn } from "@/lib/utils";
 // DialogContent can drive AnimatePresence without prop-drilling.
 const DialogOpenContext = React.createContext(false);
 
-const Dialog = React.forwardRef<
-  React.ElementRef<typeof DialogPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Root>
->(({ open, defaultOpen, onOpenChange, children, ...props }, _ref) => {
+const Dialog = ({
+  open,
+  defaultOpen,
+  onOpenChange,
+  children,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof DialogPrimitive.Root>) => {
   const [isOpen, setIsOpen] = React.useState(open ?? defaultOpen ?? false);
 
   // Keep internal state in sync with controlled `open` prop
@@ -42,7 +45,7 @@ const Dialog = React.forwardRef<
       </DialogPrimitive.Root>
     </DialogOpenContext.Provider>
   );
-});
+};
 Dialog.displayName = "Dialog";
 
 const DialogTrigger = DialogPrimitive.Trigger;

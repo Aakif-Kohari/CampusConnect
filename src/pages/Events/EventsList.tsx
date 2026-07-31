@@ -411,25 +411,6 @@ export default function EventsList() {
       .on("postgres_changes", { event: "*", schema: "public", table: "saved_events" }, () => {
         refetch();
       })
-      .channel("events-update")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "event_rsvps",
-        },
-        () => refetch(),
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "saved_events",
-        },
-        () => refetch(),
-      )
       .subscribe();
     return () => {
       void channel.unsubscribe();

@@ -4,8 +4,6 @@ import {
   encodeCursor,
   decodeCursor,
   publishNotification,
-  publishMentionNotification,
-  publishEventUpdateNotification,
   LRUCache,
   clubsCache,
   CLUBS_CACHE_KEY,
@@ -45,6 +43,10 @@ vi.mock("../../src/lib/supabase/client", () => {
 
   return {
     createClient: vi.fn().mockImplementation(() => ({
+      channel: vi.fn().mockImplementation(() => ({
+        on: vi.fn().mockReturnThis(),
+        subscribe: vi.fn().mockReturnThis(),
+      })),
       from: vi.fn().mockImplementation((table: string) => {
         if (table === "events") {
           return {
@@ -63,19 +65,16 @@ vi.mock("../../src/lib/supabase/client", () => {
           };
         }
         if (table === "clubs") {
+          const result = {
+            data: [{ id: "club-1", name: "Robotics Club" }],
+            error: null,
+          };
+          const selectObj = {
+            in: vi.fn().mockResolvedValue(result),
+            then: (resolve: (value: typeof result) => void) => resolve(result),
+          };
           return {
-            select: vi.fn().mockImplementation(() => {
-              const res = Promise.resolve({
-                data: [{ id: "club-1", name: "Robotics Club" }],
-                error: null,
-              });
-              // @ts-expect-error attach .in helper for DataLoader batch requests
-              res.in = vi.fn().mockResolvedValue({
-                data: [{ id: "club-1", name: "Robotics Club" }],
-                error: null,
-              });
-              return res;
-            }),
+            select: vi.fn().mockReturnValue(selectObj),
           };
         }
         if (table === "profiles") {
