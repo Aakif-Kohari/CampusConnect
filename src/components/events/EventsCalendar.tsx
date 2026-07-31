@@ -16,6 +16,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+import { parseUtcToLocal, formatEventInTimeZone } from "@/lib/timezone";
+
 const locales = {
   "en-US": enUS,
 };
@@ -48,6 +50,7 @@ interface EventItem {
 
 interface EventsCalendarProps {
   events: EventItem[];
+  timeZone?: string;
 }
 
 interface CalendarEvent {
@@ -84,16 +87,18 @@ function getCategoryClass(category: string) {
   }
 }
 
-export default function EventsCalendar({ events }: EventsCalendarProps) {
+export default function EventsCalendar({ events, timeZone }: EventsCalendarProps) {
   const [view, setView] = useState<View>("month");
   const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null);
+
   const formattedEvents: CalendarEvent[] = events
     .filter((event) => event.start_date || event.event_date)
     .map((event) => {
-      const start = new Date(event.start_date ?? event.event_date!);
+      const rawStart = event.start_date ?? event.event_date!;
+      const start = parseUtcToLocal(rawStart, timeZone) || new Date(rawStart);
 
       const end = event.end_date
-        ? new Date(event.end_date)
+        ? parseUtcToLocal(event.end_date, timeZone) || new Date(event.end_date)
         : new Date(start.getTime() + 60 * 60 * 1000);
 
       return {
@@ -107,10 +112,12 @@ export default function EventsCalendar({ events }: EventsCalendarProps) {
     });
 
   const selectedStart = selectedEvent
-    ? new Date(selectedEvent.start_date ?? selectedEvent.event_date ?? "")
+    ? parseUtcToLocal(selectedEvent.start_date ?? selectedEvent.event_date, timeZone)
     : null;
 
-  const selectedEnd = selectedEvent?.end_date != null ? new Date(selectedEvent.end_date) : null;
+  const selectedEnd = selectedEvent?.end_date
+    ? parseUtcToLocal(selectedEvent.end_date, timeZone)
+    : null;
 
   return (
     <>
