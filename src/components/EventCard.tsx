@@ -41,6 +41,8 @@ interface Event {
   clubs: { name: string } | { name: string }[] | null;
   event_rsvps: { id: string; user_id: string }[] | null;
   saved_events: { id: string; user_id: string }[] | null;
+  rsvp_count?: number;
+  saved_count?: number;
 }
 
 interface EventCardProps {
@@ -374,7 +376,7 @@ export function EventCard({
         <div className="mt-4">
           <EventCapacityGauge
             eventId={event.id}
-            initialCapacity={rsvps.length}
+            initialCapacity={event.rsvp_count ?? rsvps.length}
             maxAttendees={event.max_attendees || null}
             showDetails={true}
           />
@@ -390,7 +392,7 @@ export function EventCard({
           </div>
           <div>
             <dt className="font-mono text-xs font-bold uppercase text-black">Attendees</dt>
-            <dd className="mt-1 text-sm text-red-900">{rsvps.length} RSVP'd</dd>
+            <dd className="mt-1 text-sm text-red-900">{event.rsvp_count ?? rsvps.length} RSVP'd</dd>
           </div>
         </dl>
         <div className="mt-5 flex flex-wrap items-center gap-3">

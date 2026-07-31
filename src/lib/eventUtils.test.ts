@@ -15,6 +15,7 @@ import {
   addFaq,
   removeFaq,
   updateFaq,
+  EventFormValues,
 } from "./eventUtils";
 
 // ---------------------------------------------------------------------------
@@ -24,6 +25,7 @@ describe("eventFormSchema", () => {
   const valid = {
     title: "Hackathon 2026",
     description: "A 24-hour coding event.",
+    category: "Technology",
     startDate: "2026-07-11T09:00",
     endDate: "2026-07-12T09:00",
   };
@@ -376,7 +378,13 @@ describe("matchesDateFilter", () => {
 describe("hasDraftContent", () => {
   it("returns false for empty values", () => {
     expect(
-      hasDraftContent({ title: "", description: "", location: "", startDate: "", endDate: "" }),
+      hasDraftContent({
+        title: "",
+        description: "",
+        location: "",
+        startDate: "",
+        endDate: "",
+      } as EventFormValues),
     ).toBe(false);
   });
 
@@ -388,7 +396,7 @@ describe("hasDraftContent", () => {
         location: "",
         startDate: "",
         endDate: "",
-      }),
+      } as EventFormValues),
     ).toBe(true);
   });
 
@@ -400,7 +408,7 @@ describe("hasDraftContent", () => {
         location: "",
         startDate: "2026-07-11T10:00",
         endDate: "",
-      }),
+      } as EventFormValues),
     ).toBe(true);
   });
 });
@@ -417,7 +425,7 @@ describe("eventFormToDbPayload", () => {
         location: "Room 1",
         startDate: "2026-07-11T10:00",
         endDate: "2026-07-11T12:00",
-      },
+      } as EventFormValues,
       "u1",
       "c1",
     );
@@ -435,7 +443,7 @@ describe("eventFormToDbPayload", () => {
         location: "",
         startDate: "2026-07-11T10:00",
         endDate: "2026-07-11T12:00",
-      },
+      } as EventFormValues,
       "u1",
       null,
     );

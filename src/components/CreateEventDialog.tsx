@@ -74,11 +74,12 @@ const STEPS = [
   { label: "Details", fields: ["title", "description"] as const },
   { label: "Logistics", fields: ["location", "startDate", "endDate"] as const },
   { label: "Media", fields: [] as const },
+  { label: "Review", fields: [] as const },
 ] as const;
 
 const STEP_FIELDS = STEPS.map((s) => s.fields as unknown as (keyof EventFormValues)[]);
 
-type Step = 0 | 1 | 2;
+type Step = 0 | 1 | 2 | 3;
 
 // Define an extended interface locally to handle the extra location field safely
 interface LocalEventFormValues extends EventFormValues {
@@ -86,7 +87,7 @@ interface LocalEventFormValues extends EventFormValues {
   requiresApproval?: boolean;
 }
 
-const defaultValues: EventFormValues = {
+const defaultValues: LocalEventFormValues = {
   title: "",
   description: "",
   category: "",
@@ -94,6 +95,9 @@ const defaultValues: EventFormValues = {
   startDate: "",
   endDate: "",
   requiresApproval: false,
+  isPrivate: false,
+  tags: [],
+  faqs: [],
 };
 
 const DRAFT_KEY = "event_draft";
@@ -142,26 +146,14 @@ export function CreateEventDialog({
       });
   }, [user]);
 
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from("club_members")
-      .select("club_id")
-      .eq("user_id", user.id)
-      .eq("role", "admin")
-      .eq("status", "approved")
-      .limit(1)
-      .single()
-      .then(({ data }) => {
-        if (data) setClubId(data.club_id);
-      });
-  }, [user]);
-
-  const form = useForm<EventFormValues>({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const form = useForm<any>({
     resolver: zodResolver(eventFormSchema),
     defaultValues,
     mode: "onBlur",
   });
+
+  const control = form.control as never;
 
   const isUndoingRedoingRef = useRef(false);
   const {
@@ -458,7 +450,7 @@ export function CreateEventDialog({
               <>
                 <FlyerUploader onDataExtracted={handleDataExtracted} />
                 <FormField
-                  control={form.control}
+                  control={control}
                   name="title"
                   render={({ field }) => (
                     <FormItem>
@@ -475,7 +467,7 @@ export function CreateEventDialog({
                   )}
                 />
                 <FormField
-                  control={form.control}
+                  control={control}
                   name="description"
                   render={({ field }) => (
                     <FormItem>
@@ -488,7 +480,7 @@ export function CreateEventDialog({
                   )}
                 />
                 <FormField
-                  control={form.control}
+                  control={control}
                   name="category"
                   render={({ field }) => (
                     <FormItem>
@@ -512,7 +504,7 @@ export function CreateEventDialog({
                   )}
                 />
                 <FormField
-                  control={form.control}
+                  control={control}
                   name="tags"
                   render={({ field }) => (
                     <FormItem>
@@ -531,7 +523,7 @@ export function CreateEventDialog({
                   )}
                 />
                 <FormField
-                  control={form.control}
+                  control={control}
                   name="isPrivate"
                   render={({ field }) => (
                     <FormItem className="neu-border flex items-center justify-between bg-white p-3 shadow-none">
@@ -561,7 +553,7 @@ export function CreateEventDialog({
             {step === 1 && (
               <>
                 <FormField
-                  control={form.control}
+                  control={control}
                   name="location"
                   render={({ field }) => (
                     <FormItem>
@@ -641,12 +633,12 @@ export function CreateEventDialog({
                       />
                     </PopoverContent>
                   </Popover>
-                  {form.formState.errors.startDate && (
+                  {typeof form.formState.errors.startDate?.message === "string" && (
                     <p className="text-sm font-medium text-destructive">
                       {form.formState.errors.startDate.message}
                     </p>
                   )}
-                  {form.formState.errors.endDate && (
+                  {typeof form.formState.errors.endDate?.message === "string" && (
                     <p className="text-sm font-medium text-destructive">
                       {form.formState.errors.endDate.message}
                     </p>
@@ -696,7 +688,7 @@ export function CreateEventDialog({
             {step === 2 && (
               <div className="space-y-6">
                 <FormField
-                  control={form.control}
+                  control={control}
                   name="banner"
                   render={({ field }) => (
                     <FormItem>
@@ -722,7 +714,7 @@ export function CreateEventDialog({
                 />
 
                 <FormField
-                  control={form.control}
+                  control={control}
                   name="capacity"
                   render={({ field }) => (
                     <FormItem>
@@ -741,7 +733,7 @@ export function CreateEventDialog({
                 <p className="font-mono text-xs font-bold text-black/50 uppercase">
                   Add frequently asked questions (optional)
                 </p>
-                {form.watch("faqs")?.map((_faq, index) => (
+                {form.watch("faqs")?.map((_faq: unknown, index: number) => (
                   <div key={index} className="neu-border space-y-2 bg-white p-3">
                     <div className="flex items-center justify-between">
                       <span className="font-mono text-xs font-bold text-black/40">
@@ -838,7 +830,7 @@ export function CreateEventDialog({
                 </div>
 
                 <FormField
-                  control={form.control}
+                  control={control}
                   name="requiresApproval"
                   render={({ field }) => (
                     <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border-2 border-black bg-white p-4 shadow-sm">

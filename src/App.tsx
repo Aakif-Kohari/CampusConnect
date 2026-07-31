@@ -19,8 +19,19 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { CommandPalette } from "./components/ui/command-palette";
 import MaintenancePage from "./components/MaintenancePage";
+import { NotFoundPage } from "./components/NotFoundPage";
 import { createClient } from "./lib/supabase/client";
-import RouteSkeleton from "@/components/RouteSkeleton";
+import { ThemeToggle } from "./components/ThemeToggle";
+import { ThemeProvider } from "./components/theme-provider";
+import { TooltipProvider } from "./components/ui/tooltip";
+
+function RemoteLoadingScreen() {
+  return (
+    <div className="flex h-screen w-full items-center justify-center bg-slate-950 text-white">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+    </div>
+  );
+}
 
 const HEALTH_CHECK_URL =
   (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_HEALTH_URL) ||
@@ -90,9 +101,11 @@ const AnalyticsAdmin = lazy(() => import("./routes/admin.analytics"));
 const AdminReportsPage = lazy(() => import("./routes/admin.reports"));
 const AdminUsersPage = lazy(() => import("./routes/admin.users"));
 const AdminRestorePage = lazy(() => import("./routes/admin.restore"));
+const AnalyticsAdmin = lazy(() => import("./routes/admin.analytics"));
 const NotFound = lazy(() => import("./routes/NotFound"));
 const ChallengeArena = lazy(() => import("./routes/challenge"));
 const EventDashboard = lazy(() => import("./routes/events.$eventId.dashboard"));
+const LostFound = lazy(() => import("./routes/lost-found"));
 const Leaderboard = lazy(() =>
   import("./components/Leaderboard").then((m) => ({ default: m.Leaderboard })),
 );
@@ -178,7 +191,7 @@ const router = createBrowserRouter(
         <Route path="leaderboard" element={<Leaderboard />} />
 
         <Route path="/feed" element={<Feed />} />
-        <Route path="/directory" element={<Directory />} />
+        <Route path="/lost-found" element={<LostFound />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/settings" element={<Settings />} />
@@ -189,10 +202,10 @@ const router = createBrowserRouter(
         <Route path="/admin/reports" element={<AdminReportsPage />} />
         <Route path="/admin/users" element={<AdminUsersPage />} />
         <Route path="/admin/restore" element={<AdminRestorePage />} />
+        <Route path="*" element={<NotFoundPage />} />
         {/* Catch-all route for 404 errors */}
         <Route path="*" element={<NotFound />} />
       </Route>
-      ,
     </Route>,
   ),
 );
@@ -255,7 +268,6 @@ export default function App() {
 
   return (
     <ThemeProvider>
-      {" "}
       <TooltipProvider>
         <QueryClientProvider client={queryClient}>
           <ErrorBoundary>

@@ -172,28 +172,34 @@ CREATE TABLE posts (
   deleted_at TIMESTAMPTZ
 );
 
-CREATE TABLE post_likes (
-  post_id UUID REFERENCES posts(id) ON DELETE CASCADE NOT NULL,
+CREATE TYPE like_entity_type AS ENUM ('event', 'post', 'comment');
+
+CREATE TABLE likes (
+  id UUID DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  entity_type like_entity_type NOT NULL,
+  entity_id UUID NOT NULL,
+  club_id UUID,
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-  UNIQUE(post_id, user_id)
+  PRIMARY KEY (id, club_id),
+  CONSTRAINT likes_user_entity_unique UNIQUE (user_id, entity_type, entity_id, club_id)
 );
 
-CREATE INDEX idx_post_likes_post_id ON post_likes(post_id);
-CREATE INDEX idx_post_likes_user_id ON post_likes(user_id);
+CREATE INDEX idx_likes_user_id ON likes(user_id);
+CREATE INDEX idx_likes_entity ON likes(entity_type, entity_id);
 
-ALTER TABLE post_likes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE likes ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Anyone can read post likes."
-  ON post_likes FOR SELECT
+CREATE POLICY "Anyone can read likes."
+  ON likes FOR SELECT
   USING (true);
 
 CREATE POLICY "Users can insert their own likes."
-  ON post_likes FOR INSERT
+  ON likes FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
 CREATE POLICY "Users can delete their own likes."
-  ON post_likes FOR DELETE
+  ON likes FOR DELETE
   USING (auth.uid() = user_id);
 
 CREATE TABLE comments (
@@ -224,18 +230,12 @@ CREATE TABLE certificates (
 
 CREATE TABLE saved_events (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-<<<<<<< HEAD
   event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-=======
-  event_id UUID REFERENCES events(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
->>>>>>> c1cfe2e49db97643322ead8fecc27703942c5c15
   saved_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(event_id, user_id)
 );
 
-<<<<<<< HEAD
 CREATE TABLE polls (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
@@ -377,8 +377,6 @@ AS $$
 $$;
 
 GRANT EXECUTE ON FUNCTION public.get_upcoming_events_feed(UUID) TO authenticated;
-=======
->>>>>>> c1cfe2e49db97643322ead8fecc27703942c5c15
 -- 3. Row Level Security (RLS)
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE clubs ENABLE ROW LEVEL SECURITY;
@@ -391,14 +389,11 @@ ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE certificates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE saved_events ENABLE ROW LEVEL SECURITY;
-<<<<<<< HEAD
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE polls ENABLE ROW LEVEL SECURITY;
 ALTER TABLE poll_options ENABLE ROW LEVEL SECURITY;
 ALTER TABLE poll_votes ENABLE ROW LEVEL SECURITY;
-=======
->>>>>>> c1cfe2e49db97643322ead8fecc27703942c5c15
 
 -- event_co_hosts policies
 CREATE POLICY "Co-hosts are viewable by everyone." ON event_co_hosts FOR SELECT USING (true);
@@ -809,7 +804,7 @@ BEFORE INSERT ON public.comments
 FOR EACH ROW
 EXECUTE FUNCTION public.check_comment_rate_limit();
 
--- Post like count triggers on post_reactions and post_likes
+-- Post like count triggers on post_reactions and likes
 CREATE OR REPLACE FUNCTION public.update_post_like_count()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -819,12 +814,16 @@ AS $$
 DECLARE
   v_post_id UUID;
 BEGIN
-  v_post_id := COALESCE(NEW.post_id, OLD.post_id);
+  IF TG_TABLE_NAME = 'likes' THEN
+    v_post_id := COALESCE(NEW.entity_id, OLD.entity_id);
+  ELSE
+    v_post_id := COALESCE(NEW.post_id, OLD.post_id);
+  END IF;
 
   UPDATE posts
   SET like_count = (
     (SELECT COUNT(*) FROM post_reactions WHERE post_id = v_post_id) +
-    (SELECT COUNT(*) FROM post_likes WHERE post_id = v_post_id)
+    (SELECT COUNT(*) FROM likes WHERE entity_type = 'post' AND entity_id = v_post_id)
   )
   WHERE id = v_post_id;
 
@@ -842,14 +841,16 @@ AFTER DELETE ON post_reactions
 FOR EACH ROW
 EXECUTE FUNCTION public.update_post_like_count();
 
-CREATE TRIGGER trg_post_likes_insert
-AFTER INSERT ON post_likes
+CREATE TRIGGER trg_likes_insert
+AFTER INSERT ON likes
 FOR EACH ROW
+WHEN (NEW.entity_type = 'post')
 EXECUTE FUNCTION public.update_post_like_count();
 
-CREATE TRIGGER trg_post_likes_delete
-AFTER DELETE ON post_likes
+CREATE TRIGGER trg_likes_delete
+AFTER DELETE ON likes
 FOR EACH ROW
+WHEN (OLD.entity_type = 'post')
 EXECUTE FUNCTION public.update_post_like_count();
 
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()
@@ -1092,7 +1093,6 @@ EXECUTE FUNCTION generate_event_short_id();
 ALTER PUBLICATION supabase_realtime ADD TABLE posts;
 ALTER PUBLICATION supabase_realtime ADD TABLE comments;
 ALTER PUBLICATION supabase_realtime ADD TABLE event_rsvps;
-<<<<<<< HEAD
 ALTER PUBLICATION supabase_realtime ADD TABLE saved_events;
 ALTER PUBLICATION supabase_realtime ADD TABLE poll_votes;
 
@@ -1328,11 +1328,36 @@ GRANT ALL ON TABLE public.club_audit_logs TO postgres;
 GRANT SELECT ON TABLE public.club_audit_logs TO authenticated;
 
 
-=======
-
 -- Backfill any missing profiles for existing authenticated users
 INSERT INTO public.profiles (id, full_name, avatar_url)
 SELECT id, raw_user_meta_data->>'full_name', raw_user_meta_data->>'avatar_url'
 FROM auth.users
 ON CONFLICT (id) DO NOTHING;
->>>>>>> c1cfe2e49db97643322ead8fecc27703942c5c15
+
+
+-- Enable pg_trgm extension
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+-- Create GIN indexes for fast trigram prefix matching and typo tolerance
+CREATE INDEX IF NOT EXISTS clubs_name_trgm_idx ON public.clubs USING gin (name gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS clubs_description_trgm_idx ON public.clubs USING gin (description gin_trgm_ops);
+
+-- Create the RPC search function
+CREATE OR REPLACE FUNCTION public.search_clubs(search_term TEXT)
+RETURNS SETOF public.clubs
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  -- Set pg_trgm.similarity_threshold to 0.3 as requested
+  PERFORM set_config('pg_trgm.similarity_threshold', '0.3', true);
+  
+  RETURN QUERY
+    SELECT *
+    FROM public.clubs
+    WHERE name % search_term OR description % search_term
+    ORDER BY similarity(name, search_term) DESC;
+END;
+$$;
+
