@@ -125,10 +125,11 @@ jobs:
                 retries++;
               }
               
-              // Filter out issue-specific labels like 'good-ui' and 'ECSoC26-L1'
+              // Filter out issue-specific labels like 'good-ui', 'ECSoC26-L1', and 'invalid'
               labels = labels.filter(label => 
                 !label.toLowerCase().startsWith('good-') && 
                 !label.match(/-L\d+$/i) &&
+                !label.toLowerCase().includes('invalid') &&
                 label.toLowerCase() !== 'blue'
               );
 
