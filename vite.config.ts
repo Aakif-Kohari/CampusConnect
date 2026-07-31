@@ -20,11 +20,11 @@ function lucideImportOptimizer() {
       // Matches imports like: import { ... } from "lucide-react";
       // Excludes "import type { ... }" by checking negative lookahead (?!type\s+)
       const regex = /import\s+(?!type\s+)\{([\s\S]*?)\}\s+from\s+['"]lucide-react['"];?/g;
-      
+
       let hasChanged = false;
       const newCode = code.replace(regex, (match, specifiers) => {
         if (!specifiers) return match;
-        
+
         const icons = specifiers
           .split(",")
           .map((s: string) => s.trim())
@@ -33,7 +33,7 @@ function lucideImportOptimizer() {
         const newImports = icons.map((icon: string) => {
           let iconName = icon;
           let aliasName = icon;
-          
+
           if (icon.includes(" as ")) {
             const parts = icon.split(" as ");
             iconName = parts[0].trim();
@@ -46,9 +46,6 @@ function lucideImportOptimizer() {
           }
 
           // Map camelCase/PascalCase to kebab-case
-          // ArrowRight -> arrow-right
-          // CheckCircle2 -> check-circle-2
-          // Axis3D -> axis-3-d
           const kebabName = iconName
             .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
             .replace(/([a-zA-Z])([0-9])/g, "$1-$2")
@@ -74,8 +71,8 @@ function lucideImportOptimizer() {
 
 /**
  * Vite configuration for CampusConnect
- * Handles custom asset inclusion for dotLottie compressed animations
- * and optimizes chunk splitting for large SVG/JSON assets.
+ * Handles custom asset inclusion for dotLottie compressed animations,
+ * optimizes chunk splitting, and configures Workbox for offline PWA capabilities.
  */
 export default defineConfig({
   server: {
@@ -98,7 +95,73 @@ export default defineConfig({
     lucideImportOptimizer(),
     viteReact(),
     tailwindcss(),
-    VitePWA({ registerType: "autoUpdate" }),
+    VitePWA({
+      registerType: "autoUpdate",
+      includeAssets: ["favicon.ico", "apple-touch-icon.png", "masked-icon.svg"],
+      manifest: {
+        name: "CampusConnect",
+        short_name: "CampusConnect",
+        description: "CampusConnect PWA App",
+        theme_color: "#ffffff",
+        icons: [
+          {
+            src: "pwa-192x192.png",
+            sizes: "192x192",
+            type: "image/png",
+          },
+          {
+            src: "pwa-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+          },
+        ],
+      },
+      workbox: {
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,json,lottie}"],
+        runtimeCaching: [
+          {
+            urlPattern: ({ request }) =>
+              request.destination === "style" ||
+              request.destination === "script" ||
+              request.destination === "worker",
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "static-resources",
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
+              },
+            },
+          },
+          {
+            urlPattern: ({ url, request }) =>
+              request.method === "GET" && url.pathname.startsWith("/api/"),
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "api-get-cache",
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 24 * 60 * 60, // 24 Hours
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+          {
+            urlPattern: ({ request }) => request.destination === "image",
+            handler: "CacheFirst",
+            options: {
+              cacheName: "images-cache",
+              expiration: {
+                maxEntries: 60,
+                maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
+              },
+            },
+          },
+        ],
+      },
+    }),
     federation({
       name: "host",
       remotes: {},

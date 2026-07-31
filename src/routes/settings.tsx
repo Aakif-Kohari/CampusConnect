@@ -31,6 +31,7 @@ import {
   type ProfileFormValues,
   type AvatarThemeId,
 } from "@/lib/schemas";
+import { BlockedUsersPanel } from "@/components/Settings/BlockedUsersPanel";
 import {
   Form,
   FormField,
@@ -642,10 +643,11 @@ function SettingsPageContent({ user }: WithAuthProps) {
                   <button
                     type="button"
                     onClick={() => setTheme("high-contrast")}
-                    className={`neu-border neu-press px-4 py-2 font-mono text-xs font-bold uppercase ${theme === "high-contrast"
-                      ? "bg-black text-cream dark:bg-cream dark:text-black"
-                      : "bg-white text-black hover:bg-lime dark:bg-brand-gray-base-800 dark:text-cream"
-                      }`}
+                    className={`neu-border neu-press px-4 py-2 font-mono text-xs font-bold uppercase ${
+                      theme === "high-contrast"
+                        ? "bg-black text-cream dark:bg-cream dark:text-black"
+                        : "bg-white text-black hover:bg-lime dark:bg-brand-gray-base-800 dark:text-cream"
+                    }`}
                   >
                     ⬛ High Contrast
                   </button>
@@ -654,7 +656,10 @@ function SettingsPageContent({ user }: WithAuthProps) {
 
               <div className="flex items-center justify-between gap-4 border-t-2 border-black pt-4">
                 <div>
-                  <label htmlFor="ui-sounds" className="eyebrow font-bold text-black dark:text-cream">
+                  <label
+                    htmlFor="ui-sounds"
+                    className="eyebrow font-bold text-black dark:text-cream"
+                  >
                     UI Sounds
                   </label>
                   <p className="font-mono text-xs text-muted-foreground">
@@ -735,6 +740,10 @@ function SettingsPageContent({ user }: WithAuthProps) {
                 Reset
               </button>
             </div>
+          </Panel>
+
+          <Panel title="Blocked Users">
+            <BlockedUsersPanel currentUserId={user.id} />
           </Panel>
 
           <Panel title="Passkeys">
