@@ -163,6 +163,24 @@ export const NavbarNotificationDropdown: React.FC = () => {
     }
   };
 
+  const handleDeleteNotification = async (id: string) => {
+    if (!userId) return;
+    const isMention = mentions.some((m) => m.id === id);
+
+    try {
+      if (isMention) {
+        setMentions((prev) => prev.filter((m) => m.id !== id));
+      } else {
+        await supabase.from("notifications").delete().eq("id", id);
+        setNotifications((prev) => prev.filter((n) => n.id !== id));
+      }
+      toast.success("Notification deleted");
+    } catch (err) {
+      console.error("Failed to delete notification:", err);
+      toast.error("Failed to delete notification");
+    }
+  };
+
   // 4. Mark All as Read (Context-specific: All or Mentions only)
   const handleMarkAllAsRead = async () => {
     if (!userId) return;

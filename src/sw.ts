@@ -91,12 +91,9 @@ self.addEventListener("install", (event) => {
 
 registerRoute(
   ({ request }) => request.mode === "navigate",
-  async ({ event }) => {
+  async ({ event, request }) => {
     try {
-      return await new NetworkOnly().handle({
-        event,
-        request: (event as unknown as FetchEvent).request,
-      } as never);
+      return await new NetworkOnly().handle({ event, request });
     } catch {
       const cache = await caches.open("offline-fallback-cache");
       const cachedResponse = await cache.match(OFFLINE_URL);

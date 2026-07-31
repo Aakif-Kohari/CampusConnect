@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback, useMemo, ReactNode } from "react";
 import { getCountdown, getGoogleCalendarUrl } from "@/lib/utils";
 import { toast } from "sonner";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 
 export interface Event {
   id: string;
@@ -107,7 +108,15 @@ export function EventCardProvider({
     [user, savedEventsList],
   );
 
-  const cardBg = COLORS[index % COLORS.length];
+  const googleCalendarUrl =
+    getGoogleCalendarUrl({
+      title: event.title,
+      description: event.description,
+      event_date: event.event_date,
+      start_date: event.start_date,
+      end_date: event.end_date,
+      location: event.location,
+    }) || "";
 
   const googleCalendarUrl = useMemo(
     () =>
@@ -129,35 +138,24 @@ export function EventCardProvider({
     ],
   );
 
-  const countdown = useMemo(
-    () => (event.event_date ? getCountdown(event.event_date) : "TBA"),
-    [event.event_date],
-  );
-
-  // Local state
-  const [copied, setCopied] = useState(false);
+  const { copyToClipboard, isCopied: copied } = useCopyToClipboard();
   const [ticketOpen, setTicketOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
 
-  // Stable handlers
-  const handleCopyLink = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
+  const handleCopyLink = async () => {
+    if (await copyToClipboard(window.location.href)) {
       toast.success("Link copied!");
-    } catch {
+    } else {
       toast.error("Failed to copy link.");
     }
   }, []);
 
   const handleShare = useCallback(async () => {
     const shareUrl = `${window.location.origin}${window.location.pathname}#event-${event.id}`;
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      setCopied(true);
+    if (await copyToClipboard(shareUrl)) {
       toast.success("Link copied!");
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch {
+    } else {
       toast.error("Failed to copy link.");
     }
   }, [event.id]);
