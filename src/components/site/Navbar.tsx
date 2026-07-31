@@ -7,24 +7,29 @@ import { ThemeToggle } from "../ThemeToggle";
 import { NavbarNotificationDropdown } from "./NavbarNotificationDropdown";
 import { UserAvatarWidget } from "./UserAvatarWidget";
 
-import { Menu, X } from "lucide-react";
+import { Menu, X, WifiOff } from "lucide-react";
 import { useAuthHydration } from "@/hooks/useAuthHydration";
-
-const links = [
-  { to: "/events", label: "Events" },
-  { to: "/clubs", label: "Clubs" },
-  { to: "/feed", label: "Feed" },
-  { to: "/challenge", label: "Challenge" },
-  { to: "/certificates", label: "Certificates" },
-  { to: "/dashboard", label: "Dashboard" },
-  { to: "/messages", label: "Messages" },
-] as const;
 
 export function Navbar() {
   const { user } = useAuthHydration();
   const location = useLocation();
   const { t, i18n } = useTranslation();
   const currentPath = location.pathname;
+
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
 
   const links = [
     {
@@ -176,6 +181,15 @@ export function Navbar() {
 
         {/* Actions */}
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+          {isOffline && (
+            <div
+              data-testid="offline-indicator"
+              className="flex items-center gap-1.5 rounded bg-amber-500 px-2 py-1 font-mono text-xs font-bold text-black"
+            >
+              <WifiOff className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Offline Mode</span>
+            </div>
+          )}
           <div className="flex items-center gap-1 sm:gap-2">
             <ThemeToggle />
             {user && <NavbarNotificationDropdown />}
