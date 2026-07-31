@@ -1,5 +1,4 @@
 import { Link, useParams } from "react-router-dom";
-// @ts-expect-error - react-helmet-async types may not be resolved in all editor settings
 import { Helmet } from "react-helmet-async";
 import { RoleBadge } from "@/components/RoleBadge";
 import { SiteShell } from "@/components/site/SiteShell";
@@ -19,7 +18,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { AudioReactiveBackground } from "@/components/media/AudioReactiveBackground";
 import LazyHydrate from "@/components/LazyHydrate";
-import { NotFoundPage as NotFound } from "@/components/NotFoundPage";
+import { NotFound } from "@/components/NotFound";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -230,7 +229,7 @@ export default function ClubProfile() {
   const {
     data: club,
     isLoading,
-    isError,
+    error,
     refetch,
   } = useQuery({
     ...createClubProfileQueryOptions(supabase, slug ?? ""),
@@ -294,8 +293,16 @@ export default function ClubProfile() {
       .filter((h) => h.id);
   }, [club?.description]);
 
-  if (isLoading) return <ClubProfileSkeleton />;
-  if (isError || !club) return <NotFound />;
+  if (isLoading) {
+    return (
+      <SiteShell>
+        <div className="flex h-[50vh] w-full items-center justify-center p-8">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        </div>
+      </SiteShell>
+    );
+  }
+  if (error || !club) return <NotFound />;
   if (!club)
     return (
       <SiteShell>

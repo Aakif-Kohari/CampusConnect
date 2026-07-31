@@ -1,15 +1,6 @@
-import * as matchers from "@testing-library/jest-dom/matchers";
-import { expect, vi } from "vitest";
-expect.extend(matchers);
-
-vi.mock("react", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("react")>();
-  return {
-    ...actual,
-    useEffect: vi.fn((fn: () => void) => fn()),
-    useRef: vi.fn(() => ({ current: null })),
-  };
-});
+import "@testing-library/jest-dom/vitest";
+import { vi } from "vitest";
+import React from "react";
 
 process.env.VITE_SUPABASE_URL = process.env.VITE_SUPABASE_URL || "https://placeholder.supabase.co";
 process.env.VITE_SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || "placeholder-anon-key";
@@ -40,3 +31,12 @@ if (typeof globalThis.ResizeObserver === "undefined") {
     disconnect() {}
   } as unknown as typeof globalThis.ResizeObserver;
 }
+
+// Mock lucide-react using importOriginal so that ALL icons are available
+// in tests without enumerating them one by one.
+vi.mock("lucide-react", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("lucide-react")>();
+  return {
+    ...actual,
+  };
+});
