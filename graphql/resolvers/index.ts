@@ -30,6 +30,60 @@ export function publishNotification(notification: NotificationRecord): void {
   pubsub.publish("NOTIFICATION_RECEIVED", notification.user_id, notification);
 }
 
+/**
+ * Helper to emit a discussion mention notification to a specific user.
+ * Triggered when a user is @mentioned in a post, comment, or discussion.
+ */
+export function publishMentionNotification(params: {
+  mentionedUserId: string;
+  authorName: string;
+  discussionTitle: string;
+  link?: string;
+}): NotificationRecord {
+  const notification: NotificationRecord = {
+    id: `notif_mention_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    user_id: params.mentionedUserId,
+    type: "mention",
+    title: "Mentioned in Discussion",
+    message: `${params.authorName} mentioned you in "${params.discussionTitle}"`,
+    link: params.link ?? null,
+    is_read: false,
+    created_at: new Date().toISOString(),
+  };
+
+  pubsub.publish("NOTIFICATION_RECEIVED", params.mentionedUserId, notification);
+  return notification;
+}
+
+/**
+ * Helper to emit an event update notification to all RSVP'd attendees of an event.
+ * Triggered when an event's details, date, or location are updated.
+ */
+export function publishEventUpdateNotification(params: {
+  eventId: string;
+  eventTitle: string;
+  updateSummary: string;
+  attendeeUserIds: string[];
+}): NotificationRecord[] {
+  const notifications: NotificationRecord[] = params.attendeeUserIds.map((userId) => {
+    const notification: NotificationRecord = {
+      id: `notif_event_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      user_id: userId,
+      type: "event_update",
+      title: `Event Updated: ${params.eventTitle}`,
+      message: params.updateSummary,
+      link: `/events/${params.eventId}`,
+      is_read: false,
+      created_at: new Date().toISOString(),
+    };
+
+    pubsub.publish("NOTIFICATION_RECEIVED", userId, notification);
+    return notification;
+  });
+
+  return notifications;
+}
+
 // ── In-Memory LRU Cache Class ──
 export class LRUCache<K, V> {
   private max: number;
@@ -83,13 +137,14 @@ export interface ClubRecord {
 export const clubsCache = new LRUCache<string, ClubRecord[]>(5);
 export const CLUBS_CACHE_KEY = "all_clubs";
 
-// Subscribe to real-time updates for clubs to invalidate cache when a club is created/updated/deleted
-supabase
-  .channel("clubs-cache-invalidation")
-  .on("postgres_changes", { event: "*", schema: "public", table: "clubs" }, () => {
-    clubsCache.delete(CLUBS_CACHE_KEY);
-  })
-  .subscribe();
+if (typeof supabase.channel === "function") {
+  supabase
+    .channel("clubs-cache-invalidation")
+    .on("postgres_changes", { event: "*", schema: "public", table: "clubs" }, () => {
+      clubsCache.delete(CLUBS_CACHE_KEY);
+    })
+    .subscribe();
+}
 
 // ── Lightweight Batch Loader Class ──
 
