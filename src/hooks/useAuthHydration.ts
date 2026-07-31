@@ -25,11 +25,24 @@ function markRegistered(): void {
   }
 }
 
+function hasOAuthCallbackParams(): boolean {
+  if (typeof window === "undefined") return false;
+  const search = window.location.search || "";
+  const hash = window.location.hash || "";
+  return (
+    search.includes("code=") ||
+    search.includes("error=") ||
+    hash.includes("access_token=") ||
+    hash.includes("refresh_token=") ||
+    hash.includes("error=")
+  );
+}
+
 /**
  * Custom hook to handle auth hydration state.
  * Prevents the "flash of unauthenticated state" (FOUA) by tracking
  * an `isInitializing` boolean that only resolves after the first
- * auth state check completes.
+ * auth state check completes or after OAuth redirect token exchange.
  */
 export function useAuthHydration() {
   const [user, setUser] = useState<User | null>(null);
@@ -42,11 +55,22 @@ export function useAuthHydration() {
       setIsInitializing(false);
     }, 5000);
 
+    const isOAuthFlow = hasOAuthCallbackParams();
+
     // Get initial session (checks local storage / cookies)
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setIsInitializing(false);
-      clearTimeout(timeoutId);
+      if (session?.user) {
+        setUser(session.user);
+        setIsInitializing(false);
+        clearTimeout(timeoutId);
+      } else if (!isOAuthFlow) {
+        // If not an OAuth callback flow, resolve initialization immediately
+        setUser(null);
+        setIsInitializing(false);
+        clearTimeout(timeoutId);
+      }
+      // If isOAuthFlow is true and session is null, wait for onAuthStateChange
+      // to finish exchanging the auth code/token.
     });
 
     // Listen for subsequent auth changes (login/logout)
