@@ -206,6 +206,14 @@ CREATE TABLE comments (
     deleted_at TIMESTAMPTZ
 );
 
+CREATE TABLE user_blocks (
+  blocker_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  blocked_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (blocker_id, blocked_id),
+  CONSTRAINT check_no_self_block CHECK (blocker_id <> blocked_id)
+);
+
 CREATE TABLE certificates (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   event_id UUID REFERENCES events(id) ON DELETE CASCADE,
