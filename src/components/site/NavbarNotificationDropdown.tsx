@@ -4,9 +4,9 @@ import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
 import NotificationItem from "./NotificationItem";
 import { createClient } from "@/lib/supabase/client";
-import { toast } from "sonner";
+import { getNotificationLink } from "@/routes/notifications";
 
-interface Notification {
+export interface Notification {
   id: string;
   type: string;
   title: string;
@@ -15,6 +15,7 @@ interface Notification {
   isRead: boolean;
   link?: string;
   createdAt: string;
+  metadata?: Record<string, any> | null;
 }
 
 function formatRelativeTime(dateString: string): string {
@@ -90,6 +91,7 @@ export const NavbarNotificationDropdown: React.FC = () => {
           message: string;
           is_read: boolean;
           link?: string;
+          metadata?: Record<string, any> | null;
           created_at: string;
         }[]
       ).map((n) => ({
@@ -99,7 +101,8 @@ export const NavbarNotificationDropdown: React.FC = () => {
         message: n.message,
         timestamp: formatRelativeTime(n.created_at),
         isRead: n.is_read,
-        link: n.link,
+        link: getNotificationLink(n.type, n.metadata, n.link),
+        metadata: n.metadata,
         createdAt: n.created_at,
       }));
 
@@ -120,7 +123,7 @@ export const NavbarNotificationDropdown: React.FC = () => {
         message: m.message,
         timestamp: formatRelativeTime(m.created_at),
         isRead: m.is_read,
-        link: m.link,
+        link: getNotificationLink("mention", null, m.link),
         createdAt: m.created_at,
       }));
 
