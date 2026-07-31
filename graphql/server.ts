@@ -9,6 +9,7 @@ import {
 } from "./resolvers";
 import { authDirectiveTypeDefs, authDirectiveTransformer } from "./directives/authDirective";
 import { createClient } from "../src/lib/supabase/client";
+import { requestLoggingPlugin } from "./request-logging";
 
 const supabase = createClient();
 
@@ -57,6 +58,7 @@ export const yoga = createYoga({
 
     return { user };
   },
+  plugins: [requestLoggingPlugin()],
 });
 
 // Re-export for use by server-side event producers (mention handlers, etc.)
