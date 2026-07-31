@@ -19,6 +19,7 @@ export interface NotificationRecord {
   message: string;
   link: string | null;
   is_read: boolean;
+  metadata?: Record<string, any> | null;
   created_at: string;
 }
 
