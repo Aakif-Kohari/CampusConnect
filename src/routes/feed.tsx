@@ -57,9 +57,11 @@ import { useActionQueue } from "@/store/actionQueue";
 import { type CommentNode } from "@/lib/feedUtils";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PullToRefresh } from "@/components/PullToRefresh";
+import { TimeAgo } from "@/components/TimeAgo";
 import { useEmailVerification } from "@/hooks/useEmailVerification";
 import { announce } from "@/store/ariaAnnouncer";
 import { ReportDialog } from "@/components/ReportDialog";
+import { TimeAgo } from "@/components/TimeAgo";
 import CompressWorker from "@/workers/compress.worker?worker";
 
 import {
@@ -1196,7 +1198,7 @@ export default function Feed() {
                               <RoleBadge role={authorRole} />
                             </div>
                             <p className="font-mono text-xs flex flex-wrap items-center">
-                              in {club?.name || "Unknown Club"} · {timeAgo(post.created_at)}
+                              in {club?.name || "Unknown Club"} · <TimeAgo date={post.created_at} />
                               <span className="text-gray-500 dark:text-gray-300 ml-1">
                                 · {calculateReadTime(post.content)}
                               </span>
@@ -1665,7 +1667,7 @@ const MemoizedFeedPost = React.memo(
               <RoleBadge role={authorRole} />
             </div>
             <p className="font-mono text-xs flex flex-wrap items-center">
-              in {club?.name || "Unknown Club"} · {timeAgo(post.created_at)}
+              in {club?.name || "Unknown Club"} · <TimeAgo date={post.created_at} />
               <span className="text-gray-500 dark:text-gray-300 ml-1">
                 · {calculateReadTime(post.content)}
               </span>
@@ -2020,7 +2022,7 @@ function PostComments({ postId, user, userProfile, clubMembers, timeAgo }: PostC
             </p>
             <div className="flex items-center gap-2">
               <p className="font-mono text-[10px] text-gray-500 dark:text-gray-300">
-                {timeAgo(commentNode.created_at)}
+                <TimeAgo date={commentNode.created_at} />
               </p>
               {(user?.id === commentAuthor?.id || userProfile?.role === "system_admin") && (
                 <button
