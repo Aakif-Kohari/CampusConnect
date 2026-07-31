@@ -1,8 +1,29 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { registerDeviceSession } from "@/lib/deviceSession";
 import type { User } from "@supabase/supabase-js";
 
 const supabase = createClient();
+
+const REGISTRATION_KEY = "cc_device_session_registered";
+
+// Register once per tab boot so we don't fire an edge call on every
+// navigation, while still guaranteeing the current device has a row.
+function shouldRegisterOnBoot(): boolean {
+  try {
+    return sessionStorage.getItem(REGISTRATION_KEY) !== "1";
+  } catch {
+    return true;
+  }
+}
+
+function markRegistered(): void {
+  try {
+    sessionStorage.setItem(REGISTRATION_KEY, "1");
+  } catch {
+    // storage unavailable (SSR/private mode) — registration still fires on SIGNED_IN
+  }
+}
 
 /**
  * Custom hook to handle auth hydration state.
@@ -31,10 +52,24 @@ export function useAuthHydration() {
     // Listen for subsequent auth changes (login/logout)
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
       setIsInitializing(false); // Ensure it's false on any auth state change
       clearTimeout(timeoutId);
+
+      // Track every sign-in as an individual device session so it can be
+      // remotely revoked from the Security Hub. SIGNED_IN covers
+      // email/password, OAuth, and passkey flows; INITIAL_SESSION covers
+      // reloads (once per tab boot) where a fresh token arrived.
+      if (!session?.access_token) return;
+
+      if (event === "SIGNED_IN") {
+        markRegistered();
+        void registerDeviceSession({ accessToken: session.access_token });
+      } else if (event === "INITIAL_SESSION" && shouldRegisterOnBoot()) {
+        markRegistered();
+        void registerDeviceSession({ accessToken: session.access_token });
+      }
     });
 
     return () => {

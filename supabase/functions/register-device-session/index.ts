@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { verifyAuth } from "../shared/auth-middleware.ts";
 import { getSessionIdFromToken } from "../shared/session-token.ts";
+import { parseUserAgent } from "../shared/device-info.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -32,33 +33,53 @@ serve(async (req) => {
       });
     }
 
-    // Identify the requesting device session so the response can flag it
-    // as the current device.
+    // The access token carries the id of the underlying auth.sessions row,
+    // which is the unique key this device session is tracked under.
     const authHeader = req.headers.get("Authorization") ?? "";
     const token = authHeader.replace("Bearer ", "");
-    const currentSessionId = getSessionIdFromToken(token);
+    const sessionId = getSessionIdFromToken(token);
 
-    const { data: sessions, error } = await supabase
-      .from("device_sessions")
-      .select("id, browser, os, ip_address, auth_session_id, last_active_at")
-      .eq("user_id", user.id)
-      .order("last_active_at", { ascending: false });
+    if (!sessionId) {
+      return new Response(JSON.stringify({ error: "Unable to determine session" }), {
+        status: 401,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+      });
+    }
+
+    let body: { user_agent?: string } = {};
+    try {
+      body = await req.json();
+    } catch {
+      // No body is fine; fall back to the User-Agent header.
+    }
+
+    const userAgent = body.user_agent || req.headers.get("user-agent") || "";
+    const { device_info, browser, os } = parseUserAgent(userAgent);
+
+    const ipAddress = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || null;
+
+    const { error } = await supabase.from("device_sessions").upsert(
+      {
+        user_id: user.id,
+        auth_session_id: sessionId,
+        device_info,
+        browser,
+        os,
+        ip_address: ipAddress,
+        user_agent: userAgent,
+        last_active_at: new Date().toISOString(),
+      },
+      { onConflict: "auth_session_id" },
+    );
 
     if (error) {
       throw error;
     }
 
-    const response = (sessions ?? []).map((session) => ({
-      id: session.id,
-      browser: session.browser ?? "",
-      os: session.os ?? "",
-      ip_address: session.ip_address ?? "",
-      location: "",
-      last_login_at: session.last_active_at,
-      is_current: currentSessionId !== null && session.auth_session_id === currentSessionId,
-    }));
-
-    return new Response(JSON.stringify(response), {
+    return new Response(JSON.stringify({ success: true }), {
       status: 200,
       headers: {
         ...corsHeaders,
@@ -66,7 +87,7 @@ serve(async (req) => {
       },
     });
   } catch (error) {
-    console.error("List user devices error:", error);
+    console.error("Register device session error:", error);
 
     return new Response(JSON.stringify({ error: "An unexpected error occurred." }), {
       status: 500,
