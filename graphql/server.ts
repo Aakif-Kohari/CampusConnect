@@ -1,5 +1,12 @@
 import { createSchema, createYoga } from "graphql-yoga";
-import { typeDefs, resolvers, pubsub, publishNotification } from "./resolvers";
+import {
+  typeDefs,
+  resolvers,
+  pubsub,
+  publishNotification,
+  publishMentionNotification,
+  publishEventUpdateNotification,
+} from "./resolvers";
 import { authDirectiveTypeDefs, authDirectiveTransformer } from "./directives/authDirective";
 import { createClient } from "../src/lib/supabase/client";
 
@@ -53,4 +60,4 @@ export const yoga = createYoga({
 });
 
 // Re-export for use by server-side event producers (mention handlers, etc.)
-export { pubsub, publishNotification };
+export { schema, pubsub, publishNotification, publishMentionNotification, publishEventUpdateNotification };
