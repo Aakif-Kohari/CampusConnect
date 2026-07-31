@@ -1,8 +1,10 @@
 import { useNavigate, useBlocker } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { SiteShell } from "@/components/site/SiteShell";
 import { useEffect, useRef, useState, useId, type ChangeEvent, type KeyboardEvent } from "react";
 import { useTheme } from "@/components/theme-provider";
-import { Camera, Loader2, X, Plus } from "lucide-react";
+import { Camera, Loader2, X, Plus, UploadCloud } from "lucide-react";
 import { toast } from "sonner";
 import { announce } from "@/store/ariaAnnouncer";
 import { createClient } from "@/lib/supabase/client";
@@ -399,7 +401,7 @@ function SettingsPageContent({ user }: WithAuthProps) {
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <FormField
-                    control={form.control}
+                    control={form.control as any}
                     name="firstName"
                     render={({ field }) => (
                       <FormItem className="space-y-1">
@@ -418,7 +420,7 @@ function SettingsPageContent({ user }: WithAuthProps) {
                   />
 
                   <FormField
-                    control={form.control}
+                    control={form.control as any}
                     name="lastName"
                     render={({ field }) => (
                       <FormItem className="space-y-1">
@@ -438,7 +440,7 @@ function SettingsPageContent({ user }: WithAuthProps) {
                 </div>
 
                 <FormField
-                  control={form.control}
+                  control={form.control as any}
                   name="handle"
                   render={({ field }) => (
                     <FormItem className="space-y-1">
@@ -458,7 +460,7 @@ function SettingsPageContent({ user }: WithAuthProps) {
                 />
 
                 <FormField
-                  control={form.control}
+                  control={form.control as any}
                   name="collegeEmail"
                   render={({ field }) => (
                     <FormItem className="space-y-1">
@@ -478,7 +480,7 @@ function SettingsPageContent({ user }: WithAuthProps) {
                 />
 
                 <FormField
-                  control={form.control}
+                  control={form.control as any}
                   name="phoneNumber"
                   render={({ field }) => (
                     <FormItem className="space-y-1">
@@ -496,7 +498,7 @@ function SettingsPageContent({ user }: WithAuthProps) {
                 />
 
                 <FormField
-                  control={form.control}
+                  control={form.control as any}
                   name="linkedinUrl"
                   render={({ field }) => (
                     <FormItem className="space-y-1">
@@ -514,7 +516,7 @@ function SettingsPageContent({ user }: WithAuthProps) {
                 />
 
                 <FormField
-                  control={form.control}
+                  control={form.control as any}
                   name="bio"
                   render={({ field }) => (
                     <FormItem className="space-y-1">
@@ -907,7 +909,39 @@ function AvatarUpload({ name, avatarTheme }: { name: string; avatarTheme?: Avata
   const [preview, setPreview] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
   const [initials, setInitials] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
+  const handleDragEnter = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); };
+  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); };
+  const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(false); };
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0];
+      setSelectedFile(file);
+      setUploading(true);
+      // mock upload logic or actual supabase upload here
+      setTimeout(async () => {
+         setUploading(false);
+      }, 2000);
+    }
+  };
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      setSelectedFile(file);
+      setUploading(true);
+      setTimeout(async () => {
+         setUploading(false);
+      }, 2000);
+    }
+  };
+  function formatFileSize(bytes: number) { return bytes + " bytes"; }
   useEffect(() => {
     let isMounted = true;
 
