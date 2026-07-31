@@ -261,6 +261,8 @@ export default function ClubManageRoute() {
     },
   });
 
+  const [optimisticRoles, setOptimisticRoles] = useState<Record<string, string>>({});
+
   const updateMemberMutation = useMutation({
     mutationFn: async ({
       memberId,
@@ -269,14 +271,26 @@ export default function ClubManageRoute() {
       memberId: string;
       updates: Record<string, unknown>;
     }) => {
+      if (updates.role && typeof updates.role === "string") {
+        setOptimisticRoles((prev) => ({ ...prev, [memberId]: updates.role as string }));
+      }
       const { error } = await supabase.from("club_members").update(updates).eq("id", memberId);
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Member updated");
+      toast.success("Member role updated successfully");
       refetch();
     },
-    onError: () => toast.error("Failed to update member"),
+    onError: (_err, variables) => {
+      if (variables?.memberId) {
+        setOptimisticRoles((prev) => {
+          const next = { ...prev };
+          delete next[variables.memberId];
+          return next;
+        });
+      }
+      toast.error("Role update failed. Reverted to previous role.");
+    },
   });
 
   if (isLoading) {
@@ -517,7 +531,10 @@ export default function ClubManageRoute() {
                       Manage Members
                     </h2>
                     <ClubMembersTable
-                      members={club.club_members}
+                      members={(club.club_members || []).map((m: any) => ({
+                        ...m,
+                        role: optimisticRoles[m.id] || m.role,
+                      }))}
                       currentUserId={user?.id}
                       isMutating={updateMemberMutation.isPending}
                       onApprove={(memberId) =>
@@ -526,10 +543,10 @@ export default function ClubManageRoute() {
                       onReject={(memberId) =>
                         updateMemberMutation.mutate({ memberId, updates: { status: "rejected" } })
                       }
-                      onToggleRole={(memberId, currentRole) =>
+                      onToggleRole={(memberId, targetRole) =>
                         updateMemberMutation.mutate({
                           memberId,
-                          updates: { role: currentRole === "admin" ? "member" : "admin" },
+                          updates: { role: targetRole },
                         })
                       }
                     />
