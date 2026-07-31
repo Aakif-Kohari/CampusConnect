@@ -13,12 +13,8 @@ import {
   decryptMessage,
 } from "@/lib/crypto";
 import { toast } from "sonner";
-import { ShieldCheck, Send, Search, Lock, AlertTriangle, RefreshCw, Smile } from "lucide-react";
+import { ShieldCheck, Send, Search, Lock, AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/EmptyState";
-import { getBlockedUserIds, validateDirectMessageSend } from "@/lib/userBlockUtils";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import EmojiPicker from "emoji-picker-react";
 
 interface Profile {
   id: string;
@@ -34,6 +30,7 @@ interface Message {
   encrypted_content: string;
   iv: string;
   created_at: string;
+  read_at: string | null;
   content?: string;
   decryptFailed?: boolean;
 }
@@ -60,6 +57,7 @@ export default function ChatBox() {
   } | null>(null);
   const [sharedKeys, setSharedKeys] = useState<Record<string, CryptoKey>>({});
 
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Stable per-conversation presence channel name:
@@ -118,7 +116,6 @@ export default function ChatBox() {
           const { error } = await supabase.from("user_public_keys").upsert({
             user_id: user.id,
             public_key: pubJwk,
-            updated_at: new Date().toISOString(),
           });
 
           if (error) {
@@ -327,6 +324,7 @@ export default function ChatBox() {
       markMessagesAsRead();
     }
   }, [messages, currentUser, activeRecipient]);
+
   // 6. Subscribing to real-time updates for direct messages
   useEffect(() => {
     if (!activeRecipient || !currentUser || !userKeys) return;
@@ -491,7 +489,6 @@ export default function ChatBox() {
       const { error } = await supabase.from("user_public_keys").upsert({
         user_id: currentUser.id,
         public_key: pubJwk,
-        updated_at: new Date().toISOString(),
       });
 
       if (error) throw error;
@@ -657,7 +654,10 @@ export default function ChatBox() {
               </div>
 
               {/* Messages Area */}
-              <div className="flex-1 h-[420px] overflow-y-auto bg-slate-50 dark:bg-zinc-950 p-4 space-y-3">
+              <div
+                ref={messagesContainerRef}
+                className="flex-1 h-[420px] overflow-y-auto bg-slate-50 dark:bg-zinc-950 p-4 space-y-3"
+              >
                 {recipientKeyError ? (
                   <div className="flex h-full items-center justify-center p-4">
                     <div className="max-w-md border-2 border-black bg-yellow-50 p-6 text-center text-black shadow-md">
@@ -747,10 +747,7 @@ export default function ChatBox() {
                                     </span>
                                   )
                                 ) : (
-                                  <>
-                                    <Lock size={8} />
-                                    E2EE
-                                  </>
+                                  <Lock size={8} />
                                 )}
                               </span>
                             </div>
