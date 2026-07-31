@@ -2,6 +2,7 @@ import { createSchema, createYoga } from "graphql-yoga";
 import { typeDefs, resolvers, pubsub, publishNotification } from "./resolvers";
 import { authDirectiveTypeDefs, authDirectiveTransformer } from "./directives/authDirective";
 import { createClient } from "../src/lib/supabase/client";
+import { closePool } from "./db";
 
 const supabase = createClient();
 
@@ -54,3 +55,28 @@ export const yoga = createYoga({
 
 // Re-export for use by server-side event producers (mention handlers, etc.)
 export { pubsub, publishNotification };
+
+/**
+ * Graceful shutdown: release all pooled Postgres connections when the
+ * process receives a termination signal (e.g. during deploys/restarts),
+ * so connections aren't left dangling on the Supavisor/pgBouncer side.
+ */
+let isShuttingDown = false;
+
+async function gracefulShutdown(signal: string) {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+
+  console.log(`[server] Received ${signal}, closing Postgres pool...`);
+  try {
+    await closePool();
+    console.log("[server] Postgres pool closed cleanly.");
+  } catch (err) {
+    console.error("[server] Error while closing Postgres pool:", err);
+  } finally {
+    process.exit(0);
+  }
+}
+
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
