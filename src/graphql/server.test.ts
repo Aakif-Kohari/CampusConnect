@@ -4,6 +4,8 @@ import {
   encodeCursor,
   decodeCursor,
   publishNotification,
+  publishMentionNotification,
+  publishEventUpdateNotification,
   LRUCache,
   clubsCache,
   CLUBS_CACHE_KEY,
@@ -62,12 +64,18 @@ vi.mock("../../src/lib/supabase/client", () => {
         }
         if (table === "clubs") {
           return {
-            select: vi.fn().mockImplementation(() => ({
-              in: vi.fn().mockResolvedValue({
+            select: vi.fn().mockImplementation(() => {
+              const res = Promise.resolve({
                 data: [{ id: "club-1", name: "Robotics Club" }],
                 error: null,
-              }),
-            })),
+              });
+              // @ts-expect-error attach .in helper for DataLoader batch requests
+              res.in = vi.fn().mockResolvedValue({
+                data: [{ id: "club-1", name: "Robotics Club" }],
+                error: null,
+              });
+              return res;
+            }),
           };
         }
         if (table === "profiles") {
@@ -263,23 +271,38 @@ describe("publishNotification helper", () => {
     ).not.toThrow();
   });
 
-  it("maps type 'event_update' correctly via publishNotification", () => {
-    // We publish and verify the helper does not throw for every known type.
-    const types = ["mention", "event_update", "generic_other"];
-    for (const type of types) {
-      expect(() =>
-        publishNotification({
-          id: `notif-${type}`,
-          user_id: "user-abc",
-          type,
-          title: `Test – ${type}`,
-          message: "Test message",
-          link: null,
-          is_read: false,
-          created_at: new Date().toISOString(),
-        }),
-      ).not.toThrow();
-    }
+  it("creates and publishes mention notification cleanly", () => {
+    const notif = publishMentionNotification({
+      mentionedUserId: "user-mention-123",
+      authorName: "Alice",
+      discussionTitle: "AI Project Ideas",
+      link: "/discussions/456",
+    });
+
+    expect(notif.user_id).toBe("user-mention-123");
+    expect(notif.type).toBe("mention");
+    expect(notif.title).toBe("Mentioned in Discussion");
+    expect(notif.message).toContain("Alice mentioned you in \"AI Project Ideas\"");
+    expect(notif.link).toBe("/discussions/456");
+  });
+
+  it("creates and publishes event update notifications to all attendee IDs", () => {
+    const attendeeUserIds = ["user-1", "user-2", "user-3"];
+    const notifs = publishEventUpdateNotification({
+      eventId: "event-789",
+      eventTitle: "Annual Tech Symposium",
+      updateSummary: "Location updated to Auditorium B",
+      attendeeUserIds,
+    });
+
+    expect(notifs).toHaveLength(3);
+    expect(notifs[0].user_id).toBe("user-1");
+    expect(notifs[1].user_id).toBe("user-2");
+    expect(notifs[2].user_id).toBe("user-3");
+    expect(notifs[0].type).toBe("event_update");
+    expect(notifs[0].title).toBe("Event Updated: Annual Tech Symposium");
+    expect(notifs[0].message).toBe("Location updated to Auditorium B");
+    expect(notifs[0].link).toBe("/events/event-789");
   });
 });
 

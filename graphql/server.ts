@@ -1,8 +1,16 @@
 import { createSchema, createYoga } from "graphql-yoga";
-import { typeDefs, resolvers, pubsub, publishNotification } from "./resolvers";
+import {
+  typeDefs,
+  resolvers,
+  pubsub,
+  publishNotification,
+  publishMentionNotification,
+  publishEventUpdateNotification,
+} from "./resolvers";
 import { authDirectiveTypeDefs, authDirectiveTransformer } from "./directives/authDirective";
 import { createClient } from "../src/lib/supabase/client";
 import { closePool } from "./db";
+import { requestLoggingPlugin } from "./request-logging";
 
 const supabase = createClient();
 
@@ -51,6 +59,7 @@ export const yoga = createYoga({
 
     return { user };
   },
+  plugins: [requestLoggingPlugin()],
 });
 
 // Re-export for use by server-side event producers (mention handlers, etc.)
@@ -80,3 +89,4 @@ async function gracefulShutdown(signal: string) {
 
 process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
 process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+export { schema, pubsub, publishNotification, publishMentionNotification, publishEventUpdateNotification };

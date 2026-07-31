@@ -18,7 +18,7 @@ interface UseDotLottiePlayerOptions {
  * Return type for the useDotLottiePlayer hook
  */
 interface UseDotLottiePlayerReturn {
-  PlayerComponent: React.ComponentType<any>;
+  PlayerComponent: React.ComponentType<Record<string, unknown>>;
   isPlaying: boolean;
   isPaused: boolean;
   play: () => void;
@@ -49,6 +49,7 @@ export const useDotLottiePlayer = ({
   const [isPaused, setIsPaused] = useState<boolean>(false);
   const [currentSpeed, setCurrentSpeed] = useState<number>(speed);
   const [error, setError] = useState<Error | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const playerRef = useRef<any>(null);
 
   const play = useCallback(() => {
@@ -77,19 +78,17 @@ export const useDotLottiePlayer = ({
   }, []);
 
   const setSpeed = useCallback((newSpeed: number) => {
+    setCurrentSpeed(newSpeed);
     if (playerRef.current) {
       playerRef.current.setSpeed(newSpeed);
-      setCurrentSpeed(newSpeed);
     }
   }, []);
 
   const handleComplete = useCallback(() => {
-    if (!loop) {
-      setIsPlaying(false);
-      setIsPaused(false);
-    }
+    setIsPlaying(false);
+    setIsPaused(false);
     onComplete?.();
-  }, [loop, onComplete]);
+  }, [onComplete]);
 
   const handleError = useCallback((err: Error) => {
     console.error('[dotLottie] Animation failed to load or play:', err);
@@ -104,8 +103,7 @@ export const useDotLottiePlayer = ({
   }, [src, autoplay]);
 
   const PlayerComponent = useCallback(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (props: any) =>
+    (props: Record<string, unknown>) =>
       React.createElement(DotLottiePlayer, {
         ref: playerRef,
         src,
