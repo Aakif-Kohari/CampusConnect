@@ -91,7 +91,6 @@
     "date-fns": "^4.4.0",
     "echarts": "^6.1.0",
     "echarts-for-react": "^3.0.6",
-    "embla-carousel-react": "^8.6.0",
     "emoji-picker-react": "^4.19.1",
     "framer-motion": "^12.42.2",
     "graphql": "^16.14.2",
