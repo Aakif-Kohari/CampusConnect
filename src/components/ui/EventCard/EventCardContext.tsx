@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, ReactNode } from "react";
 import { getCountdown, getGoogleCalendarUrl } from "@/lib/utils";
 import { toast } from "sonner";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 
 export interface Event {
   id: string;
@@ -99,28 +100,24 @@ export function EventCardProvider({
 
   const countdown = event.event_date ? getCountdown(event.event_date) : "TBA";
 
-  const [copied, setCopied] = useState(false);
+  const { copyToClipboard, isCopied: copied } = useCopyToClipboard();
   const [ticketOpen, setTicketOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
 
   const handleCopyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
+    if (await copyToClipboard(window.location.href)) {
       toast.success("Link copied!");
-    } catch {
+    } else {
       toast.error("Failed to copy link.");
     }
   };
 
   const handleShare = async () => {
     const shareUrl = `${window.location.origin}${window.location.pathname}#event-${event.id}`;
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      setCopied(true);
+    if (await copyToClipboard(shareUrl)) {
       toast.success("Link copied!");
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch {
+    } else {
       toast.error("Failed to copy link.");
     }
   };
