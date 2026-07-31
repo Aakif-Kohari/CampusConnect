@@ -172,28 +172,34 @@ CREATE TABLE posts (
   deleted_at TIMESTAMPTZ
 );
 
-CREATE TABLE post_likes (
-  post_id UUID REFERENCES posts(id) ON DELETE CASCADE NOT NULL,
+CREATE TYPE like_entity_type AS ENUM ('event', 'post', 'comment');
+
+CREATE TABLE likes (
+  id UUID DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  entity_type like_entity_type NOT NULL,
+  entity_id UUID NOT NULL,
+  club_id UUID,
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-  UNIQUE(post_id, user_id)
+  PRIMARY KEY (id, club_id),
+  CONSTRAINT likes_user_entity_unique UNIQUE (user_id, entity_type, entity_id, club_id)
 );
 
-CREATE INDEX idx_post_likes_post_id ON post_likes(post_id);
-CREATE INDEX idx_post_likes_user_id ON post_likes(user_id);
+CREATE INDEX idx_likes_user_id ON likes(user_id);
+CREATE INDEX idx_likes_entity ON likes(entity_type, entity_id);
 
-ALTER TABLE post_likes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE likes ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Anyone can read post likes."
-  ON post_likes FOR SELECT
+CREATE POLICY "Anyone can read likes."
+  ON likes FOR SELECT
   USING (true);
 
 CREATE POLICY "Users can insert their own likes."
-  ON post_likes FOR INSERT
+  ON likes FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
 CREATE POLICY "Users can delete their own likes."
-  ON post_likes FOR DELETE
+  ON likes FOR DELETE
   USING (auth.uid() = user_id);
 
 CREATE TABLE comments (
@@ -793,7 +799,7 @@ BEFORE INSERT ON public.comments
 FOR EACH ROW
 EXECUTE FUNCTION public.check_comment_rate_limit();
 
--- Post like count triggers on post_reactions and post_likes
+-- Post like count triggers on post_reactions and likes
 CREATE OR REPLACE FUNCTION public.update_post_like_count()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -803,12 +809,16 @@ AS $$
 DECLARE
   v_post_id UUID;
 BEGIN
-  v_post_id := COALESCE(NEW.post_id, OLD.post_id);
+  IF TG_TABLE_NAME = 'likes' THEN
+    v_post_id := COALESCE(NEW.entity_id, OLD.entity_id);
+  ELSE
+    v_post_id := COALESCE(NEW.post_id, OLD.post_id);
+  END IF;
 
   UPDATE posts
   SET like_count = (
     (SELECT COUNT(*) FROM post_reactions WHERE post_id = v_post_id) +
-    (SELECT COUNT(*) FROM post_likes WHERE post_id = v_post_id)
+    (SELECT COUNT(*) FROM likes WHERE entity_type = 'post' AND entity_id = v_post_id)
   )
   WHERE id = v_post_id;
 
@@ -826,14 +836,16 @@ AFTER DELETE ON post_reactions
 FOR EACH ROW
 EXECUTE FUNCTION public.update_post_like_count();
 
-CREATE TRIGGER trg_post_likes_insert
-AFTER INSERT ON post_likes
+CREATE TRIGGER trg_likes_insert
+AFTER INSERT ON likes
 FOR EACH ROW
+WHEN (NEW.entity_type = 'post')
 EXECUTE FUNCTION public.update_post_like_count();
 
-CREATE TRIGGER trg_post_likes_delete
-AFTER DELETE ON post_likes
+CREATE TRIGGER trg_likes_delete
+AFTER DELETE ON likes
 FOR EACH ROW
+WHEN (OLD.entity_type = 'post')
 EXECUTE FUNCTION public.update_post_like_count();
 
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()
