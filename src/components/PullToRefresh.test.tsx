@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { PullToRefresh } from "./PullToRefresh";
+import { PullToRefresh } from "./PullToRefresh.tsx";
 
 describe("PullToRefresh Component (#1917)", () => {
   it("renders children content correctly", () => {
