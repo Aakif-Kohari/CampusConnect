@@ -1,6 +1,7 @@
 import { QueryClientProvider, queryClient } from "@/hooks/useReactQueryReplacement";
 import { Suspense, lazy, useEffect, useState } from "react";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, LazyMotion } from "framer-motion";
+import { loadDomAnimation } from "@/lib/motionFeatures";
 import {
   createBrowserRouter,
   RouterProvider,
@@ -21,9 +22,6 @@ import { CommandPalette } from "./components/ui/command-palette";
 import MaintenancePage from "./components/MaintenancePage";
 import { NotFoundPage } from "./components/NotFoundPage";
 import { createClient } from "./lib/supabase/client";
-import { ThemeToggle } from "./components/ThemeToggle";
-import { ThemeProvider } from "./components/theme-provider";
-import { TooltipProvider } from "./components/ui/tooltip";
 
 function RemoteLoadingScreen() {
   return (
@@ -101,7 +99,6 @@ const AnalyticsAdmin = lazy(() => import("./routes/admin.analytics"));
 const AdminReportsPage = lazy(() => import("./routes/admin.reports"));
 const AdminUsersPage = lazy(() => import("./routes/admin.users"));
 const AdminRestorePage = lazy(() => import("./routes/admin.restore"));
-const AnalyticsAdmin = lazy(() => import("./routes/admin.analytics"));
 const NotFound = lazy(() => import("./routes/NotFound"));
 const ChallengeArena = lazy(() => import("./routes/challenge"));
 const EventDashboard = lazy(() => import("./routes/events.$eventId.dashboard"));
@@ -271,13 +268,24 @@ export default function App() {
       <TooltipProvider>
         <QueryClientProvider client={queryClient}>
           <ErrorBoundary>
-            <CommandPalette />
-            {/* Floating Dark Mode Toggle */}
-            <div className="fixed bottom-4 right-4 z-[9999]">
-              <ThemeToggle />
-            </div>
+            {/*
+              App-wide LazyMotion provider. Every `m.*` component in the tree
+              renders using this lightweight `domAnimation` feature set
+              (fetched from a separate chunk) instead of statically bundling
+              framer-motion's full ~35kb `motion` object. `strict` is only
+              enabled in dev so that any stray `motion.div` (which would
+              silently pull in the full bundle) throws loudly during
+              development instead of shipping to production.
+            */}
+            <LazyMotion features={loadDomAnimation} strict={import.meta.env.DEV}>
+              <CommandPalette />
+              {/* Floating Dark Mode Toggle */}
+              <div className="fixed bottom-4 right-4 z-[9999]">
+                <ThemeToggle />
+              </div>
 
-            <RouterProvider router={router} />
+              <RouterProvider router={router} />
+            </LazyMotion>
           </ErrorBoundary>
         </QueryClientProvider>
       </TooltipProvider>
