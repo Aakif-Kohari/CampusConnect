@@ -10,6 +10,7 @@ import { FloatingChat } from "@/components/FloatingChat";
 import { createClient } from "@/lib/supabase/client";
 import TopProgressBar from "@/components/TopProgressBar";
 import ShortcutsModal from "@/components/ShortcutsModal";
+import { SessionExpiryModal } from "@/components/SessionExpiryModal";
 import { WebRTCProvider } from "@/components/VideoCall/WebRTCProvider";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import { showAnnouncementToast } from "@/lib/announcements/sse";
@@ -157,6 +158,7 @@ export default function Layout() {
       <WebRTCProvider>
         <OfflineBanner />
         <TopProgressBar />
+        <SessionExpiryModal />
 
         <ShortcutsModal open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
         <PWAInstallPrompt />
