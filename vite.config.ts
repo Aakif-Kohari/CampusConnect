@@ -190,4 +190,22 @@ export default defineConfig({
     target: "esnext",
     chunkSizeWarningLimit: 1000,
   },
+  build: {
+    // Raises warning threshold (optional, e.g. set to 1000kB / 1MB)
+    chunkSizeWarningLimit: 1000,
+    // Bundler options for chunking
+    rolldownOptions: {
+      output: {
+        manualChunks(id) {
+          // Separates third-party packages from node_modules into vendor chunks
+          if (id.includes("node_modules")) {
+            if (id.includes("react") || id.includes("react-dom")) {
+              return "vendor-react";
+            }
+            return "vendor";
+          }
+        },
+      },
+    },
+  },
 });
