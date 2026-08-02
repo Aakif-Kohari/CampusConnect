@@ -188,52 +188,19 @@ export default function ClubProfile() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false);
-  const [joinSuccess, setJoinSuccess] = useState(false);
-  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
-  const [isClubBookmarked, setIsClubBookmarked] = useState(false);
-  const [bookmarkPending, setBookmarkPending] = useState(false);
-  const { setLabel } = useBreadcrumbs();
+  interface BulkEmailJob {
+    id: string;
+    club_id: string;
+    template_id: string | null;
+    status: "pending" | "processing" | "completed" | "failed";
+    processed_count: number;
+    total_count: number;
+    error_message: string | null;
+    created_at: string;
+    updated_at: string;
+  }
 
-  const handleTocClick = useCallback((e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
-    e.preventDefault();
-    const target = document.getElementById(id);
-    if (!target) return;
-    const offset = 64;
-    const y = target.getBoundingClientRect().top + window.scrollY - offset;
-    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    window.scrollTo({ top: y, behavior: prefersReduced ? "auto" : "smooth" });
-    history.pushState(null, "", `#${id}`);
-  }, []);
-
-  const mdComponents = useMemo(
-    () => ({
-      h1: ({
-        children,
-        ...props
-      }: React.HTMLAttributes<HTMLHeadingElement> & { children?: React.ReactNode }) => (
-        <h1 id={slugify(extractText(children))} {...props}>
-          {children}
-        </h1>
-      ),
-      h2: ({
-        children,
-        ...props
-      }: React.HTMLAttributes<HTMLHeadingElement> & { children?: React.ReactNode }) => (
-        <h2 id={slugify(extractText(children))} {...props}>
-          {children}
-        </h2>
-      ),
-      h3: ({
-        children,
-        ...props
-      }: React.HTMLAttributes<HTMLHeadingElement> & { children?: React.ReactNode }) => (
-        <h3 id={slugify(extractText(children))} {...props}>
-          {children}
-        </h3>
-      ),
-    }),
-    [],
-  );
+  const [latestJob, setLatestJob] = useState<BulkEmailJob | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data?.user ?? null));
@@ -309,6 +276,81 @@ export default function ClubProfile() {
       toast.error("Failed to submit join request. Please try again.");
     },
   });
+  const membership =
+    user && club && Array.isArray(club.club_members)
+      ? club.club_members.find(
+          (m: { user_id: string; role: string; status: string }) => m.user_id === user.id,
+        )
+      : null;
+  const isAdmin = membership && (membership.role === "admin" || membership.role === "organizer");
+
+  useEffect(() => {
+    if (!isAdmin || !club) return;
+    const fetchLatestJob = async () => {
+      const { data } = await supabase
+        .from("bulk_email_jobs")
+        .select("*")
+        .eq("club_id", club.id)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (data && data.length > 0) {
+        setLatestJob(data[0]);
+      }
+    };
+    fetchLatestJob();
+  }, [isAdmin, club, supabase]);
+
+  useEffect(() => {
+    if (
+      !isAdmin ||
+      !club ||
+      !latestJob ||
+      (latestJob.status !== "pending" && latestJob.status !== "processing")
+    )
+      return;
+    const interval = setInterval(async () => {
+      const { data } = await supabase
+        .from("bulk_email_jobs")
+        .select("*")
+        .eq("id", latestJob.id)
+        .single();
+      if (data) {
+        setLatestJob(data);
+        if (data.status === "completed" || data.status === "failed") {
+          clearInterval(interval);
+        }
+      }
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [isAdmin, club, latestJob, supabase]);
+
+  const sendNewsletterMutation = useMutation({
+    mutationFn: async () => {
+      if (!club) throw new Error("Club not loaded");
+      const { data, error } = await supabase.functions.invoke("send-newsletter", {
+        body: { clubId: club.id },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      toast.success("Newsletter queued successfully!");
+      setLatestJob({
+        id: data.jobId,
+        club_id: club!.id,
+        template_id: null,
+        status: "pending",
+        processed_count: 0,
+        total_count: 0,
+        error_message: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || "Failed to trigger newsletter");
+    },
+  });
 
   const leaveMutation = useMutation({
     mutationFn: async () => {
@@ -366,10 +408,6 @@ export default function ClubProfile() {
   const displayedMembers = isExpanded ? filteredMembers : filteredMembers.slice(0, 10);
 
   const events = Array.isArray(club.events) ? club.events : [];
-  const membership =
-    user && Array.isArray(club.club_members)
-      ? club.club_members.find((m: ClubMember) => m.user_id === user.id)
-      : null;
 
   const clubName = club.name || "Club";
   const clubDescription = (
@@ -731,6 +769,14 @@ export default function ClubProfile() {
 
                   <div className="mt-6 flex flex-wrap gap-3">
                     <button
+                      onClick={handleClubBookmark}
+                      disabled={bookmarkPending}
+                      className="neu-border neu-press inline-flex items-center gap-2 bg-white px-5 py-2 font-mono text-xs font-bold uppercase tracking-wider hover:bg-lime disabled:opacity-50"
+                    >
+                      <Bookmark className="h-3.5 w-3.5" fill={isClubBookmarked ? "black" : "none"} />
+                      {isClubBookmarked ? "Bookmarked" : "Bookmark"}
+                    </button>
+                    <button
                       onClick={() => toast.info("Follow feature coming soon!")}
                       className="neu-border neu-press bg-cream px-5 py-2 font-mono text-xs font-bold uppercase tracking-wider"
                     >
@@ -755,6 +801,61 @@ export default function ClubProfile() {
                       </a>
                     )}
                   </div>
+
+                  {isAdmin && (
+                    <div className="neu-border mt-8 border-2 border-black bg-white p-6 dark:bg-zinc-900 dark:border-cream">
+                      <h3 className="font-display text-xl font-bold uppercase tracking-tight text-indigo-900 dark:text-indigo-400">
+                        Club Newsletter Dispatcher
+                      </h3>
+                      <p className="mt-2 font-mono text-xs text-gray-600 dark:text-gray-400">
+                        Send a bulk announcement/newsletter to all {memberList.length} members. This will be
+                        processed asynchronously in the background to prevent server timeouts.
+                      </p>
+
+                      <div className="mt-6 flex flex-wrap items-center gap-4">
+                        <button
+                          onClick={() => sendNewsletterMutation.mutate()}
+                          disabled={sendNewsletterMutation.isPending}
+                          className="neu-border neu-press bg-lime px-6 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-black disabled:opacity-50"
+                        >
+                          {sendNewsletterMutation.isPending ? "Queuing..." : "Send Newsletter Now"}
+                        </button>
+
+                        {latestJob && (
+                          <div className="flex flex-col gap-1 border-l-2 border-black pl-4 font-mono text-xs dark:border-cream">
+                            <div>
+                              Status:{" "}
+                              <span
+                                className={`font-bold uppercase ${
+                                  latestJob.status === "completed"
+                                    ? "text-emerald-600"
+                                    : latestJob.status === "failed"
+                                      ? "text-rose-600"
+                                      : "text-amber-500 animate-pulse"
+                                }`}
+                              >
+                                {latestJob.status}
+                              </span>
+                            </div>
+                            {latestJob.total_count > 0 && (
+                              <div>
+                                Progress:{" "}
+                                <span className="font-bold">
+                                  {latestJob.processed_count} / {latestJob.total_count}
+                                </span>{" "}
+                                emails sent
+                              </div>
+                            )}
+                            {latestJob.error_message && (
+                              <div className="text-rose-600 text-[10px]">
+                                Error: {latestJob.error_message}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </section>
 
@@ -789,6 +890,7 @@ export default function ClubProfile() {
                   </div>
                 </div>
               </section>
+
               <ReportDialog
                 isOpen={isReportDialogOpen}
                 onClose={() => setIsReportDialogOpen(false)}
