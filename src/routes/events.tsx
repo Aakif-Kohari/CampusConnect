@@ -1,5 +1,5 @@
 import { formatDate } from "../lib/utils";
-import { createFileRoute } from "@tanstack/react-router";
+
 import { SiteShell } from "@/components/site/SiteShell";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
@@ -13,6 +13,7 @@ import { Loader2, Search, Calendar } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { AutocompleteDropdown, AutocompleteResult } from "@/components/AutocompleteDropdown";
 import { useNavigate } from "react-router-dom";
+import { PullToRefresh } from "@/components/PullToRefresh";
 import {
   Select,
   SelectContent,
@@ -21,18 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export const Route = createFileRoute("/events")({
-  head: () => ({
-    meta: [
-      { title: "Events — CampusConnect" },
-      {
-        name: "description",
-        content: "Discover and RSVP to workshops, talks, hackathons, and meetups on campus.",
-      },
-    ],
-  }),
-  component: EventsPage,
-});
+export default EventsPage;
 
 interface EventItem {
   id: string;
@@ -51,6 +41,10 @@ function EventsPage() {
   const queryClient = useQueryClient();
   const [user, setUser] = useState<User | null>(null);
   const [filter, setFilter] = useState("All");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc" | "newest" | "oldest">("asc");
+  const [sortLoaded, setSortLoaded] = useState(false);
+  const [hidePastEvents, setHidePastEvents] = useState(false);
+  const [viewMode, setViewMode] = useState<"list" | "map" | "calendar">("list");
 
   useEffect(() => {
     if (!sortLoaded) return;

@@ -54,8 +54,6 @@ export default function EventsMapPage() {
             <div className="h-[calc(100vh-200px)] min-h-[600px]">
               <Suspense fallback={<MapSkeleton className="h-full w-full min-h-[600px]" />}>
                 <CampusMap
-                  initialCenter={[40.7128, -74.006]}
-                  initialZoom={14}
                   className="h-full w-full"
                 />
               </Suspense>

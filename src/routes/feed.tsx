@@ -196,7 +196,8 @@ export default function Feed() {
     queryKey: ["posts"],
     initialPageParam: 0,
     queryFn: async ({ pageParam = 0 }) => {
-      const from = pageParam * POSTS_PER_PAGE;
+      const pageNum = pageParam as number;
+      const from = pageNum * POSTS_PER_PAGE;
       const to = from + POSTS_PER_PAGE - 1;
 
       const { data, error } = await supabase
@@ -221,7 +222,7 @@ export default function Feed() {
 
       return {
         posts,
-        nextPage: posts.length === POSTS_PER_PAGE ? pageParam + 1 : undefined,
+        nextPage: posts.length === POSTS_PER_PAGE ? pageNum + 1 : undefined,
       };
     },
     getNextPageParam: (lastPage) => lastPage.nextPage,

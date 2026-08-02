@@ -13,7 +13,7 @@ import { parse } from "@/lib/markdown";
 import type { MarkdownNodeChild, HeadingNode } from "@/lib/markdown";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getPresenceBadgeClass, usePresence } from "@/hooks/usePresence";
-import { ArrowLeft, Github, Loader2, CheckCircle, Flag } from "lucide-react";
+import { ArrowLeft, Github, Loader2, CheckCircle, Flag, Bookmark } from "lucide-react";
 import { ReportDialog } from "@/components/ReportDialog";
 import { EmptyState } from "@/components/EmptyState";
 import { VideoPlayer } from "@/components/VideoPlayer";
@@ -231,6 +231,16 @@ export default function ClubProfile() {
   }, [supabase]);
 
   // Check if this club is already bookmarked
+  const {
+    data: club,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    ...createClubProfileQueryOptions(supabase, slug ?? ""),
+    enabled: Boolean(slug),
+  } as any) as { data: any; isLoading: boolean; error: any; refetch: any };
+
   useEffect(() => {
     if (!user || !club) return;
     supabase
@@ -249,7 +259,11 @@ export default function ClubProfile() {
     const next = !isClubBookmarked;
     setIsClubBookmarked(next); // optimistic
     try {
-      await toggleBookmark(user.id, "club", club.id, !next);
+      if (next) {
+        await supabase.from("bookmarks").insert({ user_id: user.id, entity_type: "club", club_id: club.id });
+      } else {
+        await supabase.from("bookmarks").delete().eq("user_id", user.id).eq("club_id", club.id);
+      }
       toast.success(next ? "Club bookmarked!" : "Bookmark removed.");
     } catch {
       setIsClubBookmarked(!next); // revert
@@ -258,16 +272,6 @@ export default function ClubProfile() {
       setBookmarkPending(false);
     }
   };
-
-  const {
-    data: club,
-    isLoading,
-    error,
-    refetch,
-  } = useQuery({
-    ...createClubProfileQueryOptions(supabase, slug ?? ""),
-    enabled: Boolean(slug),
-  });
 
   useEffect(() => {
     if (club?.name && slug) {

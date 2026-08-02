@@ -102,8 +102,8 @@ export default function ClubArticleDetailsPage() {
     );
   }
 
-  const authorName = article.profiles
-    ? `${article.profiles.first_name} ${article.profiles.last_name}`
+  const authorName = article.profiles && Array.isArray(article.profiles) && article.profiles.length > 0
+    ? `${article.profiles[0].first_name} ${article.profiles[0].last_name}`
     : "Club Writer";
 
   const readTimeStr = article.read_time_minutes 

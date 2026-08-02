@@ -401,7 +401,7 @@ export default function DashboardOverview() {
             onClick={() => {
               setAnimateIn(false);
               setTimeout(() => {
-                setDismissed(true);
+                setWelcomeDismissed(true);
                 localStorage.setItem("cc_welcome_dismissed", "true");
               }, 500); // Wait for transition out
             }}

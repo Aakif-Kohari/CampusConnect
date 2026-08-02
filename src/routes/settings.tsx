@@ -143,7 +143,7 @@ export default function SettingsPage() {
   });
 
   const form = useForm<ProfileFormValues>({
-    resolver: zodResolver(profileSchema),
+    resolver: zodResolver(profileSchema) as any,
     defaultValues: {
       avatarTheme: "",
       firstName: "",

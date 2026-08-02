@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, UseFormReturn } from "react-hook-form";
 import { toast } from "sonner";
 
 import { createClient } from "@/lib/supabase/client";
@@ -55,7 +55,7 @@ export default function CreateClubWizard() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<ClubWizardFormValues>({
-    resolver: zodResolver(clubFormSchema),
+    resolver: zodResolver(clubFormSchema) as any,
     defaultValues,
     mode: "onBlur",
   });
@@ -141,7 +141,7 @@ export default function CreateClubWizard() {
           <div className="space-y-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormField
-                control={form.control}
+                control={form.control as any}
                 name="name"
                 render={({ field }) => (
                   <FormItem>
@@ -155,7 +155,7 @@ export default function CreateClubWizard() {
               />
 
               <FormField
-                control={form.control}
+                control={form.control as any}
                 name="slug"
                 render={({ field }) => (
                   <FormItem>
@@ -170,7 +170,7 @@ export default function CreateClubWizard() {
             </div>
 
             <FormField
-              control={form.control}
+              control={form.control as any}
               name="category_id"
               render={({ field }) => (
                 <FormItem>
@@ -201,7 +201,7 @@ export default function CreateClubWizard() {
         render: () => (
           <div className="space-y-4">
             <FormField
-              control={form.control}
+              control={form.control as any}
               name="description"
               render={({ field }) => (
                 <FormItem>
@@ -221,7 +221,7 @@ export default function CreateClubWizard() {
             />
 
             <FormField
-              control={form.control}
+              control={form.control as any}
               name="github_repo_url"
               render={({ field }) => (
                 <FormItem>
@@ -248,19 +248,19 @@ export default function CreateClubWizard() {
         render: () => (
           <div className="space-y-4">
             <SocialLinkField
-              form={form}
+              form={form as any}
               name="twitter"
               label="Twitter / X URL"
               placeholder="https://x.com/your-club"
             />
             <SocialLinkField
-              form={form}
+              form={form as any}
               name="instagram"
               label="Instagram URL"
               placeholder="https://instagram.com/your-club"
             />
             <SocialLinkField
-              form={form}
+              form={form as any}
               name="website"
               label="Website URL"
               placeholder="https://your-club.example.com"
@@ -324,7 +324,7 @@ export default function CreateClubWizard() {
         title: "Review",
         description: "Double-check everything before you submit for administrator review.",
         fields: [],
-        render: () => <ReviewSummary form={form} />,
+        render: () => <ReviewSummary form={form as any} />,
       },
     ],
     [form],
@@ -350,7 +350,7 @@ export default function CreateClubWizard() {
             }}
           >
             <Wizard
-              form={form}
+              form={form as any}
               steps={steps}
               storageKey={STORAGE_KEY}
               basePath="/clubs/new"
@@ -371,7 +371,7 @@ function SocialLinkField({
   label,
   placeholder,
 }: {
-  form: ReturnType<typeof useForm<ClubWizardFormValues>>;
+  form: UseFormReturn<ClubWizardFormValues, any, undefined>;
   name: string;
   label: string;
   placeholder: string;
@@ -397,7 +397,7 @@ function SocialLinkField({
   );
 }
 
-function ReviewSummary({ form }: { form: ReturnType<typeof useForm<ClubWizardFormValues>> }) {
+function ReviewSummary({ form }: { form: UseFormReturn<ClubWizardFormValues, any, undefined> }) {
   const values = form.watch();
 
   const rows = [

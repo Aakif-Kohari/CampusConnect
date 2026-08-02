@@ -148,7 +148,7 @@ export default function ClubsIndex() {
               <Button
                 key={cat}
                 type="button"
-                variant={activeCategory === cat ? "default" : "outline"}
+                variant={activeCategory === cat ? "primary" : "outline"}
                 onClick={() => setActiveCategory(cat)}
                 className={`font-mono text-xs font-bold uppercase border-2 border-black h-8 px-3 rounded-none transition-all ${
                   activeCategory === cat

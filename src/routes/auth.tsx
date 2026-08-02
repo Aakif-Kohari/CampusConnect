@@ -50,7 +50,7 @@ export default function AuthPage() {
   });
 
   const signUpForm = useForm<SignUpFormValues>({
-    resolver: zodResolver(signUpSchema),
+    resolver: zodResolver(signUpSchema) as any,
     defaultValues: {
       firstName: "",
       lastName: "",
@@ -431,13 +431,13 @@ export default function AuthPage() {
                   />
                   <Turnstile
                     siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
-                    onSuccess={(token) => setCaptchaToken(token)}
+                    onSuccess={(token: string) => setCaptchaToken(token)}
                     onExpire={() => setCaptchaToken("")}
                     onError={() => setCaptchaToken("")}
                   />
                   <Turnstile
                     siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
-                    onSuccess={(token) => setCaptchaToken(token)}
+                    onSuccess={(token: string) => setCaptchaToken(token)}
                     onExpire={() => setCaptchaToken("")}
                     onError={() => setCaptchaToken("")}
                   />
