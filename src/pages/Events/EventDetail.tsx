@@ -1,7 +1,7 @@
-import { SiteShell } from '@/components/site/SiteShell';
-import { PredictiveTurnout } from '@/components/events/PredictiveTurnout';
-import { LiveQA } from '@/components/events/LiveQA';
-import { useEventViewerCount } from '@/hooks/useEventViewerCount';
+import { SiteShell } from "@/components/site/SiteShell";
+import { PredictiveTurnout } from "@/components/events/PredictiveTurnout";
+import { LiveQA } from "@/components/events/LiveQA";
+import { useEventViewerCount } from "@/hooks/useEventViewerCount";
 import { Link, useParams } from "react-router-dom";
 import { useQuery, useMutation, setQueryData } from "@/hooks/useReactQueryReplacement";
 import { createClient } from "@/lib/supabase/client";
@@ -252,7 +252,7 @@ export default function EventDetailsPage() {
   const viewerCount = useEventViewerCount(eventId);
   const { setCustomTrail } = useBreadcrumbs();
 
-const {
+  const {
     data: event,
     isLoading,
     refetch,
@@ -393,7 +393,11 @@ const {
       return;
     }
 
-    const clubObj = event.clubs ? (Array.isArray(event.clubs) ? event.clubs[0] : event.clubs) : null;
+    const clubObj = event.clubs
+      ? Array.isArray(event.clubs)
+        ? event.clubs[0]
+        : event.clubs
+      : null;
     const trail = [
       { label: "Home", path: `/${lang}` },
       { label: "Clubs", path: `/${lang}/clubs` },
@@ -702,8 +706,6 @@ const {
       });
   };
 
-  
-
   const toggleWaitlist = useMutation({
     mutationFn: async ({ isOnWaitlist }: { isOnWaitlist: boolean }) => {
       if (!user) throw new Error("Please log in to join waitlist");
@@ -767,7 +769,9 @@ const {
 
       // Optimistically update the cache
       if (event) {
-        const eventRsvps = Array.isArray((event as any).event_rsvps) ? (event as any).event_rsvps : [];
+        const eventRsvps = Array.isArray((event as any).event_rsvps)
+          ? (event as any).event_rsvps
+          : [];
         const updatedRsvps = hasRsvpd
           ? eventRsvps.filter((r: any) => r.user_id !== user?.id)
           : [...eventRsvps, { id: `temp-${Date.now()}`, user_id: user?.id || "" }];
@@ -1136,8 +1140,14 @@ const {
     );
   }
 
-  const rsvps = Array.isArray((event as any).event_rsvps) ? ((event as any).event_rsvps as any[]) : [];
-  const { hasRsvpd, isCheckedIn, hasEnded } = buildRsvpStatus(rsvps, user?.id, (event as any).end_date);
+  const rsvps = Array.isArray((event as any).event_rsvps)
+    ? ((event as any).event_rsvps as any[])
+    : [];
+  const { hasRsvpd, isCheckedIn, hasEnded } = buildRsvpStatus(
+    rsvps,
+    user?.id,
+    (event as any).end_date,
+  );
   const rawFeedbacks = (event as Record<string, unknown>).event_feedbacks;
   const { hasSubmittedFeedback } = buildFeedbackStatus(
     Array.isArray(rawFeedbacks) ? (rawFeedbacks as { user_id: string }[]) : undefined,
@@ -1154,7 +1164,9 @@ const {
     toggleSeat,
     hasSeats,
     isLoading: isSeatsLoading,
-  } = useEventSeats(event?.id && !(event as any).id.startsWith("mock-") ? (event as any).id : undefined);
+  } = useEventSeats(
+    event?.id && !(event as any).id.startsWith("mock-") ? (event as any).id : undefined,
+  );
 
   const club = event.clubs ? (Array.isArray(event.clubs) ? event.clubs[0] : event.clubs) : null;
   const coordsCheck = (event as any).location
@@ -1256,8 +1268,6 @@ const {
 
   return (
     <LazyMotion features={loadDomMax} strict={import.meta.env.DEV}>
-
-
       <Helmet>
         {/* OpenGraph (Facebook / Discord / iMessage) */}
         <meta property="og:type" content="event" />
@@ -1276,8 +1286,6 @@ const {
         {og.ogImage && <meta name="twitter:image" content={og.ogImage} />}
       </Helmet>
       <SiteShell>
-
-
         {/* Hero Section */}
         <section className="relative w-full overflow-hidden border-b-2 border-black bg-peach/30">
           {(event as any).banner_url ? (
@@ -1757,8 +1765,9 @@ const {
                         Unable to load map preview
                       </h3>
                       <p className="mb-3 font-mono text-xs leading-relaxed text-gray-700">
-                        The coordinates provided (<code>{(event as any).location}</code>) are invalid.
-                        Latitude must be between -90 and 90, and Longitude between -180 and 180.
+                        The coordinates provided (<code>{(event as any).location}</code>) are
+                        invalid. Latitude must be between -90 and 90, and Longitude between -180 and
+                        180.
                       </p>
                     </div>
                   </div>
@@ -1846,8 +1855,9 @@ const {
                         Unable to load map preview
                       </h3>
                       <p className="mb-3 font-mono text-xs leading-relaxed text-gray-700">
-                        The coordinates provided (<code>{(event as any).location}</code>) are invalid.
-                        Latitude must be between -90 and 90, and Longitude between -180 and 180.
+                        The coordinates provided (<code>{(event as any).location}</code>) are
+                        invalid. Latitude must be between -90 and 90, and Longitude between -180 and
+                        180.
                       </p>
                       <a
                         href={buildGoogleMapsSearchUrl((event as any).location)}

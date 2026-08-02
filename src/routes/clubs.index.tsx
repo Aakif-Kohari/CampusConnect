@@ -13,8 +13,18 @@ import { ClubCardSkeleton } from "@/components/ui/ClubCardSkeleton";
 // Fixed (not Math.random) pattern so the skeleton layout never shifts
 // between renders — avoids layout jumps and hydration mismatches.
 const SKELETON_SIZES: Array<"sm" | "md" | "lg"> = [
-  "md", "lg", "sm", "md", "sm", "lg",
-  "md", "lg", "sm", "md", "lg", "sm",
+  "md",
+  "lg",
+  "sm",
+  "md",
+  "sm",
+  "lg",
+  "md",
+  "lg",
+  "sm",
+  "md",
+  "lg",
+  "sm",
 ];
 interface Club {
   id: string;
@@ -164,12 +174,12 @@ export default function ClubsIndex() {
 
         {/* Content */}
         {isLoading ? (
-  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-    {SKELETON_SIZES.map((size, i) => (
-      <ClubCardSkeleton key={i} size={size} />
-    ))}
-  </div>
-) : filteredClubs.length === 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {SKELETON_SIZES.map((size, i) => (
+              <ClubCardSkeleton key={i} size={size} />
+            ))}
+          </div>
+        ) : filteredClubs.length === 0 ? (
           <div className="p-4">
             <EmptyState
               illustrationType="no-results"
@@ -182,7 +192,9 @@ export default function ClubsIndex() {
             {filteredClubs.map((c, index) => {
               const membersCount = Array.isArray(c.club_stats)
                 ? (c.club_stats[0]?.total_members ?? 0)
-                : (c.club_stats ? (c.club_stats as { total_members: number }).total_members : 0);
+                : c.club_stats
+                  ? (c.club_stats as { total_members: number }).total_members
+                  : 0;
 
               return (
                 <div

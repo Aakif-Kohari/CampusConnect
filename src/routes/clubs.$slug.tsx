@@ -236,7 +236,9 @@ export default function ClubProfile() {
     setIsClubBookmarked(next); // optimistic
     try {
       if (next) {
-        await supabase.from("bookmarks").insert({ user_id: user.id, entity_type: "club", club_id: club.id });
+        await supabase
+          .from("bookmarks")
+          .insert({ user_id: user.id, entity_type: "club", club_id: club.id });
       } else {
         await supabase.from("bookmarks").delete().eq("user_id", user.id).eq("club_id", club.id);
       }
@@ -777,7 +779,10 @@ export default function ClubProfile() {
                       disabled={bookmarkPending}
                       className="neu-border neu-press inline-flex items-center gap-2 bg-white px-5 py-2 font-mono text-xs font-bold uppercase tracking-wider hover:bg-lime disabled:opacity-50"
                     >
-                      <Bookmark className="h-3.5 w-3.5" fill={isClubBookmarked ? "black" : "none"} />
+                      <Bookmark
+                        className="h-3.5 w-3.5"
+                        fill={isClubBookmarked ? "black" : "none"}
+                      />
                       {isClubBookmarked ? "Bookmarked" : "Bookmark"}
                     </button>
                     <button
@@ -812,8 +817,9 @@ export default function ClubProfile() {
                         Club Newsletter Dispatcher
                       </h3>
                       <p className="mt-2 font-mono text-xs text-gray-600 dark:text-gray-400">
-                        Send a bulk announcement/newsletter to all {memberList.length} members. This will be
-                        processed asynchronously in the background to prevent server timeouts.
+                        Send a bulk announcement/newsletter to all {memberList.length} members. This
+                        will be processed asynchronously in the background to prevent server
+                        timeouts.
                       </p>
 
                       <div className="mt-6 flex flex-wrap items-center gap-4">

@@ -8,7 +8,6 @@ import { ProfileHeaderSkeleton } from "@/components/ProfileHeaderSkeleton";
 function DashboardContent({ user }: WithAuthProps) {
   const [supabase] = useState(() => createClient());
 
-
   const { data: profile, isLoading: isProfileLoading } = useQuery({
     queryKey: ["profile", user?.id],
     queryFn: async () => {
@@ -25,7 +24,6 @@ function DashboardContent({ user }: WithAuthProps) {
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
-
 
   return (
     <SiteShell>
@@ -146,4 +144,3 @@ function DashboardContent({ user }: WithAuthProps) {
 }
 
 export default withAuth(DashboardContent);
-

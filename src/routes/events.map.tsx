@@ -53,9 +53,7 @@ export default function EventsMapPage() {
           {mapView === "cluster" ? (
             <div className="h-[calc(100vh-200px)] min-h-[600px]">
               <Suspense fallback={<MapSkeleton className="h-full w-full min-h-[600px]" />}>
-                <CampusMap
-                  className="h-full w-full"
-                />
+                <CampusMap className="h-full w-full" />
               </Suspense>
             </div>
           ) : (
