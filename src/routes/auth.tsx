@@ -1,3 +1,17 @@
+import {
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  signInSchema,
+  signUpSchema,
+  type SignInFormValues,
+  type SignUpFormValues,
+} from "@/lib/schemas";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -61,6 +75,14 @@ export default function AuthPage() {
   });
 
   const signUpPassword = signUpForm.watch("password");
+  const signUpFirstName = signUpForm.watch("firstName");
+  const signUpLastName = signUpForm.watch("lastName");
+  const signUpEmail = signUpForm.watch("email");
+
+  const passwordResult = getPasswordStrength(
+    signUpPassword,
+    [signUpFirstName, signUpLastName, signUpEmail].filter(Boolean),
+  );
 
   function switchMode(nextMode: "signin" | "signup") {
     setMode(nextMode);
@@ -383,7 +405,14 @@ export default function AuthPage() {
                             {...field}
                           />
                         </FormControl>
-                        {signUpPassword && <PasswordStrengthMeter password={signUpPassword} />}
+                        {signUpPassword && (
+                          <PasswordStrengthMeter
+                            password={signUpPassword}
+                            userInputs={[signUpFirstName, signUpLastName, signUpEmail].filter(
+                              Boolean,
+                            )}
+                          />
+                        )}
                         <FormMessage />
                       </FormItem>
                     )}
@@ -445,9 +474,13 @@ export default function AuthPage() {
                   {captchaToken && <p className="text-green-600 text-sm">CAPTCHA verified</p>}
                   <Button
                     type="submit"
+
                     disabled={
-                      loading || !captchaToken || getPasswordStrength(signUpPassword) === "weak"
-                    }
+  loading ||
+  !captchaToken ||
+  passwordResult.score < 3
+}
+
                     variant="primary"
                     className="w-full bg-black text-cream hover:bg-black/90 cursor-pointer shadow-[3px_3px_0_0_var(--color-ink)]"
                   >
