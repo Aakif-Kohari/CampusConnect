@@ -202,9 +202,6 @@ export default defineConfig({
   },
   build: {
     target: "esnext",
-    chunkSizeWarningLimit: 1000,
-  },
-  build: {
     // Raises warning threshold (optional, e.g. set to 1000kB / 1MB)
     chunkSizeWarningLimit: 1000,
     // Bundler options for chunking

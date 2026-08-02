@@ -8,7 +8,7 @@ import { Joyride } from "react-joyride";
 import { Footer } from "./Footer";
 import { Navbar } from "./Navbar";
 import { BugReportWidget } from "@/components/BugReportWidget";
-import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { AutoBreadcrumbs } from "@/components/ui/AutoBreadcrumbs";
 
 export function SiteShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
@@ -167,7 +167,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
         </div>
       )}
       <main id="main-content" tabIndex={-1} className="flex-1 pb-16 md:pb-0">
-        <Breadcrumbs />
+        <AutoBreadcrumbs />
         {children}
       </main>
       <Footer />

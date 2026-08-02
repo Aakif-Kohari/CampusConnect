@@ -7,7 +7,7 @@ import { ThemeToggle } from "../ThemeToggle";
 import { NavbarNotificationDropdown } from "./NavbarNotificationDropdown";
 import { UserAvatarWidget } from "./UserAvatarWidget";
 
-import { Menu, X, WifiOff } from "lucide-react";
+import { Menu, X, WifiOff, Bookmark } from "lucide-react";
 import { useAuthHydration } from "@/hooks/useAuthHydration";
 import { ProfileHeaderSkeleton } from "@/components/ProfileHeaderSkeleton";
 import {
@@ -36,7 +36,10 @@ const landingLinks = [
 ] as const;
 
 export function Navbar() {
-  const { user } = useAuthHydration();
+  const { user, isInitializing } = useAuthHydration();
+  const handleSignOut = () => {
+    // TODO: wire to actual sign out
+  };
   const location = useLocation();
   const { t, i18n } = useTranslation();
   const currentPath = location.pathname;
