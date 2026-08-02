@@ -16,6 +16,7 @@ export default tseslint.config(
   {
     ignores: [
       "dist",
+      "dist-events",
       ".output",
       ".vinxi",
       "supabase/functions",
@@ -47,6 +48,12 @@ export default tseslint.config(
             'Import icons individually, e.g. `import { ChevronDown } from "lucide-react"`. A wildcard import (`import * as Icons from "lucide-react"`) pulls the entire icon library into the bundle and defeats tree-shaking.',
         },
       ],
+    },
+  },
+  {
+    files: ["graphql/**/*.{ts,tsx}", "services/**/*.{ts,tsx}"],
+    rules: {
+      "no-console": ["error", { allow: ["warn", "error"] }],
     },
   },
   {

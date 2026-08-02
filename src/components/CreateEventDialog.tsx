@@ -1,16 +1,39 @@
 import { useState, useEffect, useRef } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch } from "react-hook-form";
-import { useMutation } from "@/hooks/useReactQueryReplacement";
+import { useMutation, useQuery } from "@/hooks/useReactQueryReplacement";
 import { useUndoableState } from "@/hooks/useUndoableState";
-import { Plus, MapPin, CalendarIcon } from "lucide-react";
+import {
+  Plus,
+  MapPin,
+  CalendarIcon,
+  ChevronLeft,
+  ChevronRight,
+  Check,
+  X,
+  WifiOff,
+} from "lucide-react";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
-import { format } from "date-fns";
 import type { DateRange } from "react-day-picker";
 
+import { format } from "date-fns";
 import { createClient } from "@/lib/supabase/client";
-import { eventFormSchema, TITLE_MAX_LENGTH, type EventFormValues } from "@/lib/eventUtils";
+import {
+  eventFormSchema,
+  TITLE_MAX_LENGTH,
+  hasDraftContent,
+  eventFormToDbPayload,
+  parseFlyerDate,
+  applyDateRangeSelection,
+  updateTimeInDate,
+  addFaq,
+  removeFaq,
+  updateFaq,
+  type EventFormValues,
+} from "@/lib/eventUtils";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { queueOfflineEvent } from "@/lib/offlineSync";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,6 +54,13 @@ import {
   FormControl,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -44,11 +74,12 @@ const STEPS = [
   { label: "Details", fields: ["title", "description"] as const },
   { label: "Logistics", fields: ["location", "startDate", "endDate"] as const },
   { label: "Media", fields: [] as const },
+  { label: "Review", fields: [] as const },
 ] as const;
 
 const STEP_FIELDS = STEPS.map((s) => s.fields as unknown as (keyof EventFormValues)[]);
 
-type Step = 0 | 1 | 2;
+type Step = 0 | 1 | 2 | 3;
 
 // Define an extended interface locally to handle the extra location field safely
 interface LocalEventFormValues extends EventFormValues {
@@ -56,29 +87,21 @@ interface LocalEventFormValues extends EventFormValues {
   requiresApproval?: boolean;
 }
 
-const defaultValues: EventFormValues = {
+const defaultValues: LocalEventFormValues = {
   title: "",
   description: "",
+  category: "",
   location: "",
   startDate: "",
   endDate: "",
   requiresApproval: false,
+  isPrivate: false,
+  tags: [],
+  faqs: [],
 };
 
 const DRAFT_KEY = "event_draft";
 const DRAFT_AUTOSAVE_INTERVAL_MS = 5000;
-
-// Only worth saving/restoring a draft if the user actually typed something.
-function hasDraftContent(values: EventFormValues): boolean {
-  return Boolean(
-    values.title?.trim() ||
-    values.description?.trim() ||
-    values.location?.trim() ||
-    values.startDate ||
-    values.endDate ||
-    (values.faqs && values.faqs.length > 0),
-  );
-}
 
 export function CreateEventDialog({
   user,
@@ -92,6 +115,25 @@ export function CreateEventDialog({
   const [step, setStep] = useState<Step>(0);
   const [clubId, setClubId] = useState<string | null>(null);
   const supabase = createClient();
+  const isOnline = useOnlineStatus();
+
+  // Issue #2082: Strip time to block past dates properly without timezone bugs
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ["eventCategories"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("event_categories")
+        .select("id, name")
+        .order("display_order", { ascending: true })
+        .order("name", { ascending: true });
+      if (error) throw error;
+      return data as { id: string; name: string }[];
+    },
+    staleTime: 1000 * 60 * 30,
+  });
 
   useEffect(() => {
     if (!user) return;
@@ -108,11 +150,14 @@ export function CreateEventDialog({
       });
   }, [user]);
 
-  const form = useForm<EventFormValues>({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const form = useForm<any>({
     resolver: zodResolver(eventFormSchema),
     defaultValues,
     mode: "onBlur",
   });
+
+  const control = form.control as never;
 
   const isUndoingRedoingRef = useRef(false);
   const {
@@ -221,29 +266,44 @@ export function CreateEventDialog({
         throw new Error("You must be logged in to create an event.");
       }
 
-      const startDateIso = new Date(values.startDate).toISOString();
-      const endDateIso = new Date(values.endDate).toISOString();
+      const payload = eventFormToDbPayload(values, user.id, clubId);
 
-      const { error } = await supabase.from("events").insert({
-        title: values.title.trim(),
-        description: values.description.trim(),
-        location: values.location?.trim() || null,
-        start_date: startDateIso,
-        end_date: endDateIso,
-        // Kept in sync with start_date so existing views that still
-        // read event_date (e.g. EventCard, event ordering) keep working.
-        event_date: startDateIso,
-        created_by: user.id,
-        club_id: clubId,
-        requires_approval: values.requiresApproval || false,
-      });
+      // If user is currently offline, queue in IndexedDB & Background Sync immediately
+      if (!navigator.onLine) {
+        await queueOfflineEvent(payload);
+        return { isOffline: true };
+      }
 
-      if (error) {
-        throw new Error(error.message);
+      try {
+        const { error } = await supabase.from("events").insert(payload);
+        if (error) {
+          throw new Error(error.message);
+        }
+        return { isOffline: false };
+      } catch (err: unknown) {
+        const isNetworkError =
+          !navigator.onLine ||
+          (err instanceof Error &&
+            (err.message.includes("Failed to fetch") ||
+              err.message.includes("NetworkError") ||
+              err.message.includes("network")));
+
+        if (isNetworkError) {
+          await queueOfflineEvent(payload);
+          return { isOffline: true };
+        }
+        throw err;
       }
     },
-    onSuccess: () => {
-      toast.success("Event created!");
+    onSuccess: (data) => {
+      if (data?.isOffline) {
+        toast.info(
+          "Event saved offline! It will sync automatically when connectivity is restored.",
+          { duration: 6000 },
+        );
+      } else {
+        toast.success("Event created!");
+      }
       window.dispatchEvent(new Event("refetchEvents"));
       try {
         window.localStorage.removeItem(DRAFT_KEY);
@@ -268,14 +328,10 @@ export function CreateEventDialog({
     if (data.title) form.setValue("title", data.title, { shouldValidate: true });
     if (data.description) form.setValue("description", data.description, { shouldValidate: true });
     if (data.date) {
-      try {
-        const d = new Date(data.date);
-        if (!isNaN(d.getTime())) {
-          form.setValue("startDate", `${format(d, "yyyy-MM-dd")}T12:00`, { shouldValidate: true });
-          form.setValue("endDate", `${format(d, "yyyy-MM-dd")}T14:00`, { shouldValidate: true });
-        }
-      } catch (e) {
-        console.error("Failed to parse date from flyer", e);
+      const parsed = parseFlyerDate(data.date);
+      if (parsed) {
+        form.setValue("startDate", parsed.startDate, { shouldValidate: true });
+        form.setValue("endDate", parsed.endDate, { shouldValidate: true });
       }
     }
   };
@@ -294,29 +350,9 @@ export function CreateEventDialog({
     : undefined;
 
   const handleSelect = (range: DateRange | undefined) => {
-    if (!range) {
-      form.setValue("startDate", "", { shouldValidate: true });
-      form.setValue("endDate", "", { shouldValidate: true });
-      return;
-    }
-
-    if (range.from) {
-      const existingStartTime =
-        startDateStr && startDateStr.includes("T") ? startDateStr.split("T")[1] : "00:00";
-      form.setValue("startDate", `${format(range.from, "yyyy-MM-dd")}T${existingStartTime}`, {
-        shouldValidate: true,
-      });
-    }
-
-    if (range.to) {
-      const existingEndTime =
-        endDateStr && endDateStr.includes("T") ? endDateStr.split("T")[1] : "23:59";
-      form.setValue("endDate", `${format(range.to, "yyyy-MM-dd")}T${existingEndTime}`, {
-        shouldValidate: true,
-      });
-    } else {
-      form.setValue("endDate", "", { shouldValidate: true });
-    }
+    const { startDate, endDate } = applyDateRangeSelection(range, startDateStr, endDateStr);
+    form.setValue("startDate", startDate, { shouldValidate: true });
+    form.setValue("endDate", endDate, { shouldValidate: true });
   };
 
   return (
@@ -369,7 +405,15 @@ export function CreateEventDialog({
       </DialogTrigger>
       <DialogContent className="neu-border neu-shadow bg-cream sm:max-w-md text-black">
         <DialogHeader>
-          <DialogTitle className="text-black">Create a new event</DialogTitle>
+          <div className="flex items-center justify-between gap-2">
+            <DialogTitle className="text-black">Create a new event</DialogTitle>
+            {!isOnline && (
+              <div className="neu-border flex items-center gap-1.5 bg-amber-200 px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-black">
+                <WifiOff className="h-3 w-3 shrink-0" />
+                <span>Offline Mode</span>
+              </div>
+            )}
+          </div>
           <DialogDescription className="text-black/60">
             Step {step + 1} of {STEPS.length} — {STEPS[step].label}
           </DialogDescription>
@@ -410,7 +454,7 @@ export function CreateEventDialog({
               <>
                 <FlyerUploader onDataExtracted={handleDataExtracted} />
                 <FormField
-                  control={form.control}
+                  control={control}
                   name="title"
                   render={({ field }) => (
                     <FormItem>
@@ -427,7 +471,7 @@ export function CreateEventDialog({
                   )}
                 />
                 <FormField
-                  control={form.control}
+                  control={control}
                   name="description"
                   render={({ field }) => (
                     <FormItem>
@@ -440,7 +484,31 @@ export function CreateEventDialog({
                   )}
                 />
                 <FormField
-                  control={form.control}
+                  control={control}
+                  name="category"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel required>Category</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a category" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {categories.map((cat) => (
+                            <SelectItem key={cat.id} value={cat.id}>
+                              {cat.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={control}
                   name="tags"
                   render={({ field }) => (
                     <FormItem>
@@ -459,7 +527,7 @@ export function CreateEventDialog({
                   )}
                 />
                 <FormField
-                  control={form.control}
+                  control={control}
                   name="isPrivate"
                   render={({ field }) => (
                     <FormItem className="neu-border flex items-center justify-between bg-white p-3 shadow-none">
@@ -489,7 +557,7 @@ export function CreateEventDialog({
             {step === 1 && (
               <>
                 <FormField
-                  control={form.control}
+                  control={control}
                   name="location"
                   render={({ field }) => (
                     <FormItem>
@@ -566,15 +634,22 @@ export function CreateEventDialog({
                         selected={dateRange}
                         onSelect={handleSelect}
                         numberOfMonths={2}
+                        disabled={{ before: today }}
+                        modifiersClassNames={{
+                          selected: "bg-blue-600 text-white font-bold",
+                          range_start: "rounded-l-md bg-blue-600 text-white",
+                          range_end: "rounded-r-md bg-blue-600 text-white",
+                          range_middle: "bg-blue-100 text-blue-900 rounded-none",
+                        }}
                       />
                     </PopoverContent>
                   </Popover>
-                  {form.formState.errors.startDate && (
+                  {typeof form.formState.errors.startDate?.message === "string" && (
                     <p className="text-sm font-medium text-destructive">
                       {form.formState.errors.startDate.message}
                     </p>
                   )}
-                  {form.formState.errors.endDate && (
+                  {typeof form.formState.errors.endDate?.message === "string" && (
                     <p className="text-sm font-medium text-destructive">
                       {form.formState.errors.endDate.message}
                     </p>
@@ -592,8 +667,9 @@ export function CreateEventDialog({
                       onChange={(e) => {
                         const time = e.target.value;
                         if (!startDateStr) return;
-                        const datePart = startDateStr.split("T")[0];
-                        form.setValue("startDate", `${datePart}T${time}`, { shouldValidate: true });
+                        form.setValue("startDate", updateTimeInDate(startDateStr, time), {
+                          shouldValidate: true,
+                        });
                       }}
                       disabled={!startDateStr}
                     />
@@ -608,8 +684,9 @@ export function CreateEventDialog({
                       onChange={(e) => {
                         const time = e.target.value;
                         if (!endDateStr) return;
-                        const datePart = endDateStr.split("T")[0];
-                        form.setValue("endDate", `${datePart}T${time}`, { shouldValidate: true });
+                        form.setValue("endDate", updateTimeInDate(endDateStr, time), {
+                          shouldValidate: true,
+                        });
                       }}
                       disabled={!endDateStr}
                     />
@@ -622,7 +699,7 @@ export function CreateEventDialog({
             {step === 2 && (
               <div className="space-y-6">
                 <FormField
-                  control={form.control}
+                  control={control}
                   name="banner"
                   render={({ field }) => (
                     <FormItem>
@@ -648,7 +725,7 @@ export function CreateEventDialog({
                 />
 
                 <FormField
-                  control={form.control}
+                  control={control}
                   name="capacity"
                   render={({ field }) => (
                     <FormItem>
@@ -667,7 +744,7 @@ export function CreateEventDialog({
                 <p className="font-mono text-xs font-bold text-black/50 uppercase">
                   Add frequently asked questions (optional)
                 </p>
-                {form.watch("faqs")?.map((_faq, index) => (
+                {form.watch("faqs")?.map((_faq: unknown, index: number) => (
                   <div key={index} className="neu-border space-y-2 bg-white p-3">
                     <div className="flex items-center justify-between">
                       <span className="font-mono text-xs font-bold text-black/40">
@@ -677,10 +754,7 @@ export function CreateEventDialog({
                         type="button"
                         onClick={() => {
                           const current = form.getValues("faqs") || [];
-                          form.setValue(
-                            "faqs",
-                            current.filter((_: unknown, i: number) => i !== index),
-                          );
+                          form.setValue("faqs", removeFaq(current, index));
                         }}
                         className="text-destructive hover:text-destructive/80"
                       >
@@ -692,9 +766,10 @@ export function CreateEventDialog({
                       value={form.watch(`faqs.${index}.question`) || ""}
                       onChange={(e) => {
                         const current = form.getValues("faqs") || [];
-                        const updated = [...current];
-                        updated[index] = { ...updated[index], question: e.target.value };
-                        form.setValue("faqs", updated);
+                        form.setValue(
+                          "faqs",
+                          updateFaq(current, index, "question", e.target.value),
+                        );
                       }}
                       className="font-mono text-sm"
                     />
@@ -703,9 +778,7 @@ export function CreateEventDialog({
                       value={form.watch(`faqs.${index}.answer`) || ""}
                       onChange={(e) => {
                         const current = form.getValues("faqs") || [];
-                        const updated = [...current];
-                        updated[index] = { ...updated[index], answer: e.target.value };
-                        form.setValue("faqs", updated);
+                        form.setValue("faqs", updateFaq(current, index, "answer", e.target.value));
                       }}
                       rows={2}
                       className="font-mono text-sm"
@@ -717,7 +790,7 @@ export function CreateEventDialog({
                   variant="outline"
                   onClick={() => {
                     const current = form.getValues("faqs") || [];
-                    form.setValue("faqs", [...current, { question: "", answer: "" }]);
+                    form.setValue("faqs", addFaq(current));
                   }}
                   className="w-full border-dashed font-mono text-xs font-bold"
                 >
@@ -726,25 +799,68 @@ export function CreateEventDialog({
               </div>
             )}
 
-            <FormField
-              control={form.control}
-              name="requiresApproval"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border-2 border-black bg-white p-4 shadow-sm">
-                  <FormControl>
-                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel className="font-bold cursor-pointer">
-                      Requires Manual Approval
-                    </FormLabel>
-                    <p className="text-xs text-black/50">
-                      Organizers must manually approve attendee RSVPs.
+            {/* Step 4 — Review (confirm) */}
+            {step === 3 && (
+              <>
+                <div className="neu-border space-y-3 bg-white p-4 font-mono text-sm">
+                  <p className="font-bold uppercase text-black/50 text-xs">Review your event</p>
+                  <div>
+                    <p className="text-xs text-black/40">Title</p>
+                    <p className="font-bold">{form.getValues("title")}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-black/40">Description</p>
+                    <p className="text-black/80">{form.getValues("description")}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-black/40">Category</p>
+                    <p className="font-bold">
+                      {categories.find((c) => c.id === form.getValues("category"))?.name || "—"}
                     </p>
                   </div>
-                </FormItem>
-              )}
-            />
+                  <div>
+                    <p className="text-xs text-black/40">Location</p>
+                    <p>{form.getValues("location") || "—"}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <p className="text-xs text-black/40">Start</p>
+                      <p>{startDateStr ? format(parsedStart!, "MMM dd, y HH:mm") : "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-black/40">End</p>
+                      <p>{endDateStr ? format(parsedEnd!, "MMM dd, y HH:mm") : "—"}</p>
+                    </div>
+                  </div>
+                  {form.getValues("faqs") && form.getValues("faqs").length > 0 && (
+                    <div>
+                      <p className="text-xs text-black/40">FAQs</p>
+                      <p className="font-bold">{form.getValues("faqs").length} question(s)</p>
+                    </div>
+                  )}
+                </div>
+
+                <FormField
+                  control={control}
+                  name="requiresApproval"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border-2 border-black bg-white p-4 shadow-sm">
+                      <FormControl>
+                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel className="font-bold cursor-pointer">
+                          Requires Manual Approval
+                        </FormLabel>
+                        <p className="text-xs text-black/50">
+                          Organizers must manually approve attendee RSVPs.
+                        </p>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              </>
+            )}
 
             <DialogFooter className="pt-2 flex gap-2">
               {step > 0 && (

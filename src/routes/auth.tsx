@@ -9,14 +9,20 @@ import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { PasswordStrengthMeter, getPasswordStrength } from "@/components/ui/password-strength";
 import { ArrowLeft } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useExperimentStore } from "@/store/useExperimentStore";
 import { sendVerificationEmail } from "@/lib/email/service";
 import { getFriendlyAuthError } from "@/utils/authErrors";
+import { PasskeyLoginButton } from "@/components/PasskeyLoginButton";
+import { useWebAuthn } from "@/hooks/useWebAuthn";
+import { Turnstile } from "@marsidev/react-turnstile";
+import { AuthSocialProviderGrid } from "@/components/auth/AuthSocialProviderGrid";
+import { PasskeyAuthModal } from "@/components/auth/PasskeyAuthModal";
 import {
   signInSchema,
-  signUpSchema,
   type SignInFormValues,
+  signUpSchema,
   type SignUpFormValues,
 } from "@/lib/schemas";
 import {
@@ -31,9 +37,12 @@ import {
 export default function AuthPage() {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [loading, setLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [isPasskeyModalOpen, setIsPasskeyModalOpen] = useState(false);
   const navigate = useNavigate();
   const supabase = createClient();
+  const { registerPasskey } = useWebAuthn();
 
   const signInForm = useForm<SignInFormValues>({
     resolver: zodResolver(signInSchema),
@@ -56,6 +65,7 @@ export default function AuthPage() {
   function switchMode(nextMode: "signin" | "signup") {
     setMode(nextMode);
     setError(null);
+    setCaptchaToken("");
     signInForm.reset();
     signUpForm.reset();
   }
@@ -102,35 +112,44 @@ export default function AuthPage() {
     setError(null);
 
     try {
+      if (!captchaToken) {
+        toast.error("Please complete CAPTCHA verification.");
+        setLoading(false);
+        return;
+      }
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
         options: {
           data: {
+            captcha_token: captchaToken,
             first_name: values.firstName,
             last_name: values.lastName,
             full_name: `${values.firstName} ${values.lastName}`.trim(),
+            newsletter_opt_in: values.newsletterOptIn,
           },
         },
       });
 
       if (signUpError) throw signUpError;
 
-      // Construct verification link & send verification email via Email Service
-      const appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
-      const tokenHash = signUpData?.user?.id || "signup_token";
-      const verificationUrl = `${appUrl}/verify-email?token=${encodeURIComponent(tokenHash)}&type=signup`;
-
-      await sendVerificationEmail({
-        to: values.email,
-        recipientName: `${values.firstName} ${values.lastName}`.trim(),
-        verificationUrl,
-      });
+      toast.success("Account created! A verification link has been sent to your email.");
+      setCaptchaToken("");
+      if (signUpData?.session) {
+        try {
+          const enrolled = await registerPasskey("Passkey");
+          if (enrolled) {
+            toast.success("Passkey registered successfully!");
+            setCaptchaToken("");
+          }
+        } catch (e) {
+          console.error("Passkey enrollment skipped or failed", e);
+        }
+      }
 
       // Track registration A/B variant telemetry
       useExperimentStore.getState().trackRegistration();
 
-      toast.success("Account created! A verification link has been sent to your email.");
       navigate("/dashboard", { replace: true });
     } catch (err: unknown) {
       const message = getFriendlyAuthError(err);
@@ -391,9 +410,44 @@ export default function AuthPage() {
                     )}
                   />
 
+                  <FormField
+                    control={signUpForm.control}
+                    name="newsletterOptIn"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border border-neutral-200 p-4 shadow-[2px_2px_0_0_var(--color-ink)]">
+                        <FormControl>
+                          <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel className="font-bold text-black cursor-pointer">
+                            Subscribe to newsletter
+                          </FormLabel>
+                          <p className="text-sm text-neutral-500">
+                            Get updates on campus events and club activities.
+                          </p>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                  <Turnstile
+                    siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
+                    onSuccess={(token) => setCaptchaToken(token)}
+                    onExpire={() => setCaptchaToken("")}
+                    onError={() => setCaptchaToken("")}
+                  />
+                  <Turnstile
+                    siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
+                    onSuccess={(token) => setCaptchaToken(token)}
+                    onExpire={() => setCaptchaToken("")}
+                    onError={() => setCaptchaToken("")}
+                  />
+
+                  {captchaToken && <p className="text-green-600 text-sm">CAPTCHA verified</p>}
                   <Button
                     type="submit"
-                    disabled={loading || getPasswordStrength(signUpPassword) === "weak"}
+                    disabled={
+                      loading || !captchaToken || getPasswordStrength(signUpPassword) === "weak"
+                    }
                     variant="primary"
                     className="w-full bg-black text-cream hover:bg-black/90 cursor-pointer shadow-[3px_3px_0_0_var(--color-ink)]"
                   >
@@ -405,18 +459,33 @@ export default function AuthPage() {
 
             <div className="my-6 flex items-center gap-3">
               <div className="h-[2px] flex-1 bg-black" />
-              <span className="eyebrow font-bold text-black">or</span>
+              <span className="eyebrow font-bold text-black">or sign in with</span>
               <div className="h-[2px] flex-1 bg-black" />
             </div>
 
-            <Button
-              onClick={handleGoogleSignIn}
-              disabled={loading}
-              variant="outline"
-              className="w-full bg-white border-2 border-black hover:bg-gray-100 cursor-pointer shadow-[3px_3px_0_0_var(--color-ink)]"
-            >
-              Continue with Google
-            </Button>
+            <AuthSocialProviderGrid
+              onPasskeyClick={() => setIsPasskeyModalOpen(true)}
+              onMagicLinkSent={() => toast.info("Check your email to complete login.")}
+            />
+
+            <PasskeyAuthModal
+              isOpen={isPasskeyModalOpen}
+              onClose={() => setIsPasskeyModalOpen(false)}
+              onSuccess={() => navigate("/dashboard", { replace: true })}
+            />
+
+            {mode === "signin" && (
+              <div className="mt-3">
+                <PasskeyLoginButton
+                  disabled={loading}
+                  onSuccess={() => navigate("/dashboard", { replace: true })}
+                  onError={(msg) => {
+                    setError(msg);
+                    toast.error(msg);
+                  }}
+                />
+              </div>
+            )}
 
             <p className="mt-6 text-center font-mono text-xs text-black">
               {mode === "signin" ? "New here?" : "Already have an account?"}{" "}

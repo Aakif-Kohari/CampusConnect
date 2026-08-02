@@ -33,10 +33,10 @@ describe("withAuth HOC", () => {
     render(
       <MemoryRouter>
         <Wrapped />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     const content = await screen.findByText("Protected Content for test@campus.edu");
-    expect(content).toBeInPrimary();
+    expect(content).toBeInTheDocument();
   });
 });
