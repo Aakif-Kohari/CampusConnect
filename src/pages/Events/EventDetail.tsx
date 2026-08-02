@@ -12,6 +12,7 @@ import LazyHydrate from "@/components/LazyHydrate";
 import { User } from "@supabase/supabase-js";
 import { useEmailVerification } from "@/hooks/useEmailVerification";
 import { useBreadcrumbs } from "@/components/BreadcrumbsContext";
+import { triggerConfetti } from "@/utils/confetti";
 // Removed SiteShell import
 import { SkeletonEventDetails } from "@/components/events/SkeletonEventDetails";
 import { MapSkeleton } from "@/components/ui/MapSkeleton";
@@ -801,9 +802,12 @@ export default function EventDetailsPage() {
         toast.error((err?.message as string) || "Failed to update RSVP. Please try again.");
       }
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (_data, variables) => {
       // Refetch to ensure server state matches
       refetch();
+      if (!variables.hasRsvpd) {
+        triggerConfetti();
+      }
       // Reserve selected seats after successful RSVP
       if (hasSeats && selectedSeats.length > 0) {
         selectedSeats.forEach((seatId) => {
