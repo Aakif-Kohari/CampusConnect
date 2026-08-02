@@ -1,6 +1,6 @@
 import { SiteShell } from "@/components/site/SiteShell";
 import { PredictiveTurnout } from "@/components/events/PredictiveTurnout";
-import { LiveQA } from "@/components/events/LiveQA";
+// import { LiveQA } from "@/components/events/LiveQA";
 import { useEventViewerCount } from "@/hooks/useEventViewerCount";
 import { Link, useParams } from "react-router-dom";
 import { useQuery, useMutation, setQueryData } from "@/hooks/useReactQueryReplacement";
@@ -1703,7 +1703,7 @@ export default function EventDetailsPage() {
 
             {/* Live Q&A */}
             <div className="mt-8">
-              <LiveQA eventId={eventId} userId={user?.id} isOrganizer={isOrganizer} />
+              {/* <LiveQA eventId={eventId} userId={user?.id} isOrganizer={isOrganizer} /> */}
             </div>
             {/* Description */}
             <div className="mt-8 flex flex-col lg:flex-row gap-8">

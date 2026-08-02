@@ -99,9 +99,6 @@ export function SiteShell({ children }: { children: ReactNode }) {
   const JoyrideComponent = Joyride as unknown as React.ComponentType<Record<string, unknown>>;
   const isEmailUnverified = !!user && !emailVerified;
 
-  // Render Joyride dynamic wrapper component safely
-  const JoyrideComponent = Joyride as unknown as React.ComponentType<Record<string, unknown>>;
-
   return (
     <div className="college-shell flex min-h-screen flex-col bg-cream text-black transition-colors dark:bg-brand-gray-base-900 dark:text-cream">
       <JoyrideComponent

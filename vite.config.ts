@@ -95,7 +95,7 @@ export default defineConfig({
   // Storybook builds — it precaches Storybook's own 3MB+ manager bundle and
   // fails on the default 2MiB workbox limit.
   plugins: [
-    lucideImportOptimizer(),
+    // lucideImportOptimizer(),
     viteReact(),
     tailwindcss(),
     ...(process.env.STORYBOOK === "true"
