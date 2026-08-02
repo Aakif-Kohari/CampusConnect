@@ -299,6 +299,28 @@ export default function EventDetailsPage() {
     supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
   }, [supabase]);
 
+  // Listen for Service Worker background sync messages for offline RSVP reconciliation
+  useEffect(() => {
+    if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+
+    const handleSwMessage = (event: MessageEvent) => {
+      if (event.data?.type === "OFFLINE_RSVP_SYNC_SUCCESS") {
+        toast.success("Your offline RSVP was synchronized successfully!");
+        refetch();
+      } else if (event.data?.type === "OFFLINE_RSVP_SYNC_ERROR") {
+        toast.error(
+          `Offline RSVP sync failed: ${event.data.reason || "Event capacity reached or conflict occurred."}`,
+        );
+        refetch(); // Refetch to reset optimistic UI to server ground truth
+      }
+    }
+
+    navigator.serviceWorker.addEventListener("message", handleSwMessage);
+    return () => {
+      navigator.serviceWorker.removeEventListener("message", handleSwMessage);
+    };
+  }, [refetch]);
+
   // Gallery States and Queries
   interface UploadingFile {
     id: string;
