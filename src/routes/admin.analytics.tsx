@@ -1,24 +1,24 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, lazy, Suspense } from "react";
 import { Navigate, Link } from "react-router-dom";
 import type { User } from "@supabase/supabase-js";
 import { ShieldAlert, BarChart3, Users, Calendar, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-import { subDays, format, differenceInDays } from "date-fns";
-import type { DateRange } from "react-day-picker";
 
 import { SiteShell } from "@/components/site/SiteShell";
 import { createClient } from "@/lib/supabase/client";
 import { useQuery } from "@/hooks/useReactQueryReplacement";
 import { DateRangePicker } from "@/components/ui/DateRangePicker";
+
+const AdminAnalyticsChart = lazy(() => import("@/components/AdminAnalyticsChart"));
+
+function ChartSkeleton() {
+  return (
+    <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-slate-50/50 p-6 dark:bg-slate-900/50">
+      <div className="h-6 w-3/4 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
+      <div className="h-48 w-full animate-pulse rounded bg-slate-200/80 dark:bg-slate-800/80" />
+    </div>
+  );
+}
 
 interface ProfileRole {
   role: string | null;
@@ -230,55 +230,9 @@ export default function AnalyticsAdmin() {
             </p>
 
             <div className="h-96 w-full">
-              {dauData.length === 0 ? (
-                <div className="flex h-full items-center justify-center font-mono text-sm text-gray-400">
-                  No active session data recorded yet for the selected period.
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={dauData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="dauGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#A3E635" stopOpacity={0.8} />
-                        <stop offset="95%" stopColor="#A3E635" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis
-                      dataKey="activity_date"
-                      stroke="#000000"
-                      fontSize={10}
-                      fontFamily="monospace"
-                      tickFormatter={(date) => {
-                        try {
-                          const parts = date.split("-");
-                          return `${parts[1]}/${parts[2]}`;
-                        } catch {
-                          return date;
-                        }
-                      }}
-                    />
-                    <YAxis stroke="#000000" fontSize={10} fontFamily="monospace" />
-                    <Tooltip
-                      contentStyle={{
-                        border: "2px solid #000000",
-                        boxShadow: "4px 4px 0px 0px #000000",
-                        fontFamily: "monospace",
-                        fontSize: "12px",
-                      }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="daily_active_users"
-                      name="Active Users"
-                      stroke="#000000"
-                      strokeWidth={2}
-                      fillOpacity={1}
-                      fill="url(#dauGradient)"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              )}
+              <Suspense fallback={<ChartSkeleton />}>
+                <AdminAnalyticsChart dauData={dauData} />
+              </Suspense>
             </div>
           </div>
         </div>

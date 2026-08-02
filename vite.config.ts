@@ -201,16 +201,28 @@ export default defineConfig({
   build: {
     target: "esnext",
     chunkSizeWarningLimit: 1000,
-  },
-  build: {
-    // Raises warning threshold (optional, e.g. set to 1000kB / 1MB)
-    chunkSizeWarningLimit: 1000,
-    // Bundler options for chunking
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("node_modules")) {
+            if (id.includes("recharts") || id.includes("echarts") || id.includes("chart.js")) {
+              return "chunk-admin-charts";
+            }
+            if (id.includes("react") || id.includes("react-dom")) {
+              return "vendor-react";
+            }
+            return "vendor";
+          }
+        },
+      },
+    },
     rolldownOptions: {
       output: {
         manualChunks(id) {
-          // Separates third-party packages from node_modules into vendor chunks
           if (id.includes("node_modules")) {
+            if (id.includes("recharts") || id.includes("echarts") || id.includes("chart.js")) {
+              return "chunk-admin-charts";
+            }
             if (id.includes("react") || id.includes("react-dom")) {
               return "vendor-react";
             }
@@ -221,4 +233,3 @@ export default defineConfig({
     },
   },
 });
-plugins: [react(), svgr()];
