@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./analytics-fixture";
 import AxeBuilder from "@axe-core/playwright";
 
 test.describe("Automated Accessibility (a11y) Audits", () => {

@@ -6,6 +6,9 @@ import {
   publishNotification,
   publishMentionNotification,
   publishEventUpdateNotification,
+  createProfileLoader,
+  createClubLoader,
+  createCommentsByPostLoader,
 } from "./resolvers";
 import { authDirectiveTypeDefs, authDirectiveTransformer } from "./directives/authDirective";
 import { createClient } from "../src/lib/supabase/client";
@@ -63,6 +66,17 @@ export const yoga = createYoga({
       }
     }
 
+    const profileLoader = createProfileLoader();
+    const clubLoader = createClubLoader();
+    const commentsByPostLoader = createCommentsByPostLoader();
+
+    return {
+      user,
+      profileLoader,
+      clubLoader,
+      commentsByPostLoader,
+    };
+
     return { user, request };
   },
   plugins: [
@@ -71,8 +85,6 @@ export const yoga = createYoga({
     createGraphQLSecurityPlugin({ maxDepth: 5, rateLimit: { maxMutations: 10, windowMs: 60000 } }),
   ],
 });
-
-
 
 /**
  * Graceful shutdown: release all pooled Postgres connections when the

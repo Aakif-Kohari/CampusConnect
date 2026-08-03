@@ -40,6 +40,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { CollaborativeEditor } from "@/components/notes/CollaborativeEditor";
 import { createClubProfileQueryOptions } from "@/lib/clubProfileQuery";
 import { ClubHeader } from "@/components/Clubs/ClubHeader";
 import { ClubJobsSection } from "@/components/Clubs/ClubJobsSection";
@@ -659,6 +660,23 @@ export default function ClubProfile() {
                     </div>
                   )}
 
+                  {user && membership && membership.status === "approved" && (
+                    <div className="mt-12 max-w-2xl">
+                      <h3 className="font-display text-xl font-bold text-indigo-900 uppercase tracking-tight mb-4">
+                        Collaborative Group Notes
+                      </h3>
+                      <div className="neu-border bg-white p-6">
+                        <CollaborativeEditor
+                          groupId={club.id}
+                          user={{
+                            id: user.id,
+                            name: user.user_metadata?.full_name || user.email || "Member",
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   {/* Members section below the description */}
                   <div className="mt-8 max-w-2xl">
                     <h3 className="font-display text-lg font-bold text-blue-900">Members</h3>
@@ -779,7 +797,10 @@ export default function ClubProfile() {
                       disabled={bookmarkPending}
                       className="neu-border neu-press inline-flex items-center gap-2 bg-white px-5 py-2 font-mono text-xs font-bold uppercase tracking-wider hover:bg-lime disabled:opacity-50"
                     >
-                      <Bookmark className="h-3.5 w-3.5" fill={isClubBookmarked ? "black" : "none"} />
+                      <Bookmark
+                        className="h-3.5 w-3.5"
+                        fill={isClubBookmarked ? "black" : "none"}
+                      />
                       {isClubBookmarked ? "Bookmarked" : "Bookmark"}
                     </button>
                     <button
@@ -814,8 +835,9 @@ export default function ClubProfile() {
                         Club Newsletter Dispatcher
                       </h3>
                       <p className="mt-2 font-mono text-xs text-gray-600 dark:text-gray-400">
-                        Send a bulk announcement/newsletter to all {memberList.length} members. This will be
-                        processed asynchronously in the background to prevent server timeouts.
+                        Send a bulk announcement/newsletter to all {memberList.length} members. This
+                        will be processed asynchronously in the background to prevent server
+                        timeouts.
                       </p>
 
                       <div className="mt-6 flex flex-wrap items-center gap-4">

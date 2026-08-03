@@ -1,11 +1,9 @@
-import { supabase } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 
 // Utility to convert Base64 string to Uint8Array
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding)
-    .replace(/\-/g, "+")
-    .replace(/_/g, "/");
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
 
   const rawData = window.atob(base64);
   const outputArray = new Uint8Array(rawData.length);
@@ -62,18 +60,17 @@ export async function subscribeToPushNotifications(userId: string): Promise<bool
       throw new Error("Invalid subscription data");
     }
 
+    const supabase = createClient();
     // Save to Supabase
-    const { error } = await supabase
-      .from("push_subscriptions")
-      .upsert(
-        {
-          user_id: userId,
-          endpoint: subscriptionData.endpoint,
-          p256dh: subscriptionData.keys.p256dh,
-          auth: subscriptionData.keys.auth,
-        },
-        { onConflict: "endpoint" }
-      );
+    const { error } = await supabase.from("push_subscriptions").upsert(
+      {
+        user_id: userId,
+        endpoint: subscriptionData.endpoint,
+        p256dh: subscriptionData.keys.p256dh,
+        auth: subscriptionData.keys.auth,
+      },
+      { onConflict: "endpoint" },
+    );
 
     if (error) {
       console.error("Error saving push subscription to Supabase:", error);
@@ -91,7 +88,7 @@ export async function checkSubscriptionStatus(): Promise<boolean> {
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
     return false;
   }
-  
+
   if (Notification.permission !== "granted") {
     return false;
   }
@@ -111,6 +108,7 @@ export async function unsubscribeFromPushNotifications(): Promise<boolean> {
     const subscription = await registration.pushManager.getSubscription();
     if (!subscription) return true;
 
+    const supabase = createClient();
     // Delete from Supabase
     const endpoint = subscription.endpoint;
     await supabase.from("push_subscriptions").delete().eq("endpoint", endpoint);
