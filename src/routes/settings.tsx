@@ -21,6 +21,7 @@ import { useTheme } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 import { OptimizedImage } from "@/components/media/OptimizedImage";
+import { PushNotificationSettings } from "@/components/notifications/PushNotificationSettings";
 
 import type { User } from "@supabase/supabase-js";
 import { useQuery } from "@/hooks/useReactQueryReplacement";
@@ -813,9 +814,19 @@ function SettingsPageContent({ user }: WithAuthProps) {
               </button>
             </div>
           </Panel>
+<<<<<<< HEAD
+          <Panel title="Notifications">
+            {user && <PushNotificationSettings userId={user.id} />}
+            <div className="mt-4 space-y-4">
+              <Toggle label="Email me about upcoming RSVPs" defaultChecked />
+              <Toggle label="Weekly digest of club activity" defaultChecked />
+              <Toggle label="New certificates" />
+            </div>
+=======
 
           <Panel title="Blocked Users">
             <BlockedUsersPanel currentUserId={user.id} />
+>>>>>>> upstream/main
           </Panel>
 
           <Panel title="Passkeys">
