@@ -1,6 +1,6 @@
 import { formatDate } from "../lib/utils";
-import { createFileRoute } from "@tanstack/react-router";
 import { SiteShell } from "@/components/site/SiteShell";
+import { PullToRefresh } from "@/components/PullToRefresh";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState } from "react";
@@ -21,19 +21,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export const Route = createFileRoute("/events")({
-  head: () => ({
-    meta: [
-      { title: "Events — CampusConnect" },
-      {
-        name: "description",
-        content: "Discover and RSVP to workshops, talks, hackathons, and meetups on campus.",
-      },
-    ],
-  }),
-  component: EventsPage,
-});
-
 interface EventItem {
   id: string;
   title: string;
@@ -51,6 +38,10 @@ function EventsPage() {
   const queryClient = useQueryClient();
   const [user, setUser] = useState<User | null>(null);
   const [filter, setFilter] = useState("All");
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
+  const [sortLoaded, setSortLoaded] = useState(true);
+  const [hidePastEvents, setHidePastEvents] = useState(false);
+  const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
 
   useEffect(() => {
     if (!sortLoaded) return;
@@ -69,7 +60,7 @@ function EventsPage() {
     queryFn: async () => {
       if (!debouncedSearchQuery.trim()) return [];
       const { data, error } = await supabase
-        .from("club_analytics_view")
+        .from("events")
         .select("id, title, location")
         .or(`title.ilike.%${debouncedSearchQuery}%,location.ilike.%${debouncedSearchQuery}%`)
         .limit(5);
@@ -81,15 +72,16 @@ function EventsPage() {
       return (data || []).map((event: Record<string, unknown>) => ({
         id: event.id as string,
         title: event.title as string,
-        subtitle: (event.location as string) || undefined,
-        raw: event,
       }));
     },
   });
+
+  useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
   }, [supabase]);
 
-const { data: queryData, isLoading, isFetching, refetch } = useQuery({    queryKey: ["events"],
+  const { data: queryData, isLoading, isFetching, refetch } = useQuery({
+    queryKey: ["events"],
     queryFn: async () => {
       const { data } = await supabase
         .from("events")
@@ -307,7 +299,8 @@ const { data: queryData, isLoading, isFetching, refetch } = useQuery({    queryK
   onRefresh={async () => {
     await refetch();
   }}
->        <section className="border-b-2 border-black bg-sky px-4 py-14 md:px-6">
+>
+        <section className="border-b-2 border-black bg-sky px-4 py-14 md:px-6">
           <div className="mx-auto flex max-w-7xl flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div>
               <div className="flex items-center gap-2 flex-wrap">
@@ -437,6 +430,8 @@ const { data: queryData, isLoading, isFetching, refetch } = useQuery({    queryK
                 <CreateEventDialog user={user} />
               </div>
             </div>
+          </div>
+        </section>
       <section className="border-b-2 border-black bg-sky px-4 py-14 md:px-6">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
@@ -477,6 +472,7 @@ const { data: queryData, isLoading, isFetching, refetch } = useQuery({    queryK
           )}
         </div>
       </section>
+      </PullToRefresh>
     </SiteShell>
   );
 }

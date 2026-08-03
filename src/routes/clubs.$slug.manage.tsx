@@ -5,7 +5,7 @@ import { useQuery, useMutation } from "@/hooks/useReactQueryReplacement";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { User } from "@supabase/supabase-js";
-import { Settings, Users, Calendar } from "lucide-react";
+import type { TablesUpdate } from "@/types/database.types";
 import {
   Settings,
   Users,
@@ -110,7 +110,7 @@ export default function ClubManageRoute() {
       setDescription(club.description || "");
       setBannerUrl(club.banner_url || "");
       setLogoUrl(club.logo_url || "");
-      setVisibility(club.visibility || "public");
+      setVisibility((club.visibility as "public" | "private") || "public");
       setGithubRepoUrl(club.github_repo_url || "");
       const links = (club.social_links || {}) as Record<string, string>;
       setTwitterUrl(links.twitter || "");
@@ -249,7 +249,7 @@ export default function ClubManageRoute() {
           .select(
             "name, description, banner_url, logo_url, promo_video_url, visibility, github_repo_url, social_links, version",
           )
-          .eq("id", club?.id)
+          .eq("id", club!.id)
           .single();
         if (latest) {
           setServerClub(latest);
@@ -274,7 +274,7 @@ export default function ClubManageRoute() {
       if (updates.role && typeof updates.role === "string") {
         setOptimisticRoles((prev) => ({ ...prev, [memberId]: updates.role as string }));
       }
-      const { error } = await supabase.from("club_members").update(updates).eq("id", memberId);
+      const { error } = await supabase.from("club_members").update(updates as TablesUpdate<"club_members">).eq("id", memberId);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -375,7 +375,7 @@ export default function ClubManageRoute() {
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
-                    updateClubMutation.mutate();
+                    updateClubMutation.mutate(false);
                   }}
                   className="space-y-4"
                 >
@@ -567,7 +567,7 @@ export default function ClubManageRoute() {
                       (e: {
                         id: string;
                         title: string;
-                        max_attendees: number;
+                        max_attendees: number | null;
                         event_rsvps: unknown[];
                       }) => (
                         <div

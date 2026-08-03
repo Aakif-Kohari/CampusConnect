@@ -16,7 +16,7 @@ const SKELETON_SIZES: Array<"sm" | "md" | "lg"> = [
   "md", "lg", "sm", "md", "sm", "lg",
   "md", "lg", "sm", "md", "lg", "sm",
 ];
-interface Club {
+export interface Club {
   id: string;
   name: string;
   slug: string;
@@ -49,7 +49,7 @@ export default function ClubsIndex() {
           const { data, error } = await supabase.rpc("search_clubs", {
             search_term: searchQuery,
           });
-          if (!error && data) return data as Club[];
+          if (!error && data) return data as unknown as Club[];
         } catch (e) {
           console.warn("RPC search_clubs failed, falling back to client filter", e);
         }
@@ -60,7 +60,7 @@ export default function ClubsIndex() {
           club_stats(total_members)
         `);
       if (error) throw error;
-      return (data || []) as Club[];
+      return (data || []) as unknown as Club[];
     },
   });
 
@@ -148,7 +148,7 @@ export default function ClubsIndex() {
               <Button
                 key={cat}
                 type="button"
-                variant={activeCategory === cat ? "default" : "outline"}
+                variant={activeCategory === cat ? "primary" : "outline"}
                 onClick={() => setActiveCategory(cat)}
                 className={`font-mono text-xs font-bold uppercase border-2 border-black h-8 px-3 rounded-none transition-all ${
                   activeCategory === cat

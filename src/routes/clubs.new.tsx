@@ -55,7 +55,7 @@ export default function CreateClubWizard() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<ClubWizardFormValues>({
-    resolver: zodResolver(clubFormSchema),
+    resolver: zodResolver(clubFormSchema) as any,
     defaultValues,
     mode: "onBlur",
   });

@@ -5,10 +5,6 @@ import { createClient } from "@/lib/supabase/client";
 import { useState, useEffect } from "react";
 import { ProfileHeaderSkeleton } from "@/components/ProfileHeaderSkeleton";
 
-<<<<<<< HEAD
-function DashboardContent({ user }: WithAuthProps) {
-  const [supabase] = useState(() => createClient());
-=======
 export default function Dashboard() {
   const [supabase] = useState(() => createClient());
   const navigate = useNavigate();
@@ -27,7 +23,6 @@ export default function Dashboard() {
       navigate("/auth", { replace: true });
     }
   }, [user, isAuthLoading, navigate]);
->>>>>>> origin/main
 
   const { data: profile, isLoading: isProfileLoading } = useQuery({
     queryKey: ["profile", user?.id],
@@ -35,7 +30,7 @@ export default function Dashboard() {
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
-        .eq("id", user?.id)
+        .eq("id", user!.id)
         .single();
       if (error) throw error;
       return data;
@@ -45,8 +40,6 @@ export default function Dashboard() {
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
-<<<<<<< HEAD
-=======
 
   const getInitials = (name?: string | null) => {
     if (!name) return "U";
@@ -70,7 +63,6 @@ export default function Dashboard() {
       </SiteShell>
     );
   }
->>>>>>> origin/main
 
   return (
     <SiteShell>
@@ -189,8 +181,3 @@ export default function Dashboard() {
     </SiteShell>
   );
 }
-
-<<<<<<< HEAD
-export default withAuth(DashboardContent);
-=======
->>>>>>> origin/main

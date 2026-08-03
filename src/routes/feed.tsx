@@ -1,3 +1,4 @@
+import React from "react";
 import { FeedPostSkeleton } from "@/components/FeedPostSkeleton";
 import {
   useMutation,
@@ -23,6 +24,7 @@ import {
   Flame,
   Flag,
   MoreVertical,
+  X,
 } from "lucide-react";
 import { ViewToggleGroup, type FeedViewMode } from "@/components/ui/ViewToggleGroup";import { useEffect, useRef, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
@@ -54,6 +56,8 @@ import {
 } from "@/lib/feedUtils";
 import { useActionQueue } from "@/store/actionQueue";
 import { type CommentNode } from "@/lib/feedUtils";
+import { toggleBookmark } from "@/lib/bookmarks";
+import { getBlockedUserIds, filterBlockedContent } from "@/lib/userBlockUtils";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { useEmailVerification } from "@/hooks/useEmailVerification";
@@ -146,7 +150,6 @@ export default function Feed() {
   const [hiddenPosts, setHiddenPosts] = useState<Post[]>([]);
   const [confirmPostId, setConfirmPostId] = useState<string | null>(null);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
-  const [optimisticReactions, setOptimisticReactions] = useState<Record<string, unknown>>({});
   const [reactionBursts, setReactionBursts] = useState<Record<string, string>>({});
   const [reportTarget, setReportTarget] = useState<{ type: "post" | "comment"; id: string } | null>(
     null,
@@ -162,6 +165,10 @@ export default function Feed() {
   const [optimisticReactions, setOptimisticReactions] = useState<
     Record<string, { countOffset: number; userReacted: boolean }>
   >({});
+  const [queuedPosts, setQueuedPosts] = useState<Post[]>([]);
+  const [replyValues, setReplyValues] = useState<Record<string, string>>({});
+  const [activeReplyIds, setActiveReplyIds] = useState<Set<string>>(new Set());
+  const [newComments, setNewComments] = useState<Record<string, string>>({});
 
   // Attached Image States
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -794,8 +801,8 @@ const [selectedClubId, setSelectedClubId] = useState("");
       if (parentCommentId) {
         setReplyValues((prev) => ({ ...prev, [parentCommentId]: "" }));
         setActiveReplyIds((prev) => {
-          const next = { ...prev };
-          delete next[postId];
+          const next = new Set(prev);
+          next.delete(parentCommentId);
           return next;
         });
       } else {
@@ -911,7 +918,7 @@ const [selectedClubId, setSelectedClubId] = useState("");
       .from("bookmarks")
       .select("post_id")
       .eq("user_id", user.id)
-      .not("post_id", "is", null)
+      .neq("post_id", null)
       .then(({ data }) => {
         if (data) {
           setPersistedBookmarkedPostIds(new Set(data.map((r: { post_id: string }) => r.post_id)));
@@ -997,15 +1004,17 @@ const [selectedClubId, setSelectedClubId] = useState("");
 
   return (
     <SiteShell>
-      <PullToRefresh onRefresh={handleRefetch} isRefreshing={isFetching}>
-        <section className="border-b-2 border-black bg-peach px-4 py-14 md:px-6">
+      <div>
+        <PullToRefresh onRefresh={handleRefetch} isRefreshing={isFetching}>
+          <div>
+          <section className="border-b-2 border-black bg-peach px-4 py-14 md:px-6">
           <div className="mx-auto max-w-4xl">
             <p className="eyebrow font-bold">Discussion feed</p>
             <h1 className="mt-2 text-3xl font-bold sm:text-4xl md:text-6xl">
               What clubs are talking about.
             </h1>
-          </div>
-        </section>
+            </div>
+          </section>
 
           <section className="bg-cream px-4 py-12 md:px-6">
             <div className="mx-auto max-w-4xl space-y-6">
@@ -1118,7 +1127,6 @@ const [selectedClubId, setSelectedClubId] = useState("");
                   </div>
                 </div>
               </div>
-            </div>
 
             <style>{`
               @keyframes slideDown {
@@ -1527,24 +1535,26 @@ const [selectedClubId, setSelectedClubId] = useState("");
             )}
           </div>
         </section>
-      </PullToRefresh>
-      <ConfirmModal
-        open={!!confirmPostId}
-        onCancel={() => setConfirmPostId(null)}
-        title="Delete post?"
-        description="Are you sure you want to delete this post? This action cannot be undone."
-        confirmText="Yes, delete"
-        onConfirm={() => {
-          if (confirmPostId) deletePostMutation.mutate(confirmPostId);
-          setConfirmPostId(null);
-        }}
-      />
-      <ReportDialog
-        isOpen={!!reportTarget}
-        onClose={() => setReportTarget(null)}
-        targetType={reportTarget?.type || "post"}
-        targetId={reportTarget?.id || ""}
-      />
+          </div>
+        </PullToRefresh>
+        <ConfirmModal
+          open={!!confirmPostId}
+          onCancel={() => setConfirmPostId(null)}
+          title="Delete post?"
+          description="Are you sure you want to delete this post? This action cannot be undone."
+          confirmText="Yes, delete"
+          onConfirm={() => {
+            if (confirmPostId) deletePostMutation.mutate(confirmPostId);
+            setConfirmPostId(null);
+          }}
+        />
+        <ReportDialog
+          isOpen={!!reportTarget}
+          onClose={() => setReportTarget(null)}
+          targetType={reportTarget?.type || "post"}
+          targetId={reportTarget?.id || ""}
+        />
+      </div>
     </SiteShell>
   );
 }

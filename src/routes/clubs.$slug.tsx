@@ -14,7 +14,7 @@ import { parse } from "@/lib/markdown";
 import type { MarkdownNodeChild, HeadingNode } from "@/lib/markdown";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getPresenceBadgeClass, usePresence } from "@/hooks/usePresence";
-import { ArrowLeft, Github, Loader2, CheckCircle, Flag } from "lucide-react";
+import { ArrowLeft, Github, Loader2, CheckCircle, Flag, Bookmark } from "lucide-react";
 import { ReportDialog } from "@/components/ReportDialog";
 import { EmptyState } from "@/components/EmptyState";
 import { VideoPlayer } from "@/components/VideoPlayer";
@@ -182,6 +182,7 @@ function ClubProfileSkeleton() {
 
 export default function ClubProfile() {
   const { slug } = useParams();
+  const { setLabel } = useBreadcrumbs();
   const supabase = createClient();
   const [user, setUser] = useState<User | null>(null);
   const { presenceMap } = usePresence(user?.id);
@@ -202,9 +203,24 @@ export default function ClubProfile() {
 
   const [latestJob, setLatestJob] = useState<BulkEmailJob | null>(null);
 
+  const [isClubBookmarked, setIsClubBookmarked] = useState(false);
+  const [bookmarkPending, setBookmarkPending] = useState(false);
+  const [joinSuccess, setJoinSuccess] = useState(false);
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data?.user ?? null));
   }, [supabase]);
+
+  const {
+    data: club,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    ...createClubProfileQueryOptions(supabase, slug ?? ""),
+    enabled: Boolean(slug),
+  });
 
   // Check if this club is already bookmarked
   useEffect(() => {
@@ -225,7 +241,15 @@ export default function ClubProfile() {
     const next = !isClubBookmarked;
     setIsClubBookmarked(next); // optimistic
     try {
-      await toggleBookmark(user.id, "club", club.id, !next);
+      if (next) {
+        await supabase.from("bookmarks").insert({ user_id: user.id, club_id: club.id });
+      } else {
+        await supabase
+          .from("bookmarks")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("club_id", club.id);
+      }
       toast.success(next ? "Club bookmarked!" : "Bookmark removed.");
     } catch {
       setIsClubBookmarked(!next); // revert
@@ -234,16 +258,6 @@ export default function ClubProfile() {
       setBookmarkPending(false);
     }
   };
-
-  const {
-    data: club,
-    isLoading,
-    error,
-    refetch,
-  } = useQuery({
-    ...createClubProfileQueryOptions(supabase, slug ?? ""),
-    enabled: Boolean(slug),
-  });
 
   useEffect(() => {
     if (club?.name && slug) {
@@ -294,7 +308,7 @@ export default function ClubProfile() {
         .order("created_at", { ascending: false })
         .limit(1);
       if (data && data.length > 0) {
-        setLatestJob(data[0]);
+        setLatestJob(data[0] as unknown as BulkEmailJob);
       }
     };
     fetchLatestJob();
@@ -315,7 +329,7 @@ export default function ClubProfile() {
         .eq("id", latestJob.id)
         .single();
       if (data) {
-        setLatestJob(data);
+        setLatestJob(data as unknown as BulkEmailJob);
         if (data.status === "completed" || data.status === "failed") {
           clearInterval(interval);
         }
@@ -625,7 +639,10 @@ export default function ClubProfile() {
                             <li key={h.id} style={{ paddingLeft: (h.depth - 1) * 16 }}>
                               <a
                                 href={`#${h.id}`}
-                                onClick={(e) => handleTocClick(e, h.id)}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  document.getElementById(h.id)?.scrollIntoView({ behavior: "smooth" });
+                                }}
                                 className="text-blue-900 underline hover:text-black"
                               >
                                 {h.text}
@@ -635,7 +652,7 @@ export default function ClubProfile() {
                         </ul>
                       </nav>
                     )}
-                    <ReactMarkdown components={mdComponents}>
+                    <ReactMarkdown>
                       {club.description || ""}
                     </ReactMarkdown>
                   </div>
