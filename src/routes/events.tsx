@@ -1,6 +1,7 @@
 import { formatDate } from "../lib/utils";
 import { createFileRoute } from "@tanstack/react-router";
 import { SiteShell } from "@/components/site/SiteShell";
+import { PullToRefresh } from "@/components/PullToRefresh";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState } from "react";
@@ -51,6 +52,18 @@ function EventsPage() {
   const queryClient = useQueryClient();
   const [user, setUser] = useState<User | null>(null);
   const [filter, setFilter] = useState("All");
+  const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
+  const [hidePastEvents, setHidePastEvents] = useState(false);
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [sortLoaded, setSortLoaded] = useState(false);
+
+  useEffect(() => {
+    const saved = sessionStorage.getItem("event-sort-order");
+    if (saved === "asc" || saved === "desc") {
+      setSortOrder(saved);
+    }
+    setSortLoaded(true);
+  }, []);
 
   useEffect(() => {
     if (!sortLoaded) return;
@@ -86,6 +99,8 @@ function EventsPage() {
       }));
     },
   });
+
+  useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
   }, [supabase]);
 
@@ -422,41 +437,23 @@ const { data: queryData, isLoading, isFetching, refetch } = useQuery({    queryK
 
                 <Select
                   value={sortOrder}
-                  onValueChange={(value) => setSortOrder(value as "newest" | "oldest")}
+                  onValueChange={(value) => setSortOrder(value as "asc" | "desc")}
                 >
                   <SelectTrigger className="neu-border w-44 bg-white font-mono text-xs text-black">
                     <SelectValue placeholder="Sort by date" />
                   </SelectTrigger>
 
                   <SelectContent>
-                    <SelectItem value="newest">Newest First</SelectItem>
-                    <SelectItem value="oldest">Oldest First</SelectItem>
+                    <SelectItem value="asc">Oldest First</SelectItem>
+                    <SelectItem value="desc">Newest First</SelectItem>
                   </SelectContent>
                 </Select>
 
                 <CreateEventDialog user={user} />
               </div>
             </div>
-      <section className="border-b-2 border-black bg-sky px-4 py-14 md:px-6">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="eyebrow font-bold">All events · Fall semester</p>
-            <h1 className="mt-2 text-4xl font-bold md:text-6xl">What's on this week.</h1>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {["All", "Workshop", "Talk", "Hackathon", "Social"].map((t, i) => (
-              <button
-                key={t}
-                onClick={() => setFilter(t)}
-                className={`neu-border px-3 py-2 font-mono text-xs font-bold uppercase ${filter === t ? "bg-black text-cream" : "bg-white"}`}
-              >
-                {t}
-              </button>
-            ))}
-            <CreateEventDialog user={user} />
-          </div>
-        </div>
-      </section>
+        </section>
       <section className="bg-cream px-4 py-12 md:px-6">
         <div className="mx-auto grid max-w-7xl gap-6 md:grid-cols-2 lg:grid-cols-3">
           {isLoading ? (
@@ -477,6 +474,7 @@ const { data: queryData, isLoading, isFetching, refetch } = useQuery({    queryK
           )}
         </div>
       </section>
+      </PullToRefresh>
     </SiteShell>
   );
 }

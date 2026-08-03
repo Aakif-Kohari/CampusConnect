@@ -20,12 +20,18 @@ import {
   Pin,
   Sparkles,
   Trash2,
+  RefreshCw,
+  MoreVertical,
+  X,
   Flame,
   Flag,
-  MoreVertical,
+  ThumbsDown,
 } from "lucide-react";
 import { ViewToggleGroup, type FeedViewMode } from "@/components/ui/ViewToggleGroup";import { useEffect, useRef, useState, useCallback } from "react";
+import { toggleBookmark } from "@/lib/bookmarks";
+import { getBlockedUserIds, filterBlockedContent } from "@/lib/userBlockUtils";
 import { Link } from "react-router-dom";
+import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { VideoEmbed } from "@/components/VideoEmbed";
@@ -146,8 +152,11 @@ export default function Feed() {
   const [hiddenPosts, setHiddenPosts] = useState<Post[]>([]);
   const [confirmPostId, setConfirmPostId] = useState<string | null>(null);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
-  const [optimisticReactions, setOptimisticReactions] = useState<Record<string, unknown>>({});
   const [reactionBursts, setReactionBursts] = useState<Record<string, string>>({});
+  const [queuedPosts, setQueuedPosts] = useState<Post[]>([]);
+  const [replyValues, setReplyValues] = useState<Record<string, string>>({});
+  const [activeReplyIds, setActiveReplyIds] = useState<Set<string>>(new Set());
+  const [newComments, setNewComments] = useState<Record<string, string>>({});
   const [reportTarget, setReportTarget] = useState<{ type: "post" | "comment"; id: string } | null>(
     null,
   );
@@ -257,6 +266,7 @@ const [selectedClubId, setSelectedClubId] = useState("");
       const afterCursor = pageParam as string | undefined;
 
       // Try get_posts_relay RPC first
+      const { data: { session } } = await supabase.auth.getSession();
 const res = await fetch(
   `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-feed?after=${afterCursor ?? ""}&first=${POSTS_PER_PAGE}`,
   { headers: { Authorization: `Bearer ${session?.access_token}` } }
@@ -795,8 +805,8 @@ const relayError = res.ok ? null : new Error("get-feed request failed");
       if (parentCommentId) {
         setReplyValues((prev) => ({ ...prev, [parentCommentId]: "" }));
         setActiveReplyIds((prev) => {
-          const next = { ...prev };
-          delete next[postId];
+          const next = new Set(prev);
+          next.delete(postId);
           return next;
         });
       } else {
@@ -1119,7 +1129,6 @@ const relayError = res.ok ? null : new Error("get-feed request failed");
                   </div>
                 </div>
               </div>
-            </div>
 
             <style>{`
               @keyframes slideDown {

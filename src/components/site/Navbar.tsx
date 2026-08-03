@@ -215,25 +215,26 @@ export function Navbar() {
               <WifiOff className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Offline Mode</span>
             </div>
+          )}
 
-            <ThemeToggle />
+          <ThemeToggle />
 
-            {user && <NavbarNotificationDropdown />}
-            {user && (
-              <button
-                type="button"
-                aria-label="Open bookmarks"
-                onClick={() => setBookmarksPanelOpen(true)}
-                className="neu-border flex h-8 w-8 items-center justify-center bg-white text-black transition-colors hover:bg-lime dark:bg-black dark:text-cream"
-              >
-                <Bookmark size={16} />
-              </button>
-            )}
-            {user ? (
-            {isInitializing ? (
-              <ProfileHeaderSkeleton />
-            ) : user ? (
-              <DropdownMenu>
+          {user && <NavbarNotificationDropdown />}
+          {user && (
+            <button
+              type="button"
+              aria-label="Open bookmarks"
+              onClick={() => setBookmarksPanelOpen(true)}
+              className="neu-border flex h-8 w-8 items-center justify-center bg-white text-black transition-colors hover:bg-lime dark:bg-black dark:text-cream"
+            >
+              <Bookmark size={16} />
+            </button>
+          )}
+
+          {isInitializing ? (
+            <ProfileHeaderSkeleton />
+          ) : user ? (
+            <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
@@ -284,7 +285,6 @@ export function Navbar() {
                 Sign in
               </Link>
             )}
-          </div>
 
           {/* Mobile menu toggle button */}
           <button

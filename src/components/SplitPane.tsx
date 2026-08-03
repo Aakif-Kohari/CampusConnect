@@ -140,7 +140,7 @@ export const SplitPane: React.FC<SplitPaneProps> = ({
         {/* Visual grip indicator */}
         <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-4 flex items-center justify-center">
           <div className="h-8 w-1 bg-muted-foreground/30 rounded-full" />
-        </div
+        </div>
       </div>
 
       {/* Main Content Area */}

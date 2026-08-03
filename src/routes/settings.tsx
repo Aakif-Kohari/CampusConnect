@@ -27,14 +27,8 @@ import type { User } from "@supabase/supabase-js";
 import { useQuery } from "@/hooks/useReactQueryReplacement";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useTheme } from "@/components/theme-provider";
 import { SecuritySection } from "@/components/Settings/SecuritySection";
 import { uploadFileWithProgress } from "@/lib/supabase/uploadFileWithProgress";
-import { Progress } from "@/components/ui/progress";
-import { useTheme } from "@/components/theme-provider";
-import { SecuritySection } from "@/components/Settings/SecuritySection";
-import { uploadFileWithProgress } from "@/lib/supabase/uploadFileWithProgress";
-import { Progress } from "@/components/ui/progress";
 import {
   profileSchema,
   notificationPreferencesSchema,
@@ -53,7 +47,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { PasskeyManager } from "@/components/PasskeyManager";
-import { useTheme } from "@/components/theme-provider";
+
 import { AudioEngine, SOUND_ENABLED_KEY } from "@/lib/audio/audioEngine";
 
 const FONT_SIZE_KEY = "campusconnect-font-size";
@@ -217,7 +211,7 @@ function SettingsPageContent({ user }: WithAuthProps) {
   });
 
   const form = useForm<ProfileFormValues & NotificationPreferencesValues>({
-    resolver: zodResolver(profileSchema.merge(notificationPreferencesSchema)),
+    resolver: zodResolver(profileSchema.merge(notificationPreferencesSchema)) as any,
     defaultValues: {
       avatarTheme: "",
       firstName: "",
@@ -445,7 +439,7 @@ function SettingsPageContent({ user }: WithAuthProps) {
             />
 
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <form onSubmit={form.handleSubmit(onSubmit as any)} className="space-y-4">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <FormField
                     control={form.control as any}
@@ -711,7 +705,7 @@ function SettingsPageContent({ user }: WithAuthProps) {
                   <FormControl>
                     <div className="flex items-center justify-between gap-4 border-t-2 border-black pt-4">
                       <div>
-                        <label htmlFor={field.id} className="eyebrow font-bold text-black dark:text-cream">
+                        <label htmlFor={field.name} className="eyebrow font-bold text-black dark:text-cream">
                           Dark Mode by Default
                         </label>
                         <p className="font-mono text-xs text-muted-foreground">
@@ -727,7 +721,7 @@ function SettingsPageContent({ user }: WithAuthProps) {
                   </FormControl>
                 </FormItem>
               )}
-            </FormField>
+              />
 
             <div className="flex items-center justify-between gap-4 border-t-2 border-black pt-4">
               <label
@@ -832,7 +826,7 @@ function SettingsPageContent({ user }: WithAuthProps) {
                 <FormItem className="space-y-1">
                   <FormControl>
                     <div className="flex cursor-pointer items-center justify-between gap-3">
-                      <label htmlFor={field.id} className="font-mono text-sm">
+                      <label htmlFor={field.name} className="font-mono text-sm">
                         Email me about upcoming RSVPs
                       </label>
                       <input
@@ -844,7 +838,7 @@ function SettingsPageContent({ user }: WithAuthProps) {
                   </FormControl>
                 </FormItem>
               )}
-            </FormField>
+              />
             <FormField
               control={form.control as any}
               name="digest"
@@ -852,7 +846,7 @@ function SettingsPageContent({ user }: WithAuthProps) {
                 <FormItem className="space-y-1">
                   <FormControl>
                     <div className="flex cursor-pointer items-center justify-between gap-3">
-                      <label htmlFor={field.id} className="font-mono text-sm">
+                      <label htmlFor={field.name} className="font-mono text-sm">
                         Weekly digest of club activity
                       </label>
                       <input
@@ -864,7 +858,7 @@ function SettingsPageContent({ user }: WithAuthProps) {
                   </FormControl>
                 </FormItem>
               )}
-            </FormField>
+              />
             <FormField
               control={form.control as any}
               name="push_notifications"
@@ -872,7 +866,7 @@ function SettingsPageContent({ user }: WithAuthProps) {
                 <FormItem className="space-y-1">
                   <FormControl>
                     <div className="flex cursor-pointer items-center justify-between gap-3">
-                      <label htmlFor={field.id} className="font-mono text-sm">
+                      <label htmlFor={field.name} className="font-mono text-sm">
                         New certificates
                       </label>
                       <input
@@ -884,7 +878,7 @@ function SettingsPageContent({ user }: WithAuthProps) {
                   </FormControl>
                 </FormItem>
               )}
-            </FormField>
+              />
             </div>
           </Panel>
 
@@ -1042,14 +1036,8 @@ function AvatarUpload({ name, avatarTheme }: { name: string; avatarTheme?: Avata
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-
-  const [uploading, setUploading] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();

@@ -184,6 +184,7 @@ export function VirtualCombobox({
                       <div className="flex-1 overflow-hidden">
                         {option.render || <span className="truncate">{option.label}</span>}
                       </div>
+                    </div>
                     );
                   })}
               </div>

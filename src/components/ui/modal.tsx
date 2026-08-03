@@ -85,7 +85,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
         ref={dialogRef}
         onClick={handleBackdropClick}
         aria-labelledby={title && typeof title === "string" ? titleId : undefined}
-        className={\`relative w-full max-w-lg rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800 focus:outline-none \${className}\`}
+        className={`relative w-full max-w-lg rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800 focus:outline-none ${className}`}
       >
         {title && (
           <div className="flex items-center justify-between pb-4 border-b border-gray-200 dark:border-gray-700">
