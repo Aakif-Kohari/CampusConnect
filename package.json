@@ -160,7 +160,7 @@
     ]
   },
   "devDependencies": {
-    "@chromatic-com/storybook": "^5.2.1",
+    "@axe-core/playwright": "^4.10.1",
     "@commitlint/cli": "^19.5.0",
     "@commitlint/config-conventional": "^19.5.0",
     "@cypress/react": "^9.0.2",
