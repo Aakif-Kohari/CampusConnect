@@ -1,4 +1,5 @@
 import { FeedPostSkeleton } from "@/components/FeedPostSkeleton";
+import { OrganicSkeletonStudioModal } from "@/components/common/OrganicSkeletonStudioModal";
 import {
   useMutation,
   useQuery,
@@ -1201,7 +1202,7 @@ const relayError = res.ok ? null : new Error("get-feed request failed");
             {isActiveFeedLoading ? (
               <div className="space-y-6">
                 {Array.from({ length: 5 }).map((_, index) => (
-                  <FeedPostSkeleton key={index} />
+                  <FeedPostSkeleton key={index} index={index} />
                 ))}
               </div>
             ) : filteredPosts.length === 0 ? (
