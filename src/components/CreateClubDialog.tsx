@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/form";
 import { ImageCropUpload } from "@/components/ImageCropUpload";
 import { CascadingCategorySelect } from "@/components/Clubs/CascadingCategorySelect";
+import { useConfetti } from "@/hooks/useConfetti";
 
 const defaultValues: ClubFormInput = {
   name: "",
@@ -59,6 +60,7 @@ interface LocalClubFormValues extends ClubFormInput {
 }
 
 export function CreateClubDialog({ user }: { user: User | null }) {
+  const { fireCannon } = useConfetti();
   const [open, setOpen] = useState(false);
   const supabase = createClient();
 
@@ -141,6 +143,7 @@ export function CreateClubDialog({ user }: { user: User | null }) {
       }
     },
     onSuccess: () => {
+      fireCannon();
       toast.success("Club submitted for administrator review.");
       window.dispatchEvent(new Event("refetchClubs"));
       form.reset(defaultValues);
