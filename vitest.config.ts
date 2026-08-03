@@ -3,7 +3,7 @@ import { fileURLToPath, URL } from "url";
 
 export default defineConfig({
   test: {
-    environment: "node",
+    environment: "jsdom",
     setupFiles: ["./src/test-setup.ts"],
     exclude: ["**/node_modules/**", "**/dist/**", "**/.github/**", "**/e2e/**"],
   },
