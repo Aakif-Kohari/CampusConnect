@@ -46,6 +46,7 @@ const Carousel = React.forwardRef<
     {
       ...opts,
       axis: orientation === "horizontal" ? "x" : "y",
+      loop: true,
     },
     plugins,
   );
@@ -57,8 +58,12 @@ const Carousel = React.forwardRef<
       return;
     }
 
-    setCanScrollPrev(api.canScrollPrev());
-    setCanScrollNext(api.canScrollNext());
+    const count = api.slideNodes().length;
+
+    // With loop: true, navigation is always enabled for multiple slides
+    // Single slide carousels have no navigation
+    setCanScrollPrev(count > 1);
+    setCanScrollNext(count > 1);
   }, []);
 
   const scrollPrev = React.useCallback(() => {
@@ -71,15 +76,25 @@ const Carousel = React.forwardRef<
 
   const handleKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
-      if (event.key === "ArrowLeft") {
-        event.preventDefault();
-        scrollPrev();
-      } else if (event.key === "ArrowRight") {
-        event.preventDefault();
-        scrollNext();
+      if (orientation === "horizontal") {
+        if (event.key === "ArrowLeft") {
+          event.preventDefault();
+          scrollPrev();
+        } else if (event.key === "ArrowRight") {
+          event.preventDefault();
+          scrollNext();
+        }
+      } else {
+        if (event.key === "ArrowUp") {
+          event.preventDefault();
+          scrollPrev();
+        } else if (event.key === "ArrowDown") {
+          event.preventDefault();
+          scrollNext();
+        }
       }
     },
-    [scrollPrev, scrollNext],
+    [scrollPrev, scrollNext, orientation],
   );
 
   React.useEffect(() => {
