@@ -167,6 +167,12 @@ export default function AnalyticsAdmin() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <DateRangePicker value={dateRange} onChange={setDateRange} />
               <Link
+                to="/admin/dlq"
+                className="neu-border text-center bg-white px-4 py-2 font-mono text-xs font-bold uppercase hover:bg-cream"
+              >
+                Dead Letter Queue
+              </Link>
+              <Link
                 to="/admin/clubs/pending"
                 className="neu-border text-center bg-white px-4 py-2 font-mono text-xs font-bold uppercase hover:bg-cream"
               >

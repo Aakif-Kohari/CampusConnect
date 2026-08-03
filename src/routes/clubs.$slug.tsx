@@ -188,6 +188,12 @@ export default function ClubProfile() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false);
+  const [joinSuccess, setJoinSuccess] = useState(false);
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+  const [isClubBookmarked, setIsClubBookmarked] = useState(false);
+  const [bookmarkPending, setBookmarkPending] = useState(false);
+  const { setLabel } = useBreadcrumbs();
+
   interface BulkEmailJob {
     id: string;
     club_id: string;
