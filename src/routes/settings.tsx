@@ -8,6 +8,7 @@ import { createClient, getSupabaseUrl } from "@/lib/supabase/client";
 
 import { Progress } from "@/components/ui/progress";
 import { OptimizedImage } from "@/components/media/OptimizedImage";
+import { PushNotificationSettings } from "@/components/notifications/PushNotificationSettings";
 
 import type { User } from "@supabase/supabase-js";
 import { useQuery } from "@/hooks/useReactQueryReplacement";
@@ -540,9 +541,12 @@ export default function SettingsPage() {
             </div>
           </Panel>
           <Panel title="Notifications">
-            <Toggle label="Email me about upcoming RSVPs" defaultChecked />
-            <Toggle label="Weekly digest of club activity" defaultChecked />
-            <Toggle label="New certificates" />
+            {user && <PushNotificationSettings userId={user.id} />}
+            <div className="mt-4 space-y-4">
+              <Toggle label="Email me about upcoming RSVPs" defaultChecked />
+              <Toggle label="Weekly digest of club activity" defaultChecked />
+              <Toggle label="New certificates" />
+            </div>
           </Panel>
           <Panel title="Danger zone" tone="bg-red-50">
             <button
