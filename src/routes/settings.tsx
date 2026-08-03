@@ -193,10 +193,7 @@ function SettingsPageContent({ user }: WithAuthProps) {
     enabled: !!user?.id,
   });
 
-  const {
-    data: preferences,
-    isLoading: isPreferencesLoading,
-  } = useQuery({
+  const { data: preferences, isLoading: isPreferencesLoading } = useQuery({
     queryKey: ["user_preferences", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -312,15 +309,13 @@ function SettingsPageContent({ user }: WithAuthProps) {
       if (profileError) throw profileError;
 
       // Update user_preferences table
-      const { error: prefError } = await supabase
-        .from("user_preferences")
-        .upsert({
-          user_id: user.id,
-          email_alerts: values.email_alerts,
-          push_notifications: values.push_notifications,
-          digest: values.digest,
-          dark_mode_default: values.dark_mode_default,
-        });
+      const { error: prefError } = await supabase.from("user_preferences").upsert({
+        user_id: user.id,
+        email_alerts: values.email_alerts,
+        push_notifications: values.push_notifications,
+        digest: values.digest,
+        dark_mode_default: values.dark_mode_default,
+      });
       if (prefError) throw prefError;
 
       // Update email if it has changed
@@ -698,49 +693,46 @@ function SettingsPageContent({ user }: WithAuthProps) {
               </div>
 
               <FormField
-              control={form.control as any}
-              name="dark_mode_default"
-              render={({ field }) => (
-                <FormItem className="space-y-1">
-                  <FormControl>
-                    <div className="flex items-center justify-between gap-4 border-t-2 border-black pt-4">
-                      <div>
-                        <label htmlFor={field.name} className="eyebrow font-bold text-black dark:text-cream">
-                          Dark Mode by Default
-                        </label>
-                        <p className="font-mono text-xs text-muted-foreground">
-                          When enabled, the app will default to dark mode on each visit unless you manually switch themes.
-                        </p>
+                control={form.control as any}
+                name="dark_mode_default"
+                render={({ field }) => (
+                  <FormItem className="space-y-1">
+                    <FormControl>
+                      <div className="flex items-center justify-between gap-4 border-t-2 border-black pt-4">
+                        <div>
+                          <label
+                            htmlFor={field.name}
+                            className="eyebrow font-bold text-black dark:text-cream"
+                          >
+                            Dark Mode by Default
+                          </label>
+                          <p className="font-mono text-xs text-muted-foreground">
+                            When enabled, the app will default to dark mode on each visit unless you
+                            manually switch themes.
+                          </p>
+                        </div>
+                        <input {...field} type="checkbox" className="h-5 w-5 accent-black" />
                       </div>
-                      <input
-                        {...field}
-                        type="checkbox"
-                        className="h-5 w-5 accent-black"
-                      />
-                    </div>
-                  </FormControl>
-                </FormItem>
-              )}
+                    </FormControl>
+                  </FormItem>
+                )}
               />
 
-            <div className="flex items-center justify-between gap-4 border-t-2 border-black pt-4">
-              <label
-                htmlFor="ui-sounds"
-                className="eyebrow font-bold text-black dark:text-cream"
-              >
-                UI Sounds
-              </label>
-              <p className="font-mono text-xs text-muted-foreground">
-                Play subtle synthesized clicks, toggles, and like pops.
-              </p>
-              <input
-                id="ui-sounds"
-                type="checkbox"
-                checked={soundEnabled}
-                onChange={(event) => handleSoundEnabledChange(event.target.checked)}
-                className="h-5 w-5 accent-black"
-              />
-            </div>
+              <div className="flex items-center justify-between gap-4 border-t-2 border-black pt-4">
+                <label htmlFor="ui-sounds" className="eyebrow font-bold text-black dark:text-cream">
+                  UI Sounds
+                </label>
+                <p className="font-mono text-xs text-muted-foreground">
+                  Play subtle synthesized clicks, toggles, and like pops.
+                </p>
+                <input
+                  id="ui-sounds"
+                  type="checkbox"
+                  checked={soundEnabled}
+                  onChange={(event) => handleSoundEnabledChange(event.target.checked)}
+                  className="h-5 w-5 accent-black"
+                />
+              </div>
 
               {/* Border Thickness */}
               <div className="space-y-2">
@@ -820,64 +812,52 @@ function SettingsPageContent({ user }: WithAuthProps) {
             {user && <PushNotificationSettings userId={user.id} />}
             <div className="mt-4">
               <FormField
-              control={form.control as any}
-              name="email_alerts"
-              render={({ field }) => (
-                <FormItem className="space-y-1">
-                  <FormControl>
-                    <div className="flex cursor-pointer items-center justify-between gap-3">
-                      <label htmlFor={field.name} className="font-mono text-sm">
-                        Email me about upcoming RSVPs
-                      </label>
-                      <input
-                        {...field}
-                        type="checkbox"
-                        className="h-5 w-5 accent-black"
-                      />
-                    </div>
-                  </FormControl>
-                </FormItem>
-              )}
+                control={form.control as any}
+                name="email_alerts"
+                render={({ field }) => (
+                  <FormItem className="space-y-1">
+                    <FormControl>
+                      <div className="flex cursor-pointer items-center justify-between gap-3">
+                        <label htmlFor={field.name} className="font-mono text-sm">
+                          Email me about upcoming RSVPs
+                        </label>
+                        <input {...field} type="checkbox" className="h-5 w-5 accent-black" />
+                      </div>
+                    </FormControl>
+                  </FormItem>
+                )}
               />
-            <FormField
-              control={form.control as any}
-              name="digest"
-              render={({ field }) => (
-                <FormItem className="space-y-1">
-                  <FormControl>
-                    <div className="flex cursor-pointer items-center justify-between gap-3">
-                      <label htmlFor={field.name} className="font-mono text-sm">
-                        Weekly digest of club activity
-                      </label>
-                      <input
-                        {...field}
-                        type="checkbox"
-                        className="h-5 w-5 accent-black"
-                      />
-                    </div>
-                  </FormControl>
-                </FormItem>
-              )}
+              <FormField
+                control={form.control as any}
+                name="digest"
+                render={({ field }) => (
+                  <FormItem className="space-y-1">
+                    <FormControl>
+                      <div className="flex cursor-pointer items-center justify-between gap-3">
+                        <label htmlFor={field.name} className="font-mono text-sm">
+                          Weekly digest of club activity
+                        </label>
+                        <input {...field} type="checkbox" className="h-5 w-5 accent-black" />
+                      </div>
+                    </FormControl>
+                  </FormItem>
+                )}
               />
-            <FormField
-              control={form.control as any}
-              name="push_notifications"
-              render={({ field }) => (
-                <FormItem className="space-y-1">
-                  <FormControl>
-                    <div className="flex cursor-pointer items-center justify-between gap-3">
-                      <label htmlFor={field.name} className="font-mono text-sm">
-                        New certificates
-                      </label>
-                      <input
-                        {...field}
-                        type="checkbox"
-                        className="h-5 w-5 accent-black"
-                      />
-                    </div>
-                  </FormControl>
-                </FormItem>
-              )}
+              <FormField
+                control={form.control as any}
+                name="push_notifications"
+                render={({ field }) => (
+                  <FormItem className="space-y-1">
+                    <FormControl>
+                      <div className="flex cursor-pointer items-center justify-between gap-3">
+                        <label htmlFor={field.name} className="font-mono text-sm">
+                          New certificates
+                        </label>
+                        <input {...field} type="checkbox" className="h-5 w-5 accent-black" />
+                      </div>
+                    </FormControl>
+                  </FormItem>
+                )}
               />
             </div>
           </Panel>

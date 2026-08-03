@@ -185,8 +185,8 @@ export function VirtualCombobox({
                         {option.render || <span className="truncate">{option.label}</span>}
                       </div>
                     </div>
-                    );
-                  })}
+                  );
+                })}
               </div>
             )}
           </div>

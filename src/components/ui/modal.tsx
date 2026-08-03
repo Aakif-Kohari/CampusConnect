@@ -8,7 +8,13 @@ export interface ModalProps {
   className?: string;
 }
 
-export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, className = "" }) => {
+export const Modal: React.FC<ModalProps> = ({
+  isOpen,
+  onClose,
+  title,
+  children,
+  className = "",
+}) => {
   const titleId = useId();
   const dialogRef = useRef<HTMLDialogElement>(null);
 
@@ -27,7 +33,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
       }
       document.body.style.overflow = "";
     }
-    
+
     return () => {
       document.body.style.overflow = "";
     };

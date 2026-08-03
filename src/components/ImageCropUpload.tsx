@@ -7,7 +7,8 @@ import { createClient, getSupabaseUrl } from "@/lib/supabase/client";
 import { uploadFileWithProgress } from "@/lib/supabase/uploadFileWithProgress";
 import { getCroppedImg, type Area } from "@/utils/cropImage";
 import { compressImage } from "@/utils/imageCompressor";
-import { getExifOrientation, correctImageOrientation } from "@/utils/exifOrientation";import {
+import { getExifOrientation, correctImageOrientation } from "@/utils/exifOrientation";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -95,7 +96,7 @@ export function ImageCropUpload({
   // ------------------------------------------------------------------
   // File selection → open crop dialog
   // ------------------------------------------------------------------
-function openCropDialog(file: File) {
+  function openCropDialog(file: File) {
     if (!validateFile(file)) return;
     setSelectedFile(file);
     const reader = new FileReader();

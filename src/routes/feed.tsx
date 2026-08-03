@@ -27,7 +27,8 @@ import {
   Flag,
   ThumbsDown,
 } from "lucide-react";
-import { ViewToggleGroup, type FeedViewMode } from "@/components/ui/ViewToggleGroup";import { useEffect, useRef, useState, useCallback } from "react";
+import { ViewToggleGroup, type FeedViewMode } from "@/components/ui/ViewToggleGroup";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { toggleBookmark } from "@/lib/bookmarks";
 import { getBlockedUserIds, filterBlockedContent } from "@/lib/userBlockUtils";
 import { Link } from "react-router-dom";
@@ -238,7 +239,7 @@ export default function Feed() {
     enabled: !!user?.id,
   });
 
-const [selectedClubId, setSelectedClubId] = useState("");
+  const [selectedClubId, setSelectedClubId] = useState("");
   const [feedMode, setFeedMode] = useState<"latest" | "trending">("latest");
   const [viewMode, setViewMode] = useState<FeedViewMode>("list");
   useEffect(() => {
@@ -266,13 +267,15 @@ const [selectedClubId, setSelectedClubId] = useState("");
       const afterCursor = pageParam as string | undefined;
 
       // Try get_posts_relay RPC first
-      const { data: { session } } = await supabase.auth.getSession();
-const res = await fetch(
-  `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-feed?after=${afterCursor ?? ""}&first=${POSTS_PER_PAGE}`,
-  { headers: { Authorization: `Bearer ${session?.access_token}` } }
-);
-const relayData = res.ok ? await res.json() : null;
-const relayError = res.ok ? null : new Error("get-feed request failed");
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-feed?after=${afterCursor ?? ""}&first=${POSTS_PER_PAGE}`,
+        { headers: { Authorization: `Bearer ${session?.access_token}` } },
+      );
+      const relayData = res.ok ? await res.json() : null;
+      const relayError = res.ok ? null : new Error("get-feed request failed");
       if (!relayError && relayData && typeof relayData === "object" && "edges" in relayData) {
         const connection = relayData as unknown as RelayConnection<Post>;
         return connection;
@@ -1018,117 +1021,117 @@ const relayError = res.ok ? null : new Error("get-feed request failed");
           </div>
         </section>
 
-          <section className="bg-cream px-4 py-12 md:px-6">
-            <div className="mx-auto max-w-4xl space-y-6">
-              <div className="space-y-3">
-                <MarkdownEditorWithMentions
-                  ref={editorRef}
-                  value={newPost}
-                  onChange={setNewPost}
-                  clubId={selectedClubId}
-                />
+        <section className="bg-cream px-4 py-12 md:px-6">
+          <div className="mx-auto max-w-4xl space-y-6">
+            <div className="space-y-3">
+              <MarkdownEditorWithMentions
+                ref={editorRef}
+                value={newPost}
+                onChange={setNewPost}
+                clubId={selectedClubId}
+              />
 
-                {imagePreviewUrl && (
-                  <div className="relative mt-4 overflow-hidden neu-border w-fit max-w-full">
-                    <img src={imagePreviewUrl} alt="Preview" className="max-h-96 w-auto" />
+              {imagePreviewUrl && (
+                <div className="relative mt-4 overflow-hidden neu-border w-fit max-w-full">
+                  <img src={imagePreviewUrl} alt="Preview" className="max-h-96 w-auto" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAttachedImage(null);
+                      setImagePreviewUrl(null);
+                    }}
+                    className="absolute right-2 top-2 rounded-full bg-black/60 p-1.5 text-white hover:bg-black"
+                    disabled={postMutation.isPending}
+                  >
+                    <X size={16} />
+                  </button>
+                  {uploadProgress !== null && (
+                    <div className="absolute inset-x-0 bottom-0 bg-black/50 p-2">
+                      <span className="font-mono text-xs font-bold text-white mb-1 block">
+                        Uploading {uploadProgress}%
+                      </span>
+                      <Progress value={uploadProgress} className="h-1.5" />
+                    </div>
+                  )}
+                  {compressing && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-mono text-xs">
+                      Compressing...
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="neu-border flex flex-col gap-3 bg-white p-3 sm:flex-row sm:items-center sm:justify-between">
+                <Select
+                  value={selectedClubId}
+                  onValueChange={setSelectedClubId}
+                  disabled={userClubs.length === 0}
+                >
+                  <SelectTrigger
+                    className="w-full border-none bg-transparent font-mono text-xs shadow-none sm:w-auto"
+                    aria-label="Choose club for post"
+                  >
+                    <SelectValue placeholder="No clubs joined" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {userClubs.map((userClub) => {
+                      const club = Array.isArray(userClub.clubs)
+                        ? userClub.clubs[0]
+                        : userClub.clubs;
+                      return club ? (
+                        <SelectItem key={club.id} value={club.id}>
+                          Posting to · {club.name}
+                        </SelectItem>
+                      ) : null;
+                    })}
+                  </SelectContent>
+                </Select>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={postMutation.isPending || compressing}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="neu-border bg-white px-3 py-2 font-mono text-xs font-bold uppercase hover:bg-cream flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    📷 Attach Image
+                  </button>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleImageSelect}
+                    accept="image/*"
+                    className="hidden"
+                  />
+
+                  <AnimatedTooltip
+                    content={!emailVerified ? "Please verify your email to post" : null}
+                  >
                     <button
                       type="button"
                       onClick={() => {
-                        setAttachedImage(null);
-                        setImagePreviewUrl(null);
+                        if (!user) return alert("Log in first");
+                        if (!emailVerified) return alert("Please verify your email to post");
+                        if (!selectedClubId) return alert("Join or select a club first");
+                        if (newPost.trim()) postMutation.mutate();
                       }}
-                      className="absolute right-2 top-2 rounded-full bg-black/60 p-1.5 text-white hover:bg-black"
-                      disabled={postMutation.isPending}
+                      disabled={
+                        !newPost.trim() ||
+                        !selectedClubId ||
+                        postMutation.isPending ||
+                        !emailVerified ||
+                        compressing
+                      }
+                      className={`neu-border neu-press px-5 py-2 font-mono text-xs font-bold uppercase disabled:cursor-not-allowed disabled:opacity-50 ${
+                        emailVerified ? "bg-black text-cream" : "bg-gray-400 text-gray-700"
+                      }`}
                     >
-                      <X size={16} />
+                      {postMutation.isPending ? "Posting…" : "Post Markdown"}
                     </button>
-                    {uploadProgress !== null && (
-                      <div className="absolute inset-x-0 bottom-0 bg-black/50 p-2">
-                        <span className="font-mono text-xs font-bold text-white mb-1 block">
-                          Uploading {uploadProgress}%
-                        </span>
-                        <Progress value={uploadProgress} className="h-1.5" />
-                      </div>
-                    )}
-                    {compressing && (
-                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-mono text-xs">
-                        Compressing...
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <div className="neu-border flex flex-col gap-3 bg-white p-3 sm:flex-row sm:items-center sm:justify-between">
-                  <Select
-                    value={selectedClubId}
-                    onValueChange={setSelectedClubId}
-                    disabled={userClubs.length === 0}
-                  >
-                    <SelectTrigger
-                      className="w-full border-none bg-transparent font-mono text-xs shadow-none sm:w-auto"
-                      aria-label="Choose club for post"
-                    >
-                      <SelectValue placeholder="No clubs joined" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {userClubs.map((userClub) => {
-                        const club = Array.isArray(userClub.clubs)
-                          ? userClub.clubs[0]
-                          : userClub.clubs;
-                        return club ? (
-                          <SelectItem key={club.id} value={club.id}>
-                            Posting to · {club.name}
-                          </SelectItem>
-                        ) : null;
-                      })}
-                    </SelectContent>
-                  </Select>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      disabled={postMutation.isPending || compressing}
-                      onClick={() => fileInputRef.current?.click()}
-                      className="neu-border bg-white px-3 py-2 font-mono text-xs font-bold uppercase hover:bg-cream flex items-center gap-1.5 disabled:opacity-50"
-                    >
-                      📷 Attach Image
-                    </button>
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleImageSelect}
-                      accept="image/*"
-                      className="hidden"
-                    />
-
-                    <AnimatedTooltip
-                      content={!emailVerified ? "Please verify your email to post" : null}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (!user) return alert("Log in first");
-                          if (!emailVerified) return alert("Please verify your email to post");
-                          if (!selectedClubId) return alert("Join or select a club first");
-                          if (newPost.trim()) postMutation.mutate();
-                        }}
-                        disabled={
-                          !newPost.trim() ||
-                          !selectedClubId ||
-                          postMutation.isPending ||
-                          !emailVerified ||
-                          compressing
-                        }
-                        className={`neu-border neu-press px-5 py-2 font-mono text-xs font-bold uppercase disabled:cursor-not-allowed disabled:opacity-50 ${
-                          emailVerified ? "bg-black text-cream" : "bg-gray-400 text-gray-700"
-                        }`}
-                      >
-                        {postMutation.isPending ? "Posting…" : "Post Markdown"}
-                      </button>
-                    </AnimatedTooltip>
-                  </div>
+                  </AnimatedTooltip>
                 </div>
               </div>
+            </div>
 
             <style>{`
               @keyframes slideDown {
@@ -1155,13 +1158,14 @@ const relayError = res.ok ? null : new Error("get-feed request failed");
               />
             </div>
 
-{/* ── Feed mode tabs ── */}
+            {/* ── Feed mode tabs ── */}
             <div
               role="tablist"
               aria-label="Feed mode"
               className="flex items-center justify-between gap-2 border-b-2 border-black pb-4 dark:border-cream"
             >
-              <ViewToggleGroup value={viewMode} onValueChange={setViewMode} />              <button
+              <ViewToggleGroup value={viewMode} onValueChange={setViewMode} />{" "}
+              <button
                 role="tab"
                 type="button"
                 id="tab-latest"

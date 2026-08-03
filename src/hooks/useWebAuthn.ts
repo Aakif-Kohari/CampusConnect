@@ -52,7 +52,7 @@ export function useWebAuthn(): UseWebAuthnReturn {
         keys.map((k) => ({
           ...k,
           device_name: k.name,
-        }))
+        })),
       );
     } catch (err) {
       console.error("Failed to fetch passkeys", err);
@@ -61,25 +61,28 @@ export function useWebAuthn(): UseWebAuthnReturn {
     }
   }, []);
 
-  const registerPasskey = useCallback(async (deviceName?: string) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const result = await apiRegisterPasskey(deviceName);
-      if (result.success) {
-        await fetchPasskeys();
-        return true;
-      } else {
-        setError(result.error || "Failed to register passkey");
+  const registerPasskey = useCallback(
+    async (deviceName?: string) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const result = await apiRegisterPasskey(deviceName);
+        if (result.success) {
+          await fetchPasskeys();
+          return true;
+        } else {
+          setError(result.error || "Failed to register passkey");
+          return false;
+        }
+      } catch (err: any) {
+        setError(err.message || "An error occurred");
         return false;
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err: any) {
-      setError(err.message || "An error occurred");
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [fetchPasskeys]);
+    },
+    [fetchPasskeys],
+  );
 
   const authenticateWithPasskey = useCallback(async (email?: string) => {
     setIsLoading(true);
@@ -100,25 +103,28 @@ export function useWebAuthn(): UseWebAuthnReturn {
     }
   }, []);
 
-  const deletePasskey = useCallback(async (credentialId: string) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const result = await apiDeletePasskey(credentialId);
-      if (result.success) {
-        await fetchPasskeys();
-        return true;
-      } else {
-        setError(result.error || "Failed to delete passkey");
+  const deletePasskey = useCallback(
+    async (credentialId: string) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const result = await apiDeletePasskey(credentialId);
+        if (result.success) {
+          await fetchPasskeys();
+          return true;
+        } else {
+          setError(result.error || "Failed to delete passkey");
+          return false;
+        }
+      } catch (err: any) {
+        setError(err.message || "An error occurred");
         return false;
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err: any) {
-      setError(err.message || "An error occurred");
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [fetchPasskeys]);
+    },
+    [fetchPasskeys],
+  );
 
   return {
     isSupported,

@@ -42,6 +42,7 @@ export default tseslint.config(
     rules: {
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
+      "@typescript-eslint/no-explicit-any": "off",
       "local-rules/no-cross-page-imports": "error",
       "no-restricted-syntax": [
         "error",

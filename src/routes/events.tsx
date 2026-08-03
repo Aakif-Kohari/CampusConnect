@@ -104,7 +104,13 @@ function EventsPage() {
     supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
   }, [supabase]);
 
-const { data: queryData, isLoading, isFetching, refetch } = useQuery({    queryKey: ["events"],
+  const {
+    data: queryData,
+    isLoading,
+    isFetching,
+    refetch,
+  } = useQuery({
+    queryKey: ["events"],
     queryFn: async () => {
       const { data } = await supabase
         .from("events")
@@ -317,12 +323,14 @@ const { data: queryData, isLoading, isFetching, refetch } = useQuery({    queryK
 
   return (
     <SiteShell>
-<PullToRefresh
-  isRefreshing={isFetching}
-  onRefresh={async () => {
-    await refetch();
-  }}
->        <section className="border-b-2 border-black bg-sky px-4 py-14 md:px-6">
+      <PullToRefresh
+        isRefreshing={isFetching}
+        onRefresh={async () => {
+          await refetch();
+        }}
+      >
+        {" "}
+        <section className="border-b-2 border-black bg-sky px-4 py-14 md:px-6">
           <div className="mx-auto flex max-w-7xl flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div>
               <div className="flex items-center gap-2 flex-wrap">
@@ -454,26 +462,28 @@ const { data: queryData, isLoading, isFetching, refetch } = useQuery({    queryK
             </div>
           </div>
         </section>
-      <section className="bg-cream px-4 py-12 md:px-6">
-        <div className="mx-auto grid max-w-7xl gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {isLoading ? (
-            <div className="col-span-full font-mono text-center py-10">Loading events...</div>
-          ) : (
-            filteredEvents.map((e, index) => (
-              <EventCard
-                key={e.id}
-                event={e}
-                index={index}
-                user={user}
-                onRsvpToggle={(eventId, hasRsvpd) => toggleRsvp.mutate({ eventId, hasRsvpd })}
-                isRsvpPending={toggleRsvp.isPending}
-                onBookmarkToggle={(eventId, isSaved) => toggleBookmark.mutate({ eventId, isSaved })}
-                isBookmarkPending={toggleBookmark.isPending}
-              />
-            ))
-          )}
-        </div>
-      </section>
+        <section className="bg-cream px-4 py-12 md:px-6">
+          <div className="mx-auto grid max-w-7xl gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {isLoading ? (
+              <div className="col-span-full font-mono text-center py-10">Loading events...</div>
+            ) : (
+              filteredEvents.map((e, index) => (
+                <EventCard
+                  key={e.id}
+                  event={e}
+                  index={index}
+                  user={user}
+                  onRsvpToggle={(eventId, hasRsvpd) => toggleRsvp.mutate({ eventId, hasRsvpd })}
+                  isRsvpPending={toggleRsvp.isPending}
+                  onBookmarkToggle={(eventId, isSaved) =>
+                    toggleBookmark.mutate({ eventId, isSaved })
+                  }
+                  isBookmarkPending={toggleBookmark.isPending}
+                />
+              ))
+            )}
+          </div>
+        </section>
       </PullToRefresh>
     </SiteShell>
   );
