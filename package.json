@@ -190,6 +190,7 @@
     "@vitest/coverage-v8": "^4.1.10",
     "all-contributors-cli": "^3.1.1",
     "cypress": "^15.19.0",
+    "dotenv": "^17.4.2",
     "eslint": "^9.32.0",
     "eslint-config-prettier": "^10.1.1",
     "eslint-plugin-prettier": "^5.2.6",
