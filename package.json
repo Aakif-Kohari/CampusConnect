@@ -19,7 +19,7 @@
     "format": "prettier --write .",
     "test": "vitest run --config vitest.config.ts",
     "test:watch": "vitest --config vitest.config.ts",
-    "test:integration": "vitest run --config vitest.config.integration.ts",
+    "test:integration": "vitest run --config vitest.config.integration.ts --fileParallelism=false --sequence.concurrent=false",
     "test:e2e": "playwright test",
     "test:edge": "deno test --allow-env --allow-net --allow-read supabase/functions",
     "auth:verify-jwks": "node scripts/verify-jwks.mjs",
