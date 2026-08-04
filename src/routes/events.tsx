@@ -407,7 +407,6 @@ function EventsPage() {
               <Select
                 value={sortOrder}
                 onValueChange={(value) => setSortOrder(value as "newest" | "oldest")}
->>>>>>> origin/main
               >
                 <SelectTrigger className="neu-border w-44 bg-white font-mono text-xs text-black">
                   <SelectValue placeholder="Sort by date" />
