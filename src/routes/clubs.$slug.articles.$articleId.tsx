@@ -34,10 +34,12 @@ export default function ClubArticleDetailsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("articles")
-        .select(`
+        .select(
+          `
           id, club_id, title, content, read_time_minutes, created_at,
           profiles (first_name, last_name, avatar_url)
-        `)
+        `,
+        )
         .eq("id", articleId!)
         .single();
       if (error) throw error;
@@ -107,7 +109,7 @@ export default function ClubArticleDetailsPage() {
     ? `${authorProfile.first_name || ""} ${authorProfile.last_name || ""}`.trim() || "Club Writer"
     : "Club Writer";
 
-  const readTimeStr = article.read_time_minutes 
+  const readTimeStr = article.read_time_minutes
     ? `${article.read_time_minutes} min read`
     : "1 min read";
 
