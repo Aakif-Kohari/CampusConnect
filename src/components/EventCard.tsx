@@ -6,16 +6,14 @@ import {
   getIcsContent,
 } from "@/lib/utils";
 import { Link } from "react-router-dom";
-import React, { FormEvent, useState, useMemo, useEffect, useRef } from "react";
-import { Calendar, Check, Share2, X, Link as LinkIcon, Bookmark } from "lucide-react";
+import { useState } from "react";
+import { Calendar, Share2, X, Link as LinkIcon, Bookmark } from "lucide-react";
 import { toast } from "sonner";
 import { TicketDialog } from "@/components/ui/ticket-modal";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { EventRSVPButton } from "@/components/EventRSVPButton";
-
 import { usePreloadEvent } from "@/hooks/usePreloadEvent";
-
 import { EventCapacityGauge } from "@/components/events/EventCapacityGauge";
 import { ShareMenu } from "@/components/ui/ShareMenu";
 import { ReadMore } from "@/components/ui/ReadMore";
@@ -30,13 +28,9 @@ interface Event {
   end_date?: string | null;
   location: string | null;
   banner_url?: string | null;
-  announce_date?: string | null;
   created_at?: string | null;
   max_attendees?: number | null;
-  clubs:
-    | { name: string; average_lead_time_days?: number | null }
-    | { name: string; average_lead_time_days?: number | null }[]
-    | null;
+  clubs: { name: string } | { name: string }[] | null;
   event_rsvps: { id: string; user_id: string }[] | null;
   saved_events: { id: string; user_id: string }[] | null;
   rsvp_count?: number;
@@ -54,25 +48,15 @@ interface EventCardProps {
   active?: boolean;
 }
 
-// Default lead time (in days) used when an event has no announce/creation date
-// and the club has no average lead time available
-const DEFAULT_LEAD_TIME_DAYS = 30;
+const ASSUMED_LEAD_TIME_DAYS = 30;
 
 interface EventProgress {
-  /** 0-100, how far along we are between "created" and the event date */
   percent: number;
-  /** true once the event date has passed */
   isPast: boolean;
-  /** true when we had to fall back to an assumed lead time (no announce/creation date) */
   isEstimated: boolean;
 }
 
-function getEventProgress(
-  announceDate: string | null | undefined,
-  createdAt: string | null | undefined,
-  eventDate: string,
-  fallbackLeadTimeDays: number,
-): EventProgress {
+function getEventProgress(createdAt: string | null | undefined, eventDate: string): EventProgress {
   const now = Date.now();
   const eventTime = new Date(eventDate).getTime();
 
@@ -83,11 +67,10 @@ function getEventProgress(
   let startTime: number;
   let isEstimated = false;
 
-  const windowStart = announceDate ?? createdAt;
-  if (windowStart) {
-    startTime = new Date(windowStart).getTime();
+  if (createdAt) {
+    startTime = new Date(createdAt).getTime();
   } else {
-    startTime = eventTime - fallbackLeadTimeDays * 24 * 60 * 60 * 1000;
+    startTime = eventTime - ASSUMED_LEAD_TIME_DAYS * 24 * 60 * 60 * 1000;
     isEstimated = true;
   }
 
@@ -103,24 +86,15 @@ function getEventProgress(
 }
 
 function EventProgressBar({
-  announceDate,
   createdAt,
   eventDate,
-  fallbackLeadTimeDays,
 }: {
-  announceDate: string | null | undefined;
   createdAt: string | null | undefined;
   eventDate: string | null;
-  fallbackLeadTimeDays: number;
 }) {
   if (!eventDate) return null;
 
-  const { percent, isPast, isEstimated } = getEventProgress(
-    announceDate,
-    createdAt,
-    eventDate,
-    fallbackLeadTimeDays,
-  );
+  const { percent, isPast, isEstimated } = getEventProgress(createdAt, eventDate);
 
   return (
     <div className="mt-4">
@@ -144,16 +118,13 @@ function EventProgressBar({
       </div>
       {isEstimated && !isPast && (
         <p className="mt-1 font-mono text-[8px] sm:text-[9px] text-gray-500">
-          Estimated — using club average lead time
+          Estimated — creation date unavailable
         </p>
       )}
     </div>
   );
 }
 
-/**
- * Helper to auto-detect and linkify http/https URLs within a text string.
- */
 function renderLocationWithLinks(locationText: string | null) {
   if (!locationText) return "TBA";
 
@@ -178,21 +149,18 @@ function renderLocationWithLinks(locationText: string | null) {
     return part;
   });
 }
+
 export function EventCard({
   event,
   index,
   user,
+  onRsvpToggle,
+  isRsvpPending,
   onBookmarkToggle,
   isBookmarkPending,
   active,
 }: EventCardProps) {
   const club = Array.isArray(event.clubs) ? event.clubs[0] : event.clubs;
-  const clubLeadTimeDays =
-    typeof club?.average_lead_time_days === "number" &&
-    Number.isFinite(club.average_lead_time_days) &&
-    club.average_lead_time_days > 0
-      ? club.average_lead_time_days
-      : DEFAULT_LEAD_TIME_DAYS;
   const rsvps = Array.isArray(event.event_rsvps) ? event.event_rsvps : [];
   const myRsvp = user ? rsvps.find((rsvp) => rsvp.user_id === user.id) : null;
   const preloadEvent = usePreloadEvent(event.id);
@@ -215,7 +183,7 @@ export function EventCard({
     try {
       await navigator.clipboard.writeText(window.location.href);
       toast.success("Link copied!");
-    } catch (error) {
+    } catch {
       toast.error("Failed to copy link.");
     }
   };
@@ -251,20 +219,6 @@ export function EventCard({
       ? `${window.location.origin}${window.location.pathname}#event-${event.id}`
       : "";
 
-  const handleRsvpClick = () => {
-    if (!user) {
-      toast.error("Please log in to RSVP");
-      return;
-    }
-
-    if (hasRsvpd) {
-      setConfirmOpen(true);
-      return;
-    }
-
-    onRsvpToggle(event.id, false);
-  };
-
   const savedEventsList = Array.isArray(event.saved_events) ? event.saved_events : [];
   const isSaved = user ? savedEventsList.some((se) => se.user_id === user.id) : false;
 
@@ -273,7 +227,7 @@ export function EventCard({
       toast.error("Please log in to bookmark events");
       return;
     }
-    onBookmarkToggle?.(event.id, isSaved);
+    onBookmarkToggle(event.id, isSaved);
   };
 
   return (
@@ -288,16 +242,6 @@ export function EventCard({
             : colors[index % colors.length]
         } transition-all duration-300 ease-out group-hover:scale-[1.02]`}
       >
-        <button
-          type="button"
-          onClick={handleBookmarkClick}
-          disabled={isBookmarkPending}
-          className="absolute right-4 top-4 neu-border p-1.5 bg-white transition-all duration-300 hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 z-10"
-          aria-label={isSaved ? "Unsave event" : "Save event"}
-        >
-          <Bookmark className="h-4 w-4" fill={isSaved ? "black" : "none"} />
-        </button>
-
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-col">
             <p className="font-mono text-xs font-bold uppercase tracking-wider pr-10 text-red-900">
@@ -317,9 +261,6 @@ export function EventCard({
             )}
           </div>
         </div>
-        {event.description ? (
-          <p className="mt-4 text-sm leading-6 text-gray-800">{event.description}</p>
-        ) : null}
         <div className="mt-5">
           <div>
             <p className="font-mono text-xs font-bold uppercase text-black">Date &amp; Time</p>
@@ -363,12 +304,7 @@ export function EventCard({
             <ReadMore text={event.description} />
           </div>
         ) : null}
-        <EventProgressBar
-          announceDate={event.announce_date}
-          createdAt={event.created_at}
-          eventDate={event.event_date}
-          fallbackLeadTimeDays={clubLeadTimeDays}
-        />
+        <EventProgressBar createdAt={event.created_at} eventDate={event.event_date} />
         <div className="mt-4">
           <EventCapacityGauge
             eventId={event.id}
@@ -456,6 +392,18 @@ export function EventCard({
           event={event}
           rsvpId={myRsvp?.id ?? ""}
         />
+        {confirmOpen && (
+          <div className="hidden">
+            <button
+              onClick={() => {
+                onRsvpToggle(event.id, true);
+                setConfirmOpen(false);
+              }}
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
       </article>
     </div>
   );

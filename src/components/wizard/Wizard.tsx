@@ -57,7 +57,6 @@ export function Wizard<TFieldValues extends FieldValues>({
     } finally {
       setHydrated(true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey]);
 
   // Persist every keystroke to sessionStorage.
@@ -87,7 +86,6 @@ export function Wizard<TFieldValues extends FieldValues>({
     if (step > furthestReachable) {
       navigate(`${basePath}?${STEP_PARAM}=${furthestReachable}`, { replace: true });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated, step, steps, basePath, form, navigate]);
 
   const currentStep = steps[step - 1];
