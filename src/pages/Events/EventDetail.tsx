@@ -1408,7 +1408,7 @@ export default function EventDetailsPage() {
                       aria-label="Copy Event ID"
                     >
                       {isEventIdCopied ? (
-                        <Check className="h-4 w-4" />
+                        <Check className="h-4 w-4 text-green-600" />
                       ) : (
                         <Copy className="h-4 w-4" />
                       )}
@@ -1573,7 +1573,7 @@ export default function EventDetailsPage() {
                       className="neu-border neu-press h-12 bg-white px-5 font-mono text-sm font-bold uppercase tracking-wider transition-all duration-300 hover:scale-105 active:scale-95"
                     >
                       {isEventLinkCopied ? (
-                        <Check className="mr-2 h-4 w-4" />
+                        <Check className="mr-2 h-4 w-4 text-green-600" />
                       ) : (
                         <LinkIcon className="mr-2 h-4 w-4" />
                       )}
