@@ -1,5 +1,6 @@
 import React from "react";
 import { FeedPostSkeleton } from "@/components/FeedPostSkeleton";
+import { OrganicSkeletonStudioModal } from "@/components/common/OrganicSkeletonStudioModal";
 import {
   useMutation,
   useQuery,
@@ -97,13 +98,14 @@ interface Profile {
 
 interface ClubMember {
   user_id: string;
-  role: MemberRole;
+  role_id: string;
+  club_roles: { title: string; permissions_level: number } | null;
 }
 
 interface Club {
   id: string;
   name: string;
-  club_members: ClubMember[] | ClubMember | null;
+  club_members: ClubMember[] | null;
 }
 
 interface Comment {
@@ -264,11 +266,12 @@ const [selectedClubId, setSelectedClubId] = useState("");
       const afterCursor = pageParam as string | undefined;
 
       // Try get_posts_relay RPC first
-      const { data: relayData, error: relayError } = await supabase.rpc("get_posts_relay", {
-        p_after: afterCursor || null,
-        p_first: POSTS_PER_PAGE,
-      });
-
+const res = await fetch(
+  `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-feed?after=${afterCursor ?? ""}&first=${POSTS_PER_PAGE}`,
+  { headers: { Authorization: `Bearer ${session?.access_token}` } }
+);
+const relayData = res.ok ? await res.json() : null;
+const relayError = res.ok ? null : new Error("get-feed request failed");
       if (!relayError && relayData && typeof relayData === "object" && "edges" in relayData) {
         const connection = relayData as unknown as RelayConnection<Post>;
         return connection;
@@ -287,7 +290,7 @@ const [selectedClubId, setSelectedClubId] = useState("");
           `
         id, content, created_at, club_id, is_pinned,
         profiles (id, full_name, handle),
-        clubs (id, name, club_members (user_id, role)),
+        clubs (id, name, club_members (user_id, role_id, club_roles (title, permissions_level))),
         comments (id),
         post_reactions (emoji, user_id)
       `,
@@ -332,7 +335,7 @@ const [selectedClubId, setSelectedClubId] = useState("");
           `
           id, content, created_at, club_id, is_pinned,
           profiles (id, full_name, handle),
-          clubs (id, name, club_members (user_id, role)),
+          clubs (id, name, club_members (user_id, role_id, club_roles (title, permissions_level))),
           comments (id),
           post_reactions (emoji, user_id)
         `,
@@ -434,7 +437,7 @@ const [selectedClubId, setSelectedClubId] = useState("");
               `
               id, content, created_at, club_id, is_pinned,
               profiles (id, full_name, handle),
-              clubs (id, name, club_members (user_id, role)),
+              clubs (id, name, club_members (user_id, role_id, club_roles (title, permissions_level))),
               comments (id, content, created_at, deleted_at, parent_id, parent_comment_id, profiles (id, full_name, handle)),
               post_reactions (emoji, user_id)
             `,
@@ -1207,7 +1210,7 @@ const [selectedClubId, setSelectedClubId] = useState("");
             {isActiveFeedLoading ? (
               <div className="space-y-6">
                 {Array.from({ length: 5 }).map((_, index) => (
-                  <FeedPostSkeleton key={index} />
+                  <FeedPostSkeleton key={index} index={index} />
                 ))}
               </div>
             ) : filteredPosts.length === 0 ? (
@@ -1239,7 +1242,10 @@ const [selectedClubId, setSelectedClubId] = useState("");
 
                   const authorMembership = clubMembers.find((m) => m.user_id === author?.id);
 
-                  const authorRole = (authorMembership?.role ?? "member") as MemberRole;
+                  const authorRoleTitle = authorMembership?.club_roles?.title?.toLowerCase() ?? "member";
+                  const authorRole = (["admin", "organizer", "member", "alumni"].includes(authorRoleTitle)
+                    ? (authorRoleTitle as MemberRole)
+                    : "member") as MemberRole;
 
                   const postComments: Comment[] = (
                     lazyComments[post.id] !== undefined
@@ -1302,7 +1308,7 @@ const [selectedClubId, setSelectedClubId] = useState("");
                           {(() => {
                             const isClubAdmin =
                               clubMembers.some(
-                                (m) => m.user_id === user?.id && m.role === "admin",
+                                (m) => m.user_id === user?.id && m.club_roles?.title === "Admin",
                               ) || userProfile?.role === "system_admin";
                             return isClubAdmin ? (
                               <button
@@ -1609,7 +1615,10 @@ const MemoizedFeedPost = React.memo(
         : [];
 
     const authorMembership = clubMembers.find((m) => m.user_id === author?.id);
-    const authorRole = (authorMembership?.role ?? "member") as MemberRole;
+    const authorRoleTitle = authorMembership?.club_roles?.title?.toLowerCase() ?? "member";
+    const authorRole = (["admin", "organizer", "member", "alumni"].includes(authorRoleTitle)
+      ? (authorRoleTitle as MemberRole)
+      : "member") as MemberRole;
 
     if (isOptimisticallyDeleted) return null;
 
@@ -1660,7 +1669,7 @@ const MemoizedFeedPost = React.memo(
           <div className="flex items-center gap-2">
             {(() => {
               const isClubAdmin =
-                clubMembers.some((m) => m.user_id === user?.id && m.role === "admin") ||
+                clubMembers.some((m) => m.user_id === user?.id && m.club_roles?.title === "Admin") ||
                 userProfile?.role === "system_admin";
               return isClubAdmin ? (
                 <button
@@ -1993,6 +2002,10 @@ function PostComments({ postId, user, userProfile, clubMembers, timeAgo }: PostC
       : commentNode.profiles;
 
     const commentAuthorMembership = clubMembers.find((m) => m.user_id === commentAuthor?.id);
+    const commentAuthorRoleTitle = commentAuthorMembership?.club_roles?.title?.toLowerCase() ?? "member";
+    const commentAuthorRole = (["admin", "organizer", "member", "alumni"].includes(commentAuthorRoleTitle)
+      ? (commentAuthorRoleTitle as MemberRole)
+      : "member") as MemberRole;
 
     const indentClass = depth === 1 ? "ml-4" : depth >= 2 ? "ml-8" : "";
 
@@ -2002,7 +2015,7 @@ function PostComments({ postId, user, userProfile, clubMembers, timeAgo }: PostC
           <div className="flex justify-between">
             <p className="font-mono text-xs font-bold uppercase flex items-center gap-1.5">
               {commentAuthor?.full_name || "Unknown User"}
-              <RoleBadge role={(commentAuthorMembership?.role ?? "member") as MemberRole} />
+              <RoleBadge role={commentAuthorRole} />
             </p>
             <div className="flex items-center gap-2">
               <p className="font-mono text-[10px] text-gray-500 dark:text-gray-300">

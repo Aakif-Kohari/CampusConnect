@@ -3,6 +3,40 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- 
+      OPTIMIZATION: Resource Hints for Critical External Domains
+      Force the browser to establish DNS, TCP, and TLS connections to critical 
+      external APIs the millisecond the HTML arrives, cutting out the ~300ms 
+      handshake delay during the initial page load.
+    -->
+    <!-- Supabase API: Preconnect with CORS support -->
+    <!-- The crossOrigin attribute is CRITICAL here. If the domain serves API 
+         requests that require CORS, we must include it. Otherwise, the browser 
+         opens a standard connection, throws it away when it realizes it needs 
+         a CORS connection, and opens a brand new one, defeating the purpose. -->
+    <link rel="preconnect" href="https://api.supabase.co" crossorigin="anonymous" />
+    <!-- Fallback for older browsers that don't support preconnect -->
+    <link rel="dns-prefetch" href="https://api.supabase.co" />
+
+    <!-- AWS S3 Image Storage: Preconnect for fast image loading -->
+    <link rel="preconnect" href="https://s3.amazonaws.com" crossorigin="anonymous" />
+    <link rel="dns-prefetch" href="https://s3.amazonaws.com" />
+
+    <!-- Unsplash (used for mock/placeholder images in the app) -->
+    <link rel="preconnect" href="https://images.unsplash.com" crossorigin="anonymous" />
+    <link rel="dns-prefetch" href="https://images.unsplash.com" />
+
+    <!-- Google Fonts (If used for typography fallback) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com https://www.google-analytics.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.supabase.co https://s3.amazonaws.com https://images.unsplash.com https://www.google-analytics.com; frame-src 'self' https://js.stripe.com; object-src 'none'; base-uri 'self';"
+    />
+
     <link
       rel="preload"
       href="/fonts/space-grotesk-latin-400-normal.woff2"
@@ -18,39 +52,9 @@
       crossorigin="anonymous"
     />
     <title>CampusConnect</title>
-    <script>
-      (function () {
-        try {
-          var stored = localStorage.getItem("campusconnect-theme");
-          var isDark =
-            stored === "dark" ||
-            ((!stored || stored === "system") &&
-              window.matchMedia("(prefers-color-scheme: dark)").matches);
-          if (isDark) {
-            document.documentElement.classList.add("dark");
-            document.documentElement.style.colorScheme = "dark";
-          } else {
-            document.documentElement.classList.remove("dark");
-            document.documentElement.style.colorScheme = "light";
-          }
-        } catch (e) {}
-      })();
-    </script>
+    <script src="/theme-init.js"></script>
     <!-- Register custom service worker early in head for faster interception -->
-    <script>
-      if ("serviceWorker" in navigator) {
-        window.addEventListener("load", () => {
-          navigator.serviceWorker
-            .register("/sw.js")
-            .then((registration) => {
-              console.log("[SW] Registered successfully:", registration.scope);
-            })
-            .catch((error) => {
-              console.error("[SW] Registration failed:", error);
-            });
-        });
-      }
-    </script>
+
     <style>
       /* This is intentionally kept outside the React bundle so it is visible
          while the application's JavaScript is downloading. */
@@ -103,6 +107,7 @@
       }
     </style>
   </head>
+
   <body>
     <div id="root">
       <div id="app-loading" role="status" aria-label="Loading CampusConnect">
@@ -160,11 +165,6 @@
     </div>
     <script type="module" src="/src/main.tsx"></script>
     <!-- Redundant SW registration at end of body as fallback/standard practice -->
-    <script>
-      // Fallback registration in case window.load fired before script execution
-      if ("serviceWorker" in navigator && !navigator.serviceWorker.controller) {
-        navigator.serviceWorker.register("/sw.js");
-      }
-    </script>
+    <script src="/sw-register.js"></script>
   </body>
 </html>

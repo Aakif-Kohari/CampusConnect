@@ -262,7 +262,7 @@ export default function DashboardOverview() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("club_members")
-        .select(`role, clubs (id, name, slug)`)
+        .select(`role_id, club_roles (id, title, permissions_level), clubs (id, name, slug)`)
         .eq("user_id", user!.id)
         .eq("status", "approved");
       if (error) throw error;
@@ -630,7 +630,7 @@ export default function DashboardOverview() {
                       <p className="font-mono text-xs">Active</p>
                     </div>
                     <span className="neu-border bg-lime px-2 py-1 font-mono text-[10px] font-bold uppercase">
-                      {c.role}
+                      {c.club_roles?.title || "Member"}
                     </span>
                   </li>
                 );
