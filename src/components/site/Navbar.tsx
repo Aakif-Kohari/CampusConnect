@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { localizedPath } from "@/lib/i18n";
+import { Bookmark } from "lucide-react";
 
 import { ThemeToggle } from "../ThemeToggle";
 import { NavbarNotificationDropdown } from "./NavbarNotificationDropdown";
@@ -12,22 +13,6 @@ import { Menu, X, WifiOff, Bookmark } from "lucide-react";
 import { useAuthHydration } from "@/hooks/useAuthHydration";
 import { useScrollSentinel } from "@/hooks/useScrollSentinel";
 import { ProfileHeaderSkeleton } from "@/components/ProfileHeaderSkeleton";
-
-const links = [
-  { to: "/events", label: "Events" },
-  { to: "/clubs", label: "Clubs" },
-  { to: "/feed", label: "Feed" },
-  { to: "/lost-found", label: "Lost & Found" },
-  { to: "/challenge", label: "Challenge" },
-  { to: "/certificates", label: "Certificates" },
-  { to: "/dashboard", label: "Dashboard" },
-  { to: "/messages", label: "Messages" },
-] as const;
-const landingLinks = [
-  { href: "#features", label: "Features" },
-  { href: "#faq", label: "FAQ" },
-  { href: "#contact", label: "Contact" },
-] as const;
 
 export function Navbar() {
   const { user, isInitializing } = useAuthHydration();
@@ -277,20 +262,66 @@ export function Navbar() {
           {isInitializing ? <ProfileHeaderSkeleton /> : <UserAvatarWidget />}
         </div>
 
-          {/* Mobile menu toggle button */}
-          <button
-            ref={hamburgerRef}
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="neu-border flex h-8 w-8 shrink-0 items-center justify-center bg-white p-1 text-black transition-colors hover:bg-lime dark:bg-black dark:text-cream md:hidden"
-            aria-label="Toggle navigation menu"
-            aria-expanded={mobileMenuOpen}
-            aria-controls="mobile-navigation"
-          >
-            {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
-          </button>
+          {user && <NavbarNotificationDropdown />}
+          {user && (
+            <button
+              type="button"
+              aria-label="Open bookmarks"
+              onClick={() => setBookmarksPanelOpen(true)}
+              className="neu-border flex h-8 w-8 items-center justify-center bg-white text-black transition-colors hover:bg-lime dark:bg-black dark:text-cream"
+            >
+              <Bookmark size={16} />
+            </button>
+          )}
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="User menu"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-black bg-lime font-mono text-xs font-bold uppercase focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 dark:focus-visible:ring-cream"
+                >
+                  {user.email?.[0]?.toUpperCase() ?? "U"}
+                </button>
+              </DropdownMenuTrigger>
+
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel className="break-all text-xs">{user.email}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/dashboard">Dashboard</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/messages">Messages</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/settings">Settings</Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="cursor-pointer text-red-600 focus:text-red-600">
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Link
+              to="/auth"
+              id="nav-signin-button"
+              className="neu-border neu-press bg-black px-3 py-1.5 font-mono text-xs font-bold uppercase text-cream hover:bg-cream hover:text-black dark:bg-cream dark:text-black dark:hover:bg-black dark:hover:text-cream"
+              style={{ letterSpacing: "0.08em" }}
+            >
+              Sign in
+            </Link>
+          )}
         </div>
 
       <BookmarksPanel open={bookmarksPanelOpen} onOpenChange={setBookmarksPanelOpen} user={user} />
+
+      <BookmarksPanel
+        open={bookmarksPanelOpen}
+        onOpenChange={setBookmarksPanelOpen}
+        user={user ?? null}
+      />
 
       {/* Mobile Navigation */}
       {mobileMenuOpen && (
