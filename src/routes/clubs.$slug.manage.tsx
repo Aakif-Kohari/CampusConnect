@@ -5,7 +5,7 @@ import { useQuery, useMutation } from "@/hooks/useReactQueryReplacement";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { User } from "@supabase/supabase-js";
-import { Settings, Users, Calendar } from "lucide-react";
+import { sanitizeHtml } from "@/lib/sanitizeHtml";
 import {
   Settings,
   Users,
@@ -20,6 +20,7 @@ import { ClubManageSkeleton } from "@/components/DashboardWidgetSkeleton";
 import { RosterExport } from "@/components/RosterExport";
 import { ImageCropUpload } from "@/components/ImageCropUpload";
 import { ClubMembersTable } from "@/components/Clubs/ClubMembersTable";
+import { ClubSocialLinksEditor } from "@/components/Clubs/ClubSocialLinksEditor";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -61,9 +62,14 @@ export default function ClubManageRoute() {
   const [twitterUrl, setTwitterUrl] = useState("");
   const [instagramUrl, setInstagramUrl] = useState("");
   const [websiteUrl, setWebsiteUrl] = useState("");
+  const [socialLinksOrder, setSocialLinksOrder] = useState<string[]>([
+    "website",
+    "twitter",
+    "instagram",
+  ]);
   const [promoVideoUrl, setPromoVideoUrl] = useState("");
   const [isConflictDialogOpen, setIsConflictDialogOpen] = useState(false);
-  const [serverClub, setServerClub] = useState<any>(null);
+  const [serverClub, setServerClub] = useState<ServerClub | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
@@ -82,8 +88,7 @@ export default function ClubManageRoute() {
         .from("clubs")
         .select(
           `
-          id, name, slug, description, banner_url, logo_url, visibility, github_repo_url, social_links, promo_video_url, version,
-          club_members (id, role, status, user_id, joined_at, profiles (full_name, avatar_url, handle)),
+id, name, slug, description, banner_url, logo_url, visibility, github_repo_url, social_links, social_links_order, promo_video_url, version,          club_members (id, role, status, user_id, joined_at, profiles (full_name, avatar_url, handle)),
           events (id, title, event_date, max_attendees, event_rsvps(id))
         `,
         )
@@ -116,6 +121,8 @@ export default function ClubManageRoute() {
       setTwitterUrl(links.twitter || "");
       setInstagramUrl(links.instagram || "");
       setWebsiteUrl(links.website || "");
+      const savedOrder = (club.social_links_order || []) as string[];
+      setSocialLinksOrder(savedOrder.length > 0 ? savedOrder : ["website", "twitter", "instagram"]);
       setPromoVideoUrl(club.promo_video_url || "");
     }
   }, [club]);
@@ -218,7 +225,7 @@ export default function ClubManageRoute() {
         .from("clubs")
         .update({
           name,
-          description,
+          description: sanitizeHtml(description),
           banner_url: bannerUrl,
           logo_url: logoUrl,
           promo_video_url: promoVideoUrl || null,
@@ -441,54 +448,28 @@ export default function ClubManageRoute() {
                       <option value="private">Private</option>
                     </select>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="font-mono text-sm font-bold uppercase mb-1 block">
-                        GitHub Repo URL
-                      </label>
-                      <input
-                        value={githubRepoUrl}
-                        onChange={(e) => setGithubRepoUrl(e.target.value)}
-                        placeholder="https://github.com/org/repo"
-                        className="neu-border w-full p-2 font-mono text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="font-mono text-sm font-bold uppercase mb-1 block">
-                        Website URL
-                      </label>
-                      <input
-                        value={websiteUrl}
-                        onChange={(e) => setWebsiteUrl(e.target.value)}
-                        placeholder="https://example.com"
-                        className="neu-border w-full p-2 font-mono text-sm"
-                      />
-                    </div>
+                  <div>
+                    <label className="font-mono text-sm font-bold uppercase mb-1 block">
+                      GitHub Repo URL
+                    </label>
+                    <input
+                      value={githubRepoUrl}
+                      onChange={(e) => setGithubRepoUrl(e.target.value)}
+                      placeholder="https://github.com/org/repo"
+                      className="neu-border w-full p-2 font-mono text-sm"
+                    />
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="font-mono text-sm font-bold uppercase mb-1 block">
-                        Twitter URL
-                      </label>
-                      <input
-                        value={twitterUrl}
-                        onChange={(e) => setTwitterUrl(e.target.value)}
-                        placeholder="https://twitter.com/username"
-                        className="neu-border w-full p-2 font-mono text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="font-mono text-sm font-bold uppercase mb-1 block">
-                        Instagram URL
-                      </label>
-                      <input
-                        value={instagramUrl}
-                        onChange={(e) => setInstagramUrl(e.target.value)}
-                        placeholder="https://instagram.com/username"
-                        className="neu-border w-full p-2 font-mono text-sm"
-                      />
-                    </div>
-                  </div>
+                  <ClubSocialLinksEditor
+                    clubId={club.id}
+                    order={socialLinksOrder}
+                    values={{ website: websiteUrl, twitter: twitterUrl, instagram: instagramUrl }}
+                    onValueChange={(platform, value) => {
+                      if (platform === "website") setWebsiteUrl(value);
+                      if (platform === "twitter") setTwitterUrl(value);
+                      if (platform === "instagram") setInstagramUrl(value);
+                    }}
+                    onOrderChange={setSocialLinksOrder}
+                  />{" "}
                   <button
                     type="submit"
                     disabled={updateClubMutation.isPending}
@@ -531,10 +512,19 @@ export default function ClubManageRoute() {
                       Manage Members
                     </h2>
                     <ClubMembersTable
-                      members={(club.club_members || []).map((m: any) => ({
-                        ...m,
-                        role: optimisticRoles[m.id] || m.role,
-                      }))}
+                      members={(club.club_members || []).map(
+                        (m: {
+                          id: string;
+                          role: string;
+                          status: string;
+                          user_id: string;
+                          joined_at: string | null;
+                          profiles: unknown;
+                        }) => ({
+                          ...m,
+                          role: optimisticRoles[m.id] || m.role,
+                        }),
+                      )}
                       currentUserId={user?.id}
                       isMutating={updateMemberMutation.isPending}
                       onApprove={(memberId) =>

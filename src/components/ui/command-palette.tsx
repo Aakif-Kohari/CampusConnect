@@ -1,5 +1,7 @@
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
+import { Calendar, Compass, Home, Settings, Zap } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 import {
   Calendar,
   Compass,
@@ -10,16 +12,30 @@ import {
   User,
   Bookmark,
 } from "lucide-react";
+import { useCommandPalette } from "@/components/CommandPaletteProvider";
 
 export interface CommandPaletteProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
 
+interface RecentEvent {
+  id: string;
+  title: string;
+}
+
+const NAV_ITEMS = [
+  { label: "Home", path: "/", icon: Home },
+  { label: "Calendar", path: "/calendar", icon: Calendar },
+  { label: "Clubs", path: "/clubs", icon: Compass },
+  { label: "Settings", path: "/settings", icon: Settings },
+];
+
 export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPaletteProps) {
   const [internalOpen, setInternalOpen] = React.useState(false);
-  const [query, setQuery] = React.useState("");
+  const [recentEvents, setRecentEvents] = React.useState<RecentEvent[]>([]);
   const navigate = useNavigate();
+  const { commands } = useCommandPalette();
 
   const isOpen = externalOpen ?? internalOpen;
   const setIsOpen = React.useCallback(
@@ -30,27 +46,39 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
     [onOpenChange],
   );
 
-  // Toggle palette with Cmd+K or Ctrl+K
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setIsOpen(!isOpen);
-      } else if (e.key === "Escape" && isOpen) {
-        setIsOpen(false);
       }
     };
-
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, setIsOpen]);
 
-  if (!isOpen) return null;
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const supabase = createClient();
+    supabase
+      .from("events")
+      .select("id, title")
+      .order("event_date", { ascending: false })
+      .limit(5)
+      .then(({ data }) => {
+        if (data) setRecentEvents(data);
+      });
+  }, [isOpen]);
 
   const handleSelect = (path: string) => {
     setIsOpen(false);
-    setQuery("");
     navigate(path);
+  };
+
+  const handleCommand = (action: () => void) => {
+    setIsOpen(false);
+    setQuery("");
+    action();
   };
 
   const navigationItems = [
@@ -63,9 +91,20 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
     { label: "Admin Panel", path: "/admin/clubs/pending", icon: ShieldAlert },
   ];
 
+  const normalizedQuery = query.trim().toLowerCase();
+
   const filteredItems = navigationItems.filter((item) =>
-    item.label.toLowerCase().includes(query.toLowerCase()),
+    item.label.toLowerCase().includes(normalizedQuery),
   );
+
+  const filteredCommands = commands.filter((command) => {
+    if (command.title.toLowerCase().includes(normalizedQuery)) return true;
+    return (command.keywords || []).some((keyword) =>
+      keyword.toLowerCase().includes(normalizedQuery),
+    );
+  });
+
+  const hasResults = filteredItems.length > 0 || filteredCommands.length > 0;
 
   return (
     <div
@@ -92,26 +131,51 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
         </div>
 
         <div className="max-h-[300px] overflow-y-auto p-2">
-          {filteredItems.length === 0 ? (
+          {!hasResults ? (
             <div className="py-6 text-center text-sm text-muted-foreground">No results found.</div>
           ) : (
             <div className="space-y-1">
-              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-                Navigation
-              </div>
-              {filteredItems.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <button
-                    key={item.path}
-                    onClick={() => handleSelect(item.path)}
-                    className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors text-left"
-                  >
-                    <Icon className="h-4 w-4 text-muted-foreground" />
-                    <span>{item.label}</span>
-                  </button>
-                );
-              })}
+              {filteredCommands.length > 0 && (
+                <>
+                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                    Actions
+                  </div>
+                  {filteredCommands.map((command) => {
+                    const Icon = command.icon;
+                    return (
+                      <button
+                        key={command.id}
+                        onClick={() => handleCommand(command.action)}
+                        className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors text-left"
+                      >
+                        {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
+                        <span>{command.title}</span>
+                      </button>
+                    );
+                  })}
+                </>
+              )}
+
+              {filteredItems.length > 0 && (
+                <>
+                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                    Navigation
+                  </div>
+                  {filteredItems.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <button
+                        key={item.path}
+                        onClick={() => handleSelect(item.path)}
+                        className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors text-left"
+                      >
+                        <Icon className="h-4 w-4 text-muted-foreground" />
+                        <span>{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </>
+              )}
             </div>
           )}
         </div>
