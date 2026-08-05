@@ -23,6 +23,7 @@ import MaintenancePage from "./components/MaintenancePage";
 import { NotFoundPage } from "./components/NotFoundPage";
 import { createClient } from "./lib/supabase/client";
 import { BreadcrumbProvider } from "@/components/BreadcrumbsContext";
+import AriaAnnouncer from "@/components/accessibility/AriaAnnouncer";
 
 function RemoteLoadingScreen() {
   return (
@@ -272,6 +273,7 @@ export default function App() {
 
   return (
     <ThemeProvider>
+      <AriaAnnouncer />
       <TooltipProvider>
         <QueryClientProvider client={queryClient}>
           <ErrorBoundary>
