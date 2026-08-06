@@ -37,7 +37,7 @@ import { VideoEmbed } from "@/components/VideoEmbed";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AnimatedTooltip } from "@/components/ui/AnimatedTooltip";
 import { toast } from "sonner";
-import { RoleBadge } from "@/components/RoleBadge";
+import { usePendingDeleteStore } from "@/store/usePendingDeleteStore";import { RoleBadge } from "@/components/RoleBadge";
 import { uploadFileWithProgress } from "@/lib/supabase/uploadFileWithProgress";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -159,6 +159,9 @@ export default function Feed() {
   const [showNewPostsBanner, setShowNewPostsBanner] = useState(false);
   const [prependedPosts, setPrependedPosts] = useState<Post[]>([]);
   const [hiddenPosts, setHiddenPosts] = useState<Post[]>([]);
+const { beginPendingDelete, clearPendingDelete } = usePendingDeleteStore();  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const [optimisticReactions, setOptimisticReactions] = useState<Record<string, unknown>>({});
+
   const [confirmPostId, setConfirmPostId] = useState<string | null>(null);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [optimisticReactions, setOptimisticReactions] = useState<
@@ -975,29 +978,43 @@ export default function Feed() {
     },
   });
 
-  const deletePostMutation = useMutation({
+const deletePostMutation = useMutation({
     mutationFn: async (postId: string) => {
       if (!user) throw new Error("Must be logged in");
       setOptimisticDeletedIds((prev) => [...prev, postId]);
-      const { error } = await supabase
-        .from("posts")
-        .update({ deleted_at: new Date().toISOString() })
-        .eq("id", postId)
-        .eq("author_id", user.id);
+      const { data, error } = await supabase.functions.invoke("delete-post", {
+        body: { postId },
+      });
       if (error) {
         setOptimisticDeletedIds((prev) => prev.filter((id) => id !== postId));
         throw error;
       }
+      return data as { postId: string; deletionToken: string };
     },
-    onSuccess: () => {
-      toast.success("Post deleted successfully.");
-      refetchPosts();
+    onSuccess: ({ postId, deletionToken }) => {
+      beginPendingDelete(postId, deletionToken);
+      toast("Post deleted.", {
+        action: {
+          label: "Undo",
+          onClick: async () => {
+            const { error } = await supabase.functions.invoke("cancel-delete", {
+              body: { postId, deletionToken },
+            });
+            clearPendingDelete(postId);
+            if (error) {
+              toast.error("Undo window has expired.");
+              return;
+            }
+            setOptimisticDeletedIds((prev) => prev.filter((id) => id !== postId));
+            refetchPosts();
+          },
+        },
+      });
     },
     onError: () => {
       toast.error("Failed to delete post.");
     },
   });
-
   const pinMutation = useMutation({
     mutationFn: async ({ postId, is_pinned }: { postId: string; is_pinned: boolean }) => {
       if (!user) throw new Error("Must be logged in");
@@ -1378,8 +1395,7 @@ export default function Feed() {
                           {(user?.id === author?.id || userProfile?.role === "system_admin") && (
                             <button
                               type="button"
-                              onClick={() => setConfirmPostId(post.id)}
-                              className="neu-border neu-press grid h-8 w-8 shrink-0 place-items-center bg-white transition-all duration-300 hover:bg-[#FF6B6B]"
+onClick={() => deletePostMutation.mutate(post.id)}                              className="neu-border neu-press grid h-8 w-8 shrink-0 place-items-center bg-white transition-all duration-300 hover:bg-[#FF6B6B]"
                               aria-label="Delete post"
                             >
                               <Trash2 size={14} strokeWidth={2.5} />
@@ -1573,6 +1589,14 @@ export default function Feed() {
             )}
           </div>
         </section>
+
+      </PullToRefresh>
+<ReportDialog        isOpen={!!reportTarget}
+        onClose={() => setReportTarget(null)}
+        targetType={reportTarget?.type || "post"}
+        targetId={reportTarget?.id || ""}
+      />
+
           </div>
         </PullToRefresh>
         <ConfirmModal
@@ -1593,6 +1617,7 @@ export default function Feed() {
           targetId={reportTarget?.id || ""}
         />
       </div>
+
     </SiteShell>
   );
 }

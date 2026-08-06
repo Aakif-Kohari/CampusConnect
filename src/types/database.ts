@@ -29,6 +29,7 @@ export interface Profile {
     updated_at: string;
     /** Set when the profile is soft-deleted; NULL means active */
     deleted_at: string | null;
+
   /** UUIDv7 matching auth.users.id */
   id: string;
   full_name: string | null;
