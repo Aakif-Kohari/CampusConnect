@@ -17,6 +17,7 @@
  * Auto-created via database trigger on `auth.users` insertion.
  */
 export interface Profile {
+
     /** UUIDv7 matching auth.users.id */
     id: string;
     full_name: string | null;
@@ -40,12 +41,14 @@ export interface Profile {
   /** Fallback timestamp, kept for legacy queries but not used for primary sorting */
   created_at: string;
   updated_at: string;
+
 }
 
 /**
  * Represents a campus club/society in the `clubs` table.
  */
 export interface Club {
+
     /** UUIDv7 primary key */
     id: string;
     name: string;
@@ -75,6 +78,7 @@ export interface Club {
   updated_at: string;
   /** Cached average days between announce_date and event_date (see #980) */
   average_lead_time_days?: number | null;
+
 }
 
 /**
@@ -96,6 +100,7 @@ export interface ClubMember {
  * Represents an event hosted by a club.
  */
 export interface Event {
+
     /** UUIDv7 primary key (Time-sortable) */
     id: string;
     /** UUIDv7 foreign key to clubs.id */
@@ -111,6 +116,7 @@ export interface Event {
     updated_at: string;
     /** Set when the event is soft-deleted; NULL means active */
     deleted_at: string | null;
+
   /** UUIDv7 primary key (Time-sortable) */
   id: string;
   /** UUIDv7 foreign key to clubs.id */
@@ -214,6 +220,7 @@ export type DatabaseTable =
  * Generic Row Type
  * Maps a table name to its corresponding TypeScript interface.
  */
+
 export type DatabaseRow<T extends DatabaseTable> =
     T extends 'profiles' ? Profile :
     T extends 'clubs' ? Club :
@@ -224,6 +231,7 @@ export type DatabaseRow<T extends DatabaseTable> =
     T extends 'comments' ? Comment :
     T extends 'certificates' ? Certificate :
     never;
+
 export type DatabaseRow<T extends DatabaseTable> = T extends "profiles"
   ? Profile
   : T extends "clubs"
@@ -241,3 +249,4 @@ export type DatabaseRow<T extends DatabaseTable> = T extends "profiles"
               : T extends "certificates"
                 ? Certificate
                 : never;
+

@@ -21,7 +21,6 @@ import { PromoVideoUploader } from "@/components/PromoVideoUploader";
 import { ClubManageSkeleton } from "@/components/DashboardWidgetSkeleton";
 import { ImageCropUpload } from "@/components/ImageCropUpload";
 import { ClubMembersTable } from "@/components/Clubs/ClubMembersTable";
-import { PermissionsGrid, PermissionUpdate } from "@/components/Clubs/PermissionsGrid";
 import { ClubSocialLinksEditor } from "@/components/Clubs/ClubSocialLinksEditor";
 import {
   AlertDialog,
