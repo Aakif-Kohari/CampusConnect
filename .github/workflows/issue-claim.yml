@@ -10,92 +10,60 @@ permissions:
 jobs:
   assign_issue:
     runs-on: ubuntu-latest
-    if: ${{ !github.event.issue.pull_request && (startsWith(github.event.comment.body, '/claim') || startsWith(github.event.comment.body, '/unclaim')) }}
+    if: ${{ !github.event.issue.pull_request && startsWith(github.event.comment.body, '/claim') }}
     steps:
-      - name: Assign or Unassign issue
+      - name: Assign issue
         uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
           script: |
             const commenter = context.payload.comment.user.login;
             const assignees = context.payload.issue.assignees;
-            const body = context.payload.comment.body.trim().toLowerCase();
 
-            if (body.startsWith('/unclaim')) {
-              // Check if the commenter is currently assigned
-              const isAssigned = assignees && assignees.some(a => a.login === commenter);
-              if (!isAssigned) {
-                console.log('User is not assigned, cannot unclaim.');
-                return;
-              }
-
-              try {
-                await github.rest.issues.removeAssignees({
-                  issue_number: context.issue.number,
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  assignees: [commenter]
-                });
-                
-                await github.rest.issues.createComment({
-                  issue_number: context.issue.number,
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  body: `@${commenter} You have been successfully unassigned from this issue.`
-                });
-              } catch (error) {
-                console.log('Failed to unassign:', error);
-              }
+            // If the issue is already assigned, don't allow claiming
+            if (assignees && assignees.length > 0) {
+              console.log('Issue is already assigned.');
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `@${commenter} This issue is already assigned and cannot be claimed.`
+              });
               return;
             }
 
-            // --- /claim logic below ---
-            if (body.startsWith('/claim')) {
-              // If the issue is already assigned, don't allow claiming
-              if (assignees && assignees.length > 0) {
-                console.log('Issue is already assigned.');
+            // Assign the issue
+            try {
+              // Check number of issues currently assigned to the user
+              const userIssues = await github.rest.search.issuesAndPullRequests({
+                q: `repo:${context.repo.owner}/${context.repo.repo} assignee:${commenter} is:issue is:open`,
+                per_page: 1
+              });
+
+              if (userIssues.data.total_count >= 10) {
+                console.log(`User ${commenter} has reached the max assigned issues limit.`);
                 await github.rest.issues.createComment({
                   issue_number: context.issue.number,
                   owner: context.repo.owner,
                   repo: context.repo.repo,
-                  body: `@${commenter} This issue is already assigned and cannot be claimed.`
+                  body: `@${commenter} You can only have a maximum of 10 open issues assigned to you at a time. Please complete or unassign some issues before claiming new ones.`
                 });
                 return;
               }
 
-              // Assign the issue
-              try {
-                // Check number of issues currently assigned to the user
-                const userIssues = await github.rest.search.issuesAndPullRequests({
-                  q: `repo:${context.repo.owner}/${context.repo.repo} assignee:${commenter} is:issue is:open`,
-                  per_page: 1
-                });
-
-                if (userIssues.data.total_count >= 10) {
-                  console.log(`User ${commenter} has reached the max assigned issues limit.`);
-                  await github.rest.issues.createComment({
-                    issue_number: context.issue.number,
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    body: `@${commenter} You can only have a maximum of 10 open issues assigned to you at a time. Please complete or unassign some issues before claiming new ones.`
-                  });
-                  return;
-                }
-
-                await github.rest.issues.addAssignees({
-                  issue_number: context.issue.number,
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  assignees: [commenter]
-                });
-                
-                await github.rest.issues.createComment({
-                  issue_number: context.issue.number,
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  body: `Assigned to @${commenter}! 🎉`
-                });
-              } catch (error) {
-                console.log('Failed to assign:', error);
-              }
+              await github.rest.issues.addAssignees({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                assignees: [commenter]
+              });
+              
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `Assigned to @${commenter}! 🎉`
+              });
+            } catch (error) {
+              console.log('Failed to assign:', error);
             }
