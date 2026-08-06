@@ -1053,7 +1053,7 @@ export default function EventDetailsPage() {
   // while this page is mounted (see useCommand below).
   const handleDeleteEvent = useCallback(async () => {
     if (!event) return;
-    const { error } = await supabase.from("events").delete().eq("id", event.id);
+    const { error } = await supabase.from("events").update({ deleted_at: new Date().toISOString() }).eq("id", event.id).is("deleted_at", null);
     if (error) {
       toast.error(error.message || "Failed to delete event.");
       return;
@@ -1337,8 +1337,7 @@ export default function EventDetailsPage() {
 
   const attendeeCount =
     ((event as Record<string, unknown>).attendee_count as number) ?? rsvps.length;
-  const maxAttendees = (event as Record<string, unknown>).max_attendees as
-    number | null | undefined;
+  const maxAttendees = (event as Record<string, unknown>).max_attendees as number | null | undefined;
   const isAtCapacity =
     maxAttendees !== null &&
     maxAttendees !== undefined &&
