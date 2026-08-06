@@ -781,7 +781,7 @@ export default function Feed() {
 
       if (error) throw error;
 
-      clearSavedDraft();
+      await clearSavedDraft();
       setNewPost("");
       setAttachedImage(null);
       setImagePreviewUrl(null);
@@ -1154,8 +1154,9 @@ export default function Feed() {
                         !emailVerified ||
                         compressing
                       }
-                      className={`neu-border neu-press px-5 py-2 font-mono text-xs font-bold uppercase disabled:cursor-not-allowed disabled:opacity-50 ${emailVerified ? "bg-black text-cream" : "bg-gray-400 text-gray-700"
-                        }`}
+                      className={`neu-border neu-press px-5 py-2 font-mono text-xs font-bold uppercase disabled:cursor-not-allowed disabled:opacity-50 ${
+                        emailVerified ? "bg-black text-cream" : "bg-gray-400 text-gray-700"
+                      }`}
                     >
                       {postMutation.isPending ? "Posting…" : "Post Markdown"}
                     </button>
