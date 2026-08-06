@@ -5,7 +5,15 @@ import { useQuery, useMutation } from "@/hooks/useReactQueryReplacement";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { User } from "@supabase/supabase-js";
-import { ShieldCheck, XCircle, CheckCircle, Download } from "lucide-react";
+import {
+  Settings,
+  Users,
+  Calendar,
+  ShieldCheck,
+  XCircle,
+  CheckCircle,
+  Download,
+} from "lucide-react";
 import { PromoVideoUploader } from "@/components/PromoVideoUploader";
 import { ClubManageSkeleton } from "@/components/DashboardWidgetSkeleton";
 import { ImageCropUpload } from "@/components/ImageCropUpload";
@@ -452,7 +460,7 @@ export default function ClubManageRoute() {
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
-                    updateClubMutation.mutate(false);
+                    updateClubMutation.mutate(undefined as any);
                   }}
                   className="space-y-4"
                 >

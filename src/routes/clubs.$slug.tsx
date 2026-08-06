@@ -237,6 +237,16 @@ export default function ClubProfile() {
   });
 
   // Check if this club is already bookmarked
+  const {
+    data: club,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    ...createClubProfileQueryOptions(supabase, slug ?? ""),
+    enabled: Boolean(slug),
+  } as any) as { data: any; isLoading: boolean; error: any; refetch: any };
+
   useEffect(() => {
     if (!user || !club) return;
     supabase
@@ -256,13 +266,11 @@ export default function ClubProfile() {
     setIsClubBookmarked(next); // optimistic
     try {
       if (next) {
-        await supabase.from("bookmarks").insert({ user_id: user.id, club_id: club.id });
-      } else {
         await supabase
           .from("bookmarks")
-          .delete()
-          .eq("user_id", user.id)
-          .eq("club_id", club.id);
+          .insert({ user_id: user.id, entity_type: "club", club_id: club.id });
+      } else {
+        await supabase.from("bookmarks").delete().eq("user_id", user.id).eq("club_id", club.id);
       }
       toast.success(next ? "Club bookmarked!" : "Bookmark removed.");
     } catch {

@@ -3,7 +3,6 @@ import viteReact from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
-import svgr from "vite-plugin-svgr";
 import { fileURLToPath } from "url";
 import { federation } from "@module-federation/vite";
 
@@ -41,6 +40,7 @@ export default defineConfig({
   // Storybook builds — it precaches Storybook's own 3MB+ manager bundle and
   // fails on the default 2MiB workbox limit.
   plugins: [
+    // lucideImportOptimizer(),
     viteReact(),
     tailwindcss(),
     ...(process.env.STORYBOOK === "true"
@@ -144,22 +144,9 @@ export default defineConfig({
   },
   build: {
     target: "esnext",
+    // Raises warning threshold (optional, e.g. set to 1000kB / 1MB)
     chunkSizeWarningLimit: 1000,
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (id.includes("node_modules")) {
-            if (id.includes("recharts") || id.includes("echarts") || id.includes("chart.js")) {
-              return "chunk-admin-charts";
-            }
-            if (id.includes("react") || id.includes("react-dom")) {
-              return "vendor-react";
-            }
-            return "vendor";
-          }
-        },
-      },
-    },
+    // Bundler options for chunking
     rolldownOptions: {
       output: {
         manualChunks(id) {

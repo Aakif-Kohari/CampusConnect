@@ -69,7 +69,8 @@ serve(async (req: Request) => {
       console.error("[request-password-reset] Supabase reset error:", resetError);
     }
 
-    // 5. Record this password reset request so throttling cooldown works
+    // 3. Record this request regardless of outcome, so throttling works even
+    // for emails that don't have an account.
     const { error: insertError } = await supabaseAdmin
       .from("password_reset_requests")
       .insert({ email });

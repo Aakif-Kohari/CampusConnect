@@ -9,7 +9,7 @@ import { NavbarNotificationDropdown } from "./NavbarNotificationDropdown";
 import { BookmarksPanel } from "@/components/BookmarksPanel";
 import { createClient } from "@/lib/supabase/client";
 
-import { Menu, X, WifiOff } from "lucide-react";
+import { Menu, X, WifiOff, Bookmark } from "lucide-react";
 import { useAuthHydration } from "@/hooks/useAuthHydration";
 import { ProfileHeaderSkeleton } from "@/components/ProfileHeaderSkeleton";
 import {
@@ -22,7 +22,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export function Navbar() {
-  const { user } = useAuthHydration();
+  const { user, isInitializing } = useAuthHydration();
+  const handleSignOut = () => {
+    // TODO: wire to actual sign out
+  };
   const location = useLocation();
   const { t, i18n } = useTranslation();
   const currentPath = location.pathname;

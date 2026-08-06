@@ -52,8 +52,8 @@ export default function EventsMapPage() {
         <section className="flex-1">
           {mapView === "cluster" ? (
             <div className="h-[calc(100vh-200px)] min-h-[600px]">
-              <Suspense fallback={<MapSkeleton />}>
-                <CampusMap className="h-[500px] w-full rounded-lg border-2 border-black" />
+              <Suspense fallback={<MapSkeleton className="h-full w-full min-h-[600px]" />}>
+                <CampusMap className="h-full w-full" />
               </Suspense>
             </div>
           ) : (

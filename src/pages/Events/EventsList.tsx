@@ -705,7 +705,6 @@ export default function EventsList() {
 
       // Show confetti only when successfully RSVPing (not when cancelling)
       if (!hasRsvpd) {
-        // @ts-expect-error - canvas-confetti lacks type declarations
         import("canvas-confetti")
           .then((m) => {
             const fireConfetti = m.default || m;

@@ -53,7 +53,6 @@ export default function AuthPage() {
   });
 
   const signUpForm = useForm<SignUpFormValues>({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(signUpSchema) as any,
     defaultValues: {
       firstName: "",

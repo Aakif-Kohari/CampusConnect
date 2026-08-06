@@ -240,8 +240,9 @@ export function EventCard({
       toast.error("Please log in to bookmark events");
       return;
     }
-    onBookmarkToggle(event.id, isSaved);
+    onBookmarkToggle?.(event.id, isSaved);
   };
+
 
   return (
     <div className="group">

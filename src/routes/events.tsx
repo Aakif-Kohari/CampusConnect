@@ -1,3 +1,5 @@
+import { formatDate } from "../lib/utils";
+
 import { SiteShell } from "@/components/site/SiteShell";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -9,8 +11,9 @@ import { CreateEventDialog } from "@/components/CreateEventDialog";
 import { toast } from "sonner";
 import { Search } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
-import { AutocompleteDropdown } from "@/components/AutocompleteDropdown";
-import { getEventsNearby, type EventNearby } from "@/lib/supabase/events";import { useNavigate } from "react-router-dom";
+import { AutocompleteDropdown, AutocompleteResult } from "@/components/AutocompleteDropdown";
+import { useNavigate } from "react-router-dom";
+import { PullToRefresh } from "@/components/PullToRefresh";
 import {
   Select,
   SelectContent,
@@ -18,6 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
+export default EventsPage;
 
 interface EventItem {
   id: string;
@@ -39,18 +44,10 @@ function EventsPage() {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [filter, setFilter] = useState("All");
-  const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
-  const [hidePastEvents, setHidePastEvents] = useState(false);
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc" | "newest" | "oldest">("asc");
   const [sortLoaded, setSortLoaded] = useState(false);
-
-  useEffect(() => {
-    const saved = sessionStorage.getItem("event-sort-order");
-    if (saved === "asc" || saved === "desc") {
-      setSortOrder(saved);
-    }
-    setSortLoaded(true);
-  }, []);
+  const [hidePastEvents, setHidePastEvents] = useState(false);
+  const [viewMode, setViewMode] = useState<"list" | "map" | "calendar">("list");
 
   useEffect(() => {
     if (!sortLoaded) return;
@@ -93,7 +90,6 @@ const debouncedSearchQuery = useDebounce(searchQuery, 300);
       }));
     },
   });
-
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
   }, [supabase]);
