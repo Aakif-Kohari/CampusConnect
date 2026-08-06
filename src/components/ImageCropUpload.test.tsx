@@ -1,12 +1,12 @@
 import "@testing-library/jest-dom/vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ImageCropUpload } from "./ImageCropUpload";
 
 // Mock blueimp-load-image
 vi.mock("blueimp-load-image", () => {
   return {
-    default: vi.fn((file, callback) => {
+    default: vi.fn((file, callback, options) => {
       // Simulate rendering image to canvas
       const mockCanvas = document.createElement("canvas");
       mockCanvas.width = 100;
