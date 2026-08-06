@@ -25,7 +25,8 @@ import type { User } from "@supabase/supabase-js";
 import { useQuery } from "@/hooks/useReactQueryReplacement";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { uploadImageWithSignedUrl } from "@/lib/supabase/signedUpload";
+import { SecuritySection } from "@/components/Settings/SecuritySection";
+import { uploadFileWithProgress } from "@/lib/supabase/uploadFileWithProgress";
 import {
   profileSchema,
   notificationPreferencesSchema,
@@ -44,6 +45,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { PasskeyManager } from "@/components/PasskeyManager";
+
 import { AudioEngine, SOUND_ENABLED_KEY } from "@/lib/audio/audioEngine";
 
 const FONT_SIZE_KEY = "campusconnect-font-size";
@@ -206,7 +208,7 @@ function SettingsPageContent({ user }: WithAuthProps) {
   });
 
   const form = useForm<ProfileFormValues & NotificationPreferencesValues>({
-    resolver: zodResolver(profileSchema.merge(notificationPreferencesSchema)),
+    resolver: zodResolver(profileSchema.merge(notificationPreferencesSchema)) as any,
     defaultValues: {
       avatarTheme: "",
       firstName: "",
@@ -431,7 +433,7 @@ function SettingsPageContent({ user }: WithAuthProps) {
             />
 
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <form onSubmit={form.handleSubmit(onSubmit as any)} className="space-y-4">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <FormField
                     control={form.control}
@@ -690,7 +692,7 @@ function SettingsPageContent({ user }: WithAuthProps) {
               </div>
 
               <FormField
-                control={form.control}
+                control={form.control as any}
                 name="dark_mode_default"
                 render={({ field }) => (
                   <FormItem className="space-y-1">
@@ -698,7 +700,7 @@ function SettingsPageContent({ user }: WithAuthProps) {
                       <div className="flex items-center justify-between gap-4 border-t-2 border-black pt-4">
                         <div>
                           <label
-                            htmlFor={field.id}
+                            htmlFor={field.name}
                             className="eyebrow font-bold text-black dark:text-cream"
                           >
                             Dark Mode by Default
@@ -807,55 +809,56 @@ function SettingsPageContent({ user }: WithAuthProps) {
 
           <Panel title="Notifications">
             {user && <PushNotificationSettings userId={user.id} />}
-
-            <FormField
-              control={form.control}
-              name="email_alerts"
-              render={({ field }) => (
-                <FormItem className="space-y-1">
-                  <FormControl>
-                    <div className="flex cursor-pointer items-center justify-between gap-3">
-                      <label htmlFor={field.id} className="font-mono text-sm">
-                        Email me about upcoming RSVPs
-                      </label>
-                      <input {...field} type="checkbox" className="h-5 w-5 accent-black" />
-                    </div>
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="digest"
-              render={({ field }) => (
-                <FormItem className="space-y-1">
-                  <FormControl>
-                    <div className="flex cursor-pointer items-center justify-between gap-3">
-                      <label htmlFor={field.id} className="font-mono text-sm">
-                        Weekly digest of club activity
-                      </label>
-                      <input {...field} type="checkbox" className="h-5 w-5 accent-black" />
-                    </div>
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="push_notifications"
-              render={({ field }) => (
-                <FormItem className="space-y-1">
-                  <FormControl>
-                    <div className="flex cursor-pointer items-center justify-between gap-3">
-                      <label htmlFor={field.id} className="font-mono text-sm">
-                        New certificates
-                      </label>
-                      <input {...field} type="checkbox" className="h-5 w-5 accent-black" />
-                    </div>
-                  </FormControl>
-                </FormItem>
-              )}
-            />
+            <div className="mt-4">
+              <FormField
+                control={form.control as any}
+                name="email_alerts"
+                render={({ field }) => (
+                  <FormItem className="space-y-1">
+                    <FormControl>
+                      <div className="flex cursor-pointer items-center justify-between gap-3">
+                        <label htmlFor={field.name} className="font-mono text-sm">
+                          Email me about upcoming RSVPs
+                        </label>
+                        <input {...field} type="checkbox" className="h-5 w-5 accent-black" />
+                      </div>
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control as any}
+                name="digest"
+                render={({ field }) => (
+                  <FormItem className="space-y-1">
+                    <FormControl>
+                      <div className="flex cursor-pointer items-center justify-between gap-3">
+                        <label htmlFor={field.name} className="font-mono text-sm">
+                          Weekly digest of club activity
+                        </label>
+                        <input {...field} type="checkbox" className="h-5 w-5 accent-black" />
+                      </div>
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control as any}
+                name="push_notifications"
+                render={({ field }) => (
+                  <FormItem className="space-y-1">
+                    <FormControl>
+                      <div className="flex cursor-pointer items-center justify-between gap-3">
+                        <label htmlFor={field.name} className="font-mono text-sm">
+                          New certificates
+                        </label>
+                        <input {...field} type="checkbox" className="h-5 w-5 accent-black" />
+                      </div>
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </div>
           </Panel>
 
           <Panel title="Danger zone" tone="bg-red-50">
@@ -1012,8 +1015,8 @@ function AvatarUpload({ name, avatarTheme }: { name: string; avatarTheme?: Avata
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
   const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();

@@ -49,17 +49,7 @@ export default function CreateClubWizard() {
 
   const form = useForm<ClubWizardFormValues>({
     resolver: zodResolver(clubFormSchema) as any,
-    defaultValues: {
-      name: formData.name || "",
-      slug: formData.slug || "",
-      description: formData.description || "",
-      visibility: formData.visibility || "public",
-      category_id: formData.category_id || null,
-      github_repo_url: formData.github_repo_url || "",
-      logo_url: formData.logo_url || "",
-      social_links: formData.social_links || {},
-      admin_invites: formData.admin_invites || [],
-    },
+    defaultValues,
     mode: "onBlur",
   });
 

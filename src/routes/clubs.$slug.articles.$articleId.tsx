@@ -40,7 +40,7 @@ export default function ClubArticleDetailsPage() {
           profiles (first_name, last_name, avatar_url)
         `,
         )
-        .eq("id", articleId!)
+        .eq("id", articleId)
         .single();
       if (error) throw error;
       return data;

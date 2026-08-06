@@ -789,7 +789,8 @@ export default function ClubProfile() {
                           }}
                         />
                       </div>
-                    )}
+                    </div>
+                  )}
 
                     {/* Members section below the description */}
                     <div className="mt-8 max-w-2xl">
@@ -888,24 +889,122 @@ export default function ClubProfile() {
                                         <p className="font-bold truncate" title={m.name}>
                                           {m.name}
                                         </p>
-                                      )}
-                                    </div>
-                                    <RoleBadge role={m.role} />
-                                  </li>
-                                ))}
-                              </ul>
-                              {filteredMembers.length > 10 && (
-                                <button
-                                  onClick={() => setIsExpanded(!isExpanded)}
-                                  className="neu-border neu-press mt-4 bg-cream px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider hover:bg-black hover:text-cream transition-colors"
-                                >
-                                  {isExpanded ? "View less" : "View all"}
-                                </button>
-                              )}
-                            </>
-                          )}
-                        </>
-                      )}
+                                      </Link>
+                                    ) : (
+                                      <p className="font-bold truncate" title={m.name}>
+                                        {m.name}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <RoleBadge role={m.role} />
+                                </li>
+                              ))}
+                            </ul>
+                            {filteredMembers.length > 10 && (
+                              <button
+                                onClick={() => setIsExpanded(!isExpanded)}
+                                className="neu-border neu-press mt-4 bg-cream px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider hover:bg-black hover:text-cream transition-colors"
+                              >
+                                {isExpanded ? "View less" : "View all"}
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </>
+                    )}
+                  </div>
+
+                  <div className="mt-6 flex flex-wrap gap-3">
+                    <button
+                      onClick={handleClubBookmark}
+                      disabled={bookmarkPending}
+                      className="neu-border neu-press inline-flex items-center gap-2 bg-white px-5 py-2 font-mono text-xs font-bold uppercase tracking-wider hover:bg-lime disabled:opacity-50"
+                    >
+                      <Bookmark
+                        className="h-3.5 w-3.5"
+                        fill={isClubBookmarked ? "black" : "none"}
+                      />
+                      {isClubBookmarked ? "Bookmarked" : "Bookmark"}
+                    </button>
+                    <button
+                      onClick={() => toast.info("Follow feature coming soon!")}
+                      className="neu-border neu-press bg-cream px-5 py-2 font-mono text-xs font-bold uppercase tracking-wider"
+                    >
+                      Follow
+                    </button>
+                    <button
+                      onClick={() => setIsReportDialogOpen(true)}
+                      className="neu-border neu-press bg-white hover:bg-peach px-5 py-2 font-mono text-xs font-bold uppercase tracking-wider inline-flex items-center gap-1.5"
+                    >
+                      <Flag size={12} />
+                      Report
+                    </button>
+                    {club.github_repo_url && (
+                      <a
+                        href={club.github_repo_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="neu-border neu-press inline-flex items-center gap-2 bg-white px-5 py-2 font-mono text-xs font-bold uppercase tracking-wider hover:bg-lime/20"
+                      >
+                        <Github className="h-4 w-4" />
+                        GitHub Repo
+                      </a>
+                    )}
+                  </div>
+
+                  {isAdmin && (
+                    <div className="neu-border mt-8 border-2 border-black bg-white p-6 dark:bg-zinc-900 dark:border-cream">
+                      <h3 className="font-display text-xl font-bold uppercase tracking-tight text-indigo-900 dark:text-indigo-400">
+                        Club Newsletter Dispatcher
+                      </h3>
+                      <p className="mt-2 font-mono text-xs text-gray-600 dark:text-gray-400">
+                        Send a bulk announcement/newsletter to all {memberList.length} members. This
+                        will be processed asynchronously in the background to prevent server
+                        timeouts.
+                      </p>
+
+                      <div className="mt-6 flex flex-wrap items-center gap-4">
+                        <button
+                          onClick={() => sendNewsletterMutation.mutate()}
+                          disabled={sendNewsletterMutation.isPending}
+                          className="neu-border neu-press bg-lime px-6 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-black disabled:opacity-50"
+                        >
+                          {sendNewsletterMutation.isPending ? "Queuing..." : "Send Newsletter Now"}
+                        </button>
+
+                        {latestJob && (
+                          <div className="flex flex-col gap-1 border-l-2 border-black pl-4 font-mono text-xs dark:border-cream">
+                            <div>
+                              Status:{" "}
+                              <span
+                                className={`font-bold uppercase ${
+                                  latestJob.status === "completed"
+                                    ? "text-emerald-600"
+                                    : latestJob.status === "failed"
+                                      ? "text-rose-600"
+                                      : "text-amber-500 animate-pulse"
+                                }`}
+                              >
+                                {latestJob.status}
+                              </span>
+                            </div>
+                            {latestJob.total_count > 0 && (
+                              <div>
+                                Progress:{" "}
+                                <span className="font-bold">
+                                  {latestJob.processed_count} / {latestJob.total_count}
+                                </span>{" "}
+                                emails sent
+                              </div>
+                            )}
+                            {latestJob.error_message && (
+                              <div className="text-rose-600 text-[10px]">
+                                Error: {latestJob.error_message}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     <div className="mt-6 flex flex-wrap gap-3">

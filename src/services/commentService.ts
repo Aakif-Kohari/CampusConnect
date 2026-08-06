@@ -2,7 +2,7 @@
  * Comment Service
  * Handles comment creation with automated profanity filtering via Edge Function.
  */
-import { supabase } from "../lib/supabaseClient";
+import { supabase } from "../lib/supabase/client";
 
 export interface CreateCommentParams {
   postId: string;

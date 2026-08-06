@@ -10,66 +10,6 @@ import { federation } from "@module-federation/vite";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-function lucideImportOptimizer() {
-  return {
-    name: "lucide-import-optimizer",
-    transform(code: string, id: string) {
-      if (!id.includes("/src/") || !/\.[jt]sx?$/.test(id)) {
-        return null;
-      }
-
-      // Matches imports like: import { ... } from "lucide-react";
-      // Excludes "import type { ... }" by checking negative lookahead (?!type\s+)
-      const regex = /import\s+(?!type\s+)\{([\s\S]*?)\}\s+from\s+['"]lucide-react['"];?/g;
-
-      let hasChanged = false;
-      const newCode = code.replace(regex, (match, specifiers) => {
-        if (!specifiers) return match;
-
-        const icons = specifiers
-          .split(",")
-          .map((s: string) => s.trim())
-          .filter(Boolean);
-
-        const newImports = icons.map((icon: string) => {
-          let iconName = icon;
-          let aliasName = icon;
-
-          if (icon.includes(" as ")) {
-            const parts = icon.split(" as ");
-            iconName = parts[0].trim();
-            aliasName = parts[1].trim();
-          }
-
-          if (iconName.startsWith("type ")) {
-            const cleanTypeName = iconName.slice(5).trim();
-            return `import type { ${cleanTypeName} } from 'lucide-react';`;
-          }
-
-          // Map camelCase/PascalCase to kebab-case
-          const kebabName = iconName
-            .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
-            .replace(/([a-zA-Z])([0-9])/g, "$1-$2")
-            .toLowerCase();
-
-          return `import ${aliasName} from 'lucide-react/dist/esm/icons/${kebabName}';`;
-        });
-
-        hasChanged = true;
-        return newImports.join("\n");
-      });
-
-      if (hasChanged) {
-        return {
-          code: newCode,
-          map: null,
-        };
-      }
-      return null;
-    },
-  };
-}
-
 /**
  * Vite configuration for CampusConnect
  * Handles custom asset inclusion for dotLottie compressed animations,
@@ -101,7 +41,6 @@ export default defineConfig({
   // Storybook builds — it precaches Storybook's own 3MB+ manager bundle and
   // fails on the default 2MiB workbox limit.
   plugins: [
-    lucideImportOptimizer(),
     viteReact(),
     tailwindcss(),
     ...(process.env.STORYBOOK === "true"

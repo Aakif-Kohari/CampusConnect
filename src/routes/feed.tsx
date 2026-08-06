@@ -23,14 +23,19 @@ import {
   Pin,
   Sparkles,
   Trash2,
-  Flame,
-  Flag,
+  RefreshCw,
   MoreVertical,
   X,
+  Flame,
+  Flag,
+  ThumbsDown,
 } from "lucide-react";
 import { ViewToggleGroup, type FeedViewMode } from "@/components/ui/ViewToggleGroup";
 import { useEffect, useRef, useState, useCallback } from "react";
+import { toggleBookmark } from "@/lib/bookmarks";
+import { getBlockedUserIds, filterBlockedContent } from "@/lib/userBlockUtils";
 import { Link } from "react-router-dom";
+import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { VideoEmbed } from "@/components/VideoEmbed";
@@ -164,10 +169,11 @@ const { beginPendingDelete, clearPendingDelete } = usePendingDeleteStore();  con
 
   const [confirmPostId, setConfirmPostId] = useState<string | null>(null);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
-  const [optimisticReactions, setOptimisticReactions] = useState<
-    Record<string, { countOffset: number; userReacted: boolean }>
-  >({});
   const [reactionBursts, setReactionBursts] = useState<Record<string, string>>({});
+  const [queuedPosts, setQueuedPosts] = useState<Post[]>([]);
+  const [replyValues, setReplyValues] = useState<Record<string, string>>({});
+  const [activeReplyIds, setActiveReplyIds] = useState<Set<string>>(new Set());
+  const [newComments, setNewComments] = useState<Record<string, string>>({});
   const [reportTarget, setReportTarget] = useState<{ type: "post" | "comment"; id: string } | null>(
     null,
   );
@@ -278,6 +284,9 @@ const { beginPendingDelete, clearPendingDelete } = usePendingDeleteStore();  con
       const afterCursor = pageParam as string | undefined;
 
       // Try get_posts_relay RPC first
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-feed?after=${afterCursor ?? ""}&first=${POSTS_PER_PAGE}`,
         { headers: { Authorization: `Bearer ${session?.access_token}` } },
@@ -818,7 +827,7 @@ const { beginPendingDelete, clearPendingDelete } = usePendingDeleteStore();  con
         setReplyValues((prev) => ({ ...prev, [parentCommentId]: "" }));
         setActiveReplyIds((prev) => {
           const next = new Set(prev);
-          next.delete(parentCommentId);
+          next.delete(postId);
           return next;
         });
       } else {
@@ -1052,27 +1061,6 @@ const deletePostMutation = useMutation({
         <section className="bg-cream px-4 py-12 md:px-6">
           <div className="mx-auto max-w-4xl space-y-6">
             <div className="space-y-3">
-              {hasDraft && (
-                <div className="neu-border flex items-center justify-between gap-3 bg-[#FFF9C4] px-4 py-2 font-mono text-xs">
-                  <span className="font-bold">📝 You have an unsaved draft. Restore it?</span>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={restoreDraft}
-                      className="neu-border bg-black px-3 py-1 font-bold text-cream uppercase hover:bg-gray-800"
-                    >
-                      Restore
-                    </button>
-                    <button
-                      type="button"
-                      onClick={discardDraft}
-                      className="neu-border bg-white px-3 py-1 font-bold uppercase hover:bg-cream"
-                    >
-                      Discard
-                    </button>
-                  </div>
-                </div>
-              )}
               <MarkdownEditorWithMentions
                 ref={editorRef}
                 value={newPost}

@@ -39,12 +39,26 @@ function EventsPage() {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [filter, setFilter] = useState("All");
-  const [hidePastEvents, setHidePastEvents] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
-  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">(() => {
-    const stored = sessionStorage.getItem(SORT_KEY);
-    return stored === "newest" || stored === "oldest" ? stored : "oldest";
-  });
+  const [hidePastEvents, setHidePastEvents] = useState(false);
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [sortLoaded, setSortLoaded] = useState(false);
+
+  useEffect(() => {
+    const saved = sessionStorage.getItem("event-sort-order");
+    if (saved === "asc" || saved === "desc") {
+      setSortOrder(saved);
+    }
+    setSortLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!sortLoaded) return;
+
+    sessionStorage.setItem("event-sort-order", sortOrder);
+  }, [sortOrder, sortLoaded]);
+
+  const [totalCount, setTotalCount] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isAutocompleteOpen, setIsAutocompleteOpen] = useState(false);
 const debouncedSearchQuery = useDebounce(searchQuery, 300);
@@ -80,7 +94,16 @@ const debouncedSearchQuery = useDebounce(searchQuery, 300);
     },
   });
 
-  const { data: queryData, isLoading, isFetching, refetch } = useQuery({
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
+  }, [supabase]);
+
+  const {
+    data: queryData,
+    isLoading,
+    isFetching,
+    refetch,
+  } = useQuery({
     queryKey: ["events"],
     queryFn: async () => {
       const { data } = await supabase
@@ -322,12 +345,13 @@ const events = queryData || [];
 
   return (
     <SiteShell>
-<PullToRefresh
-  isRefreshing={isFetching}
-  onRefresh={async () => {
-    await refetch();
-  }}
->
+      <PullToRefresh
+        isRefreshing={isFetching}
+        onRefresh={async () => {
+          await refetch();
+        }}
+      >
+        {" "}
         <section className="border-b-2 border-black bg-sky px-4 py-14 md:px-6">
           <div className="mx-auto flex max-w-7xl flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div>
@@ -366,167 +390,107 @@ const events = queryData || [];
                     setSearchQuery("");
                     setIsAutocompleteOpen(false);
                   }}
-                  className="absolute right-2.5 top-1.5 font-mono text-sm font-bold text-neutral-500 hover:text-black cursor-pointer"
-                >
-                  ×
-                </button>
-              )}
-              <AutocompleteDropdown
-                query={debouncedSearchQuery}
-                isOpen={isAutocompleteOpen && debouncedSearchQuery.length > 0}
-                isLoading={isAutocompleteLoading}
-                results={autocompleteResults || []}
-                onSelect={(result) => {
-                  setSearchQuery(result.title);
-                  setFilter("All");
-                  setIsAutocompleteOpen(false);
-                }}
-                onClose={() => setIsAutocompleteOpen(false)}
-              />
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-<label className="neu-border flex cursor-pointer select-none items-center gap-2 bg-white px-3 py-2 font-mono text-xs font-bold uppercase transition-colors hover:bg-white md:mr-2 text-black">
-                <input
-                  type="checkbox"
-                  checked={hidePastEvents}
-                  onChange={(e) => setHidePastEvents(e.target.checked)}
-                  className="h-4 w-4 accent-black cursor-pointer text-black"
+                  onClose={() => setIsAutocompleteOpen(false)}
                 />
-                Hide Past Events
-              </label>
-              <button
-                type="button"
-                onClick={nearMeActive ? () => setNearMeActive(false) : handleFindNearMe}
-                className={`neu-border px-3 py-2 font-mono text-xs font-bold uppercase ${nearMeActive ? "bg-black text-cream" : "bg-white text-black"}`}
-              >
-                {nearMeActive ? `Near Me (${radiusMiles}mi)` : "Near Me"}
-              </button>
-              {nearMeActive && (
-                <select
-                  value={radiusMiles}
-                  onChange={(e) => setRadiusMiles(Number(e.target.value))}
-                  className="neu-border bg-white px-2 py-2 font-mono text-xs font-bold uppercase"
-                >
-                  <option value={1}>1 mi</option>
-                  <option value={5}>5 mi</option>
-                  <option value={10}>10 mi</option>
-                  <option value={25}>25 mi</option>
-                </select>
-              )}              {["All", "Workshop", "Talk", "Hackathon", "Social"].map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setFilter(t)}
-                  className={`neu-border px-3 py-2 font-mono text-xs font-bold uppercase ${filter === t ? "bg-black text-cream" : "bg-white text-black"}`}
-                >
-                  {t}
-                </button>
-              ))}
-              {filter !== "All" && (
-                <button
-                  onClick={() => setFilter("All")}
-                  className="neu-border bg-white px-3 py-2 font-mono text-xs font-bold uppercase transition-colors hover:bg-cream cursor-pointer"
-                >
-                  Clear All
-                </button>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2 w-full md:w-auto justify-end">
-              <div className="neu-border flex bg-white p-0.5">
-                <button
-                  type="button"
-                  onClick={() => setViewMode("list")}
-                  className={`px-3 py-1.5 font-mono text-xs font-bold uppercase transition-colors cursor-pointer ${
-                    viewMode === "list"
-                      ? "bg-black text-cream"
-                      : "bg-white text-black hover:bg-cream"
-                  }`}
-                >
-                  List
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode("calendar")}
-                  className={`px-3 py-1.5 font-mono text-xs font-bold uppercase transition-colors cursor-pointer ${
-                    viewMode === "calendar"
-                      ? "bg-black text-cream"
-                      : "bg-white text-black hover:bg-cream"
-                  }`}
-                >
-                  Calendar
-                </button>
               </div>
 
-              <Select
-                value={sortOrder}
-                onValueChange={(value) => setSortOrder(value as "newest" | "oldest")}
-              >
-                <SelectTrigger className="neu-border w-44 bg-white font-mono text-xs text-black">
-                  <SelectValue placeholder="Sort by date" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="newest">Newest First</SelectItem>
-                  <SelectItem value="oldest">Oldest First</SelectItem>
-                </SelectContent>
-              </Select>
+              {/* Filter Tags */}
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="neu-border flex cursor-pointer select-none items-center gap-2 bg-white px-3 py-2 font-mono text-xs font-bold uppercase transition-colors hover:bg-white md:mr-2 text-black">
+                  <input
+                    type="checkbox"
+                    checked={hidePastEvents}
+                    onChange={(e) => setHidePastEvents(e.target.checked)}
+                    className="h-4 w-4 accent-black cursor-pointer text-black"
+                  />
+                  Hide Past Events
+                </label>
+                {["All", "Workshop", "Talk", "Hackathon", "Social"].map((t, i) => (
+                  <button
+                    key={t}
+                    onClick={() => setFilter(t)}
+                    className={`neu-border px-3 py-2 font-mono text-xs font-bold uppercase ${filter === t ? "bg-black text-cream" : "bg-white text-black"}`}
+                  >
+                    {t}
+                  </button>
+                ))}
+                {filter !== "All" && (
+                  <button
+                    onClick={() => setFilter("All")}
+                    className="neu-border bg-white px-3 py-2 font-mono text-xs font-bold uppercase transition-colors hover:bg-cream cursor-pointer"
+                  >
+                    Clear All
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+                <div className="neu-border flex bg-white p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("list")}
+                    className={`px-3 py-1.5 font-mono text-xs font-bold uppercase transition-colors cursor-pointer ${
+                      viewMode === "list"
+                        ? "bg-black text-cream"
+                        : "bg-white text-black hover:bg-cream"
+                    }`}
+                  >
+                    List
+                  </button>
 
-              <CreateEventDialog user={user} />
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("calendar")}
+                    className={`px-3 py-1.5 font-mono text-xs font-bold uppercase transition-colors cursor-pointer ${
+                      viewMode === "calendar"
+                        ? "bg-black text-cream"
+                        : "bg-white text-black hover:bg-cream"
+                    }`}
+                  >
+                    Calendar
+                  </button>
+                </div>
+
+                <Select
+                  value={sortOrder}
+                  onValueChange={(value) => setSortOrder(value as "asc" | "desc")}
+                >
+                  <SelectTrigger className="neu-border w-44 bg-white font-mono text-xs text-black">
+                    <SelectValue placeholder="Sort by date" />
+                  </SelectTrigger>
+
+                  <SelectContent>
+                    <SelectItem value="asc">Oldest First</SelectItem>
+                    <SelectItem value="desc">Newest First</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <CreateEventDialog user={user} />
+              </div>
             </div>
           </div>
-        </div>
-      </section>
-
-      <section className="bg-cream px-4 py-12 md:px-6">
-        <div className="mx-auto grid max-w-7xl gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {isFetching && !isLoading && (
-            <div className="col-span-full text-center font-mono text-xs text-gray-500">
-              Refreshing...
-            </div>
-          )}
-{nearMeActive ? (
-            isFetchingNearby ? (
-              <div className="col-span-full font-mono text-center py-10">Finding events near you...</div>
-            ) : (nearbyEvents || []).length === 0 ? (
-              <div className="col-span-full font-mono text-center py-10">
-                No events found within {radiusMiles} miles.
-              </div>
+        </section>
+        <section className="bg-cream px-4 py-12 md:px-6">
+          <div className="mx-auto grid max-w-7xl gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {isLoading ? (
+              <div className="col-span-full font-mono text-center py-10">Loading events...</div>
             ) : (
-              (nearbyEvents || []).map((e: EventNearby) => (
-                <div key={e.id} className="neu-border bg-white p-4">
-                  <h3 className="font-bold">{e.title}</h3>
-                  <p className="font-mono text-xs text-gray-600">{e.location}</p>
-                  <p className="font-mono text-xs font-bold mt-1">
-                    {(e.distance_meters / 1609.34).toFixed(1)} miles away
-                  </p>
-                </div>
+              filteredEvents.map((e, index) => (
+                <EventCard
+                  key={e.id}
+                  event={e}
+                  index={index}
+                  user={user}
+                  onRsvpToggle={(eventId, hasRsvpd) => toggleRsvp.mutate({ eventId, hasRsvpd })}
+                  isRsvpPending={toggleRsvp.isPending}
+                  onBookmarkToggle={(eventId, isSaved) =>
+                    toggleBookmark.mutate({ eventId, isSaved })
+                  }
+                  isBookmarkPending={toggleBookmark.isPending}
+                />
               ))
-            )
-          ) : isLoading ? (
-            <div className="col-span-full font-mono text-center py-10">Loading events...</div>
-          ) : (
-            filteredEvents.map((e, index) => (
-              <EventCard
-                key={e.id}
-                event={e}
-                index={index}
-                user={user}
-                onRsvpToggle={(eventId, hasRsvpd) => toggleRsvp.mutate({ eventId, hasRsvpd })}
-                isRsvpPending={toggleRsvp.isPending}
-                onBookmarkToggle={(eventId, isSaved) => toggleBookmark.mutate({ eventId, isSaved })}
-                isBookmarkPending={toggleBookmark.isPending}
-              />
-            ))
-          )}        </div>
-        <div className="mx-auto max-w-7xl mt-4 flex justify-center">
-          <button
-            type="button"
-            onClick={() => refetch()}
-            className="neu-border bg-white px-4 py-2 font-mono text-xs font-bold uppercase hover:bg-cream"
-          >
-            Refresh
-          </button>
-        </div>
-      </section>
+            )}
+          </div>
+        </section>
       </PullToRefresh>
     </SiteShell>
   );
