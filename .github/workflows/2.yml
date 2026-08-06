@@ -21,8 +21,6 @@ jobs:
           github-token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
           script: |
             const { owner, repo } = context.repo;
-            const WAITING_PERIOD_MS = 15 * 60 * 1000; // 15 minutes inactivity delay
-
             async function processPR(prNumber, prBody, prTitle, prData) {
               console.log(`\nEvaluating PR #${prNumber}`);
               
@@ -134,18 +132,7 @@ jobs:
               console.log(`PR mergeable state is: ${mergeableState}`);
               
               if (mergeable === true) {
-                // Check 15-minute window since PR creation
-                const createdAtTime = new Date(prData.created_at).getTime();
-                const timeElapsedMs = Date.now() - createdAtTime;
-
-                if (timeElapsedMs < WAITING_PERIOD_MS) {
-                  const minutesElapsed = Math.floor(timeElapsedMs / 60000);
-                  const minutesRemaining = Math.ceil((WAITING_PERIOD_MS - timeElapsedMs) / 60000);
-                  console.log(`⏳ PR #${prNumber} was created ${minutesElapsed} minute(s) ago. Waiting for 15 minutes since creation before auto-merging (${minutesRemaining} minute(s) remaining).`);
-                  return false;
-                }
-
-                console.log("Requirements met, checks passed, and 15 minutes have passed since PR creation. Proceeding with immediate auto-merge.");
+                console.log("Requirements met and no merge conflicts. Proceeding with immediate auto-merge.");
                 await addLabel("Blue");
                 
                 try {
