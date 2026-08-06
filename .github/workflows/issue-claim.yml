@@ -17,6 +17,7 @@ jobs:
         with:
           script: |
             const commenter = context.payload.comment.user.login;
+            const issueAuthor = context.payload.issue.user.login;
             const assignees = context.payload.issue.assignees;
 
             // If the issue is already assigned, don't allow claiming
@@ -39,7 +40,7 @@ jobs:
                 per_page: 1
               });
 
-              if (userIssues.data.total_count >= 10) {
+              if (commenter !== issueAuthor && userIssues.data.total_count >= 10) {
                 console.log(`User ${commenter} has reached the max assigned issues limit.`);
                 await github.rest.issues.createComment({
                   issue_number: context.issue.number,
