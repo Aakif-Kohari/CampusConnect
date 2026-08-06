@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { Search } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { AutocompleteDropdown } from "@/components/AutocompleteDropdown";
-import { useNavigate } from "react-router-dom";
+import { getEventsNearby, type EventNearby } from "@/lib/supabase/events";import { useNavigate } from "react-router-dom";
 import {
   Select,
   SelectContent,
@@ -60,8 +60,10 @@ function EventsPage() {
   });
   const [searchQuery, setSearchQuery] = useState("");
   const [isAutocompleteOpen, setIsAutocompleteOpen] = useState(false);
-  const debouncedSearchQuery = useDebounce(searchQuery, 300);
-
+const debouncedSearchQuery = useDebounce(searchQuery, 300);
+  const [nearMeActive, setNearMeActive] = useState(false);
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [radiusMiles, setRadiusMiles] = useState(5);
   useEffect(() => {
     sessionStorage.setItem(SORT_KEY, sortOrder);
   }, [sortOrder]);
@@ -155,8 +157,41 @@ function EventsPage() {
     },
   });
 
-  const events = queryData || [];
+const events = queryData || [];
 
+  const { data: nearbyEvents, isFetching: isFetchingNearby } = useQuery({
+    queryKey: ["events-nearby", userCoords, radiusMiles],
+    queryFn: async () => {
+      if (!userCoords) return [];
+      const radiusMeters = radiusMiles * 1609.34; // miles -> meters, since the RPC expects meters
+      const { data, error } = await getEventsNearby(userCoords.lat, userCoords.lng, radiusMeters);
+      if (error) {
+        toast.error("Could not load nearby events.");
+        return [];
+      }
+      return data || [];
+    },
+    enabled: nearMeActive && !!userCoords,
+  });
+
+  const handleFindNearMe = () => {
+    if (!navigator.geolocation) {
+      toast.error("Geolocation is not supported by your browser.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        // Browser GPS reports latitude first, then longitude — we keep that
+        // order here; getEventsNearby/get_events_nearby handle converting it
+        // into the Lng-then-Lat order PostGIS's ST_MakePoint requires.
+        setUserCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
+        setNearMeActive(true);
+      },
+      () => {
+        toast.error("Unable to retrieve your location.");
+      },
+    );
+  };
   useEffect(() => {
     const channel = supabase
       .channel("realtime_changes")
@@ -370,7 +405,7 @@ function EventsPage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <label className="neu-border flex cursor-pointer select-none items-center gap-2 bg-white px-3 py-2 font-mono text-xs font-bold uppercase transition-colors hover:bg-white md:mr-2 text-black">
+<label className="neu-border flex cursor-pointer select-none items-center gap-2 bg-white px-3 py-2 font-mono text-xs font-bold uppercase transition-colors hover:bg-white md:mr-2 text-black">
                 <input
                   type="checkbox"
                   checked={hidePastEvents}
@@ -379,7 +414,25 @@ function EventsPage() {
                 />
                 Hide Past Events
               </label>
-              {["All", "Workshop", "Talk", "Hackathon", "Social"].map((t) => (
+              <button
+                type="button"
+                onClick={nearMeActive ? () => setNearMeActive(false) : handleFindNearMe}
+                className={`neu-border px-3 py-2 font-mono text-xs font-bold uppercase ${nearMeActive ? "bg-black text-cream" : "bg-white text-black"}`}
+              >
+                {nearMeActive ? `Near Me (${radiusMiles}mi)` : "Near Me"}
+              </button>
+              {nearMeActive && (
+                <select
+                  value={radiusMiles}
+                  onChange={(e) => setRadiusMiles(Number(e.target.value))}
+                  className="neu-border bg-white px-2 py-2 font-mono text-xs font-bold uppercase"
+                >
+                  <option value={1}>1 mi</option>
+                  <option value={5}>5 mi</option>
+                  <option value={10}>10 mi</option>
+                  <option value={25}>25 mi</option>
+                </select>
+              )}              {["All", "Workshop", "Talk", "Hackathon", "Social"].map((t) => (
                 <button
                   key={t}
                   onClick={() => setFilter(t)}
@@ -450,7 +503,25 @@ function EventsPage() {
               Refreshing...
             </div>
           )}
-          {isLoading ? (
+{nearMeActive ? (
+            isFetchingNearby ? (
+              <div className="col-span-full font-mono text-center py-10">Finding events near you...</div>
+            ) : (nearbyEvents || []).length === 0 ? (
+              <div className="col-span-full font-mono text-center py-10">
+                No events found within {radiusMiles} miles.
+              </div>
+            ) : (
+              (nearbyEvents || []).map((e: EventNearby) => (
+                <div key={e.id} className="neu-border bg-white p-4">
+                  <h3 className="font-bold">{e.title}</h3>
+                  <p className="font-mono text-xs text-gray-600">{e.location}</p>
+                  <p className="font-mono text-xs font-bold mt-1">
+                    {(e.distance_meters / 1609.34).toFixed(1)} miles away
+                  </p>
+                </div>
+              ))
+            )
+          ) : isLoading ? (
             <div className="col-span-full font-mono text-center py-10">Loading events...</div>
           ) : (
             filteredEvents.map((e, index) => (
@@ -465,8 +536,7 @@ function EventsPage() {
                 isBookmarkPending={toggleBookmark.isPending}
               />
             ))
-          )}
-        </div>
+          )}        </div>
         <div className="mx-auto max-w-7xl mt-4 flex justify-center">
           <button
             type="button"
