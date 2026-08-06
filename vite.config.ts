@@ -9,6 +9,7 @@ import { federation } from "@module-federation/vite";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+
 /**
  * Vite configuration for CampusConnect
  * Handles custom asset inclusion for dotLottie compressed animations,
@@ -114,24 +115,24 @@ export default defineConfig({
             },
           }),
         ]),
-    ...(process.env.STORYBOOK === "true"
-      ? []
-      : [
-          federation({
-            name: "host",
-            remotes: {},
-            shared: {
-              react: {
-                singleton: true,
-                requiredVersion: "^19.2.7",
-              },
-              "react-dom": {
-                singleton: true,
-                requiredVersion: "^19.2.0",
-              },
-            },
-          }),
-        ]),
+    // ...(process.env.STORYBOOK === "true"
+    //   ? []
+    //   : [
+    //       federation({
+    //         name: "host",
+    //         remotes: {},
+    //         shared: {
+    //           react: {
+    //             singleton: true,
+    //             requiredVersion: "^19.2.7",
+    //           },
+    //           "react-dom": {
+    //             singleton: true,
+    //             requiredVersion: "^19.2.0",
+    //           },
+    //         },
+    //       }),
+    //     ]),
   ],
   resolve: {
     alias: {
