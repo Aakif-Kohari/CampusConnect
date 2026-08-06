@@ -107,6 +107,8 @@
     "@zxcvbn-ts/language-en": "^4.1.1",
     "axios": "^1.7.9",
     "blurhash": "^2.0.5",
+    "blueimp-load-image": "^5.16.0",
+    "@builder.io/partytown": "^0.10.2",
     "canvas-confetti": "^1.9.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
