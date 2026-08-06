@@ -63,7 +63,6 @@ jobs:
               const { data: comments } = await github.rest.issues.listComments({
                 owner, repo, issue_number: prNumber
               });
-              const botComments = comments.filter(c => c.user.type === 'Bot' || c.user.login.includes('github-actions'));
               
               const addLabel = async (label) => {
                 if (!currentLabels.includes(label)) {
@@ -83,7 +82,7 @@ jobs:
                 console.log("Merge conflicts detected.");
                 await removeLabel("Blue");
                 
-                const hasConflictComment = botComments.some(c => c.body.includes("it looks like this PR has some merge conflicts"));
+                const hasConflictComment = comments.some(c => c.body.includes("it looks like this PR has some merge conflicts"));
                 if (!hasConflictComment) {
                   const author = prData.user.login;
                   const commentBody = `@${author} it looks like this PR has some merge conflicts; mind resolving them so we can get it merged? 🚀`;
@@ -115,7 +114,7 @@ jobs:
                 console.log(`PR #${prNumber} is missing: ${missing.join(', ')}. Skipping auto-merge.`);
                 
                 const missingMsgBase = "This PR cannot be merged because it is missing:";
-                const hasMissingComment = botComments.some(c => c.body.includes(missingMsgBase));
+                const hasMissingComment = comments.some(c => c.body.includes(missingMsgBase));
                 
                 if (!hasMissingComment) {
                   const assigneesToTag = hasAssignees ? prData.assignees.map(a => `@${a.login}`).join(" ") : `@${prData.user.login}`;
