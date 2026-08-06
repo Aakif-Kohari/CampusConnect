@@ -18,8 +18,8 @@ import { PageWrapper } from "./components/PageWrapper";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { CommandPalette } from "./components/ui/command-palette";
 import MaintenancePage from "./components/MaintenancePage";
+import { CommandPaletteProvider } from "@/components/CommandPaletteProvider";
 import { NotFoundPage } from "./components/NotFoundPage";
 import { createClient } from "./lib/supabase/client";
 import { BreadcrumbProvider } from "@/components/BreadcrumbsContext";
@@ -38,6 +38,7 @@ const HEALTH_CHECK_URL =
   "/api/health";
 
 const HEALTH_CHECK_TIMEOUT = 8000; // 8 seconds
+const PrintableCharter = lazy(() => import("./routes/print.charter.$slug"));
 
 interface HealthStatus {
   ok: boolean;
@@ -166,6 +167,8 @@ const router = createBrowserRouter(
           <Route path=":slug/articles/:articleId" element={<ClubArticleDetailsRoute />} />
         </Route>
 
+        <Route path="/print/charter/:slug" element={<PrintableCharter />} />
+
         <Route path="/dashboard" element={<Dashboard />}>
           <Route index element={<DashboardOverview />} />
           <Route path="rsvps" element={<DashboardRsvps />} />
@@ -291,17 +294,18 @@ export default function App() {
               development instead of shipping to production.
             */}
             <LazyMotion features={loadDomAnimation} strict={import.meta.env.DEV}>
-              <CommandPalette />
-              {/* Floating Dark Mode Toggle */}
-              <div className="fixed bottom-4 right-4 z-[9999]">
-                <ThemeToggle />
-              </div>
+              <CommandPaletteProvider>
+                {/* Floating Dark Mode Toggle */}
+                <div className="fixed bottom-4 right-4 z-[9999]">
+                  <ThemeToggle />
+                </div>
 
-              <BreadcrumbProvider>
-                <MotionConfig reducedMotion="user">
-                  <RouterProvider router={router} />
-                </MotionConfig>
-              </BreadcrumbProvider>
+                <BreadcrumbProvider>
+                  <MotionConfig reducedMotion="user">
+                    <RouterProvider router={router} />
+                  </MotionConfig>
+                </BreadcrumbProvider>
+              </CommandPaletteProvider>
             </LazyMotion>
           </ErrorBoundary>
         </QueryClientProvider>

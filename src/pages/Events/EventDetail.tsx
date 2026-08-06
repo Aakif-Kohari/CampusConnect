@@ -1,10 +1,11 @@
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, setQueryData } from "@/hooks/useReactQueryReplacement";
 import { createClient } from "@/lib/supabase/client";
-import { useState, useEffect, lazy, Suspense, useMemo } from "react";
+import { useState, useEffect, lazy, Suspense, useMemo, useCallback } from "react";
 import { LazyMotion, m } from "framer-motion";
 import { Helmet } from "react-helmet-async";
 import { uploadFileWithProgress } from "@/lib/supabase/uploadFileWithProgress";
+import { useCommand } from "@/components/CommandPaletteProvider";
 import { TableOfContents } from "@/components/events/TableOfContents";
 import { buildOpenGraphTags } from "@/lib/seo/eventMeta";
 import NotFound from "./NotFound";
@@ -298,6 +299,7 @@ function downloadCsv(csvContent: string, filename: string) {
 
 export default function EventDetailsPage() {
   const { eventId = "", lang = "en" } = useParams();
+  const navigate = useNavigate();
   const supabase = createClient();
   const [user, setUser] = useState<User | null>(null);
   const emailVerified = useEmailVerification();
@@ -1047,6 +1049,32 @@ export default function EventDetailsPage() {
 
   const isOrganizer = Boolean(user && event?.created_by === user.id);
 
+  // Delete the current event. Exposed as a contextual Command Palette action
+  // while this page is mounted (see useCommand below).
+  const handleDeleteEvent = useCallback(async () => {
+    if (!event) return;
+    const { error } = await supabase.from("events").update({ deleted_at: new Date().toISOString() }).eq("id", event.id).is("deleted_at", null);
+    if (error) {
+      toast.error(error.message || "Failed to delete event.");
+      return;
+    }
+    toast.success("Event deleted successfully.");
+    navigate("/events");
+  }, [event, supabase, navigate]);
+
+  // Register an organizer-only contextual command. It is automatically removed
+  // from the global palette when this page unmounts.
+  useCommand(
+    isOrganizer && event
+      ? {
+          id: "event-delete",
+          title: "Delete Event",
+          keywords: ["delete", "remove", "trash"],
+          action: handleDeleteEvent,
+        }
+      : null,
+  );
+
   // Local state for optimistic updates during dragging
   const [columns, setColumns] = useState<{
     waitlisted: {
@@ -1309,8 +1337,7 @@ export default function EventDetailsPage() {
 
   const attendeeCount =
     ((event as Record<string, unknown>).attendee_count as number) ?? rsvps.length;
-  const maxAttendees = (event as Record<string, unknown>).max_attendees as
-    number | null | undefined;
+  const maxAttendees = (event as Record<string, unknown>).max_attendees as number | null | undefined;
   const isAtCapacity =
     maxAttendees !== null &&
     maxAttendees !== undefined &&

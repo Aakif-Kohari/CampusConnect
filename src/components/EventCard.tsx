@@ -177,7 +177,6 @@ export function EventCard({
   const countdown = event.event_date ? getCountdown(event.event_date) : "TBA";
 
   const [ticketOpen, setTicketOpen] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const handleCopyLink = async () => {
     try {
