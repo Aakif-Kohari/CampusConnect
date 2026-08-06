@@ -10,9 +10,10 @@ import { FloatingChat } from "@/components/FloatingChat";
 import { createClient } from "@/lib/supabase/client";
 import TopProgressBar from "@/components/TopProgressBar";
 import ShortcutsModal from "@/components/ShortcutsModal";
+import { useAnnouncementStream } from "@/hooks/useAnnouncementStream";
 import { SessionExpiryModal } from "@/components/SessionExpiryModal";
-import { WebRTCProvider } from "@/components/VideoCall/WebRTCProvider";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
+import { CommandPalette } from "@/components/ui/command-palette";
 import { showAnnouncementToast } from "@/lib/announcements/sse";
 
 // Persistent banner shown while the browser has no network connection.
@@ -108,6 +109,9 @@ export default function Layout() {
     }
   }, [location.pathname, userId]);
 
+  // Enable SSE announcement stream for authenticated users only
+  useAnnouncementStream(userId);
+
   // Keyboard shortcut (Shift + /)
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -168,6 +172,7 @@ export default function Layout() {
         <ScrollToTop />
         <RadialFAB />
         {userId && <FloatingChat />}
+        <CommandPalette />
       </WebRTCProvider>
     </TooltipProvider>
   );

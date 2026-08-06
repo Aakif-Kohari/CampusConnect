@@ -1,6 +1,6 @@
 import { QueryClientProvider, queryClient } from "@/hooks/useReactQueryReplacement";
 import { Suspense, lazy, useEffect, useState } from "react";
-import { AnimatePresence, LazyMotion } from "framer-motion";
+import { AnimatePresence, LazyMotion, MotionConfig } from "framer-motion";
 import { loadDomAnimation } from "@/lib/motionFeatures";
 import {
   createBrowserRouter,
@@ -18,8 +18,8 @@ import { PageWrapper } from "./components/PageWrapper";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { CommandPalette } from "./components/ui/command-palette";
 import MaintenancePage from "./components/MaintenancePage";
+import { CommandPaletteProvider } from "@/components/CommandPaletteProvider";
 import { NotFoundPage } from "./components/NotFoundPage";
 import { createClient } from "./lib/supabase/client";
 import { BreadcrumbProvider } from "@/components/BreadcrumbsContext";
@@ -39,6 +39,7 @@ const HEALTH_CHECK_URL =
   "/api/health";
 
 const HEALTH_CHECK_TIMEOUT = 8000; // 8 seconds
+const PrintableCharter = lazy(() => import("./routes/print.charter.$slug"));
 
 interface HealthStatus {
   ok: boolean;
@@ -77,6 +78,7 @@ async function checkDatabaseHealth(): Promise<HealthStatus> {
 const Index = lazy(() => import("./routes/index"));
 const Auth = lazy(() => import("./routes/auth"));
 const Certificates = lazy(() => import("./routes/certificates"));
+const VerifyCertificate = lazy(() => import("./routes/verify"));
 const ClubsIndex = lazy(() => import("./routes/clubs.index"));
 const ClubNew = lazy(() => import("./routes/clubs.new"));
 const ClubDetails = lazy(() => import("./routes/clubs.$slug"));
@@ -104,9 +106,11 @@ const AnalyticsAdmin = lazy(() => import("./routes/admin.analytics"));
 const AdminReportsPage = lazy(() => import("./routes/admin.reports"));
 const AdminUsersPage = lazy(() => import("./routes/admin.users"));
 const AdminRestorePage = lazy(() => import("./routes/admin.restore"));
+const AdminDlqPage = lazy(() => import("./routes/admin.dlq"));
 const NotFound = lazy(() => import("./routes/NotFound"));
 const ChallengeArena = lazy(() => import("./routes/challenge"));
 const EventDashboard = lazy(() => import("./routes/events.$eventId.dashboard"));
+const EventGantt = lazy(() => import("./routes/events.$eventId.gantt"));
 const LostFound = lazy(() => import("./routes/lost-found"));
 const Leaderboard = lazy(() =>
   import("./components/Leaderboard").then((m) => ({ default: m.Leaderboard })),
@@ -152,6 +156,7 @@ const router = createBrowserRouter(
         <Route index element={<Index />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/certificates" element={<Certificates />} />
+        <Route path="/verify" element={<VerifyCertificate />} />
 
         <Route path="/clubs" element={<ClubsLayout />}>
           <Route index element={<ClubsIndex />} />
@@ -162,6 +167,8 @@ const router = createBrowserRouter(
           <Route path=":slug/articles" element={<ClubArticlesRoute />} />
           <Route path=":slug/articles/:articleId" element={<ClubArticleDetailsRoute />} />
         </Route>
+
+        <Route path="/print/charter/:slug" element={<PrintableCharter />} />
 
         <Route path="/dashboard" element={<Dashboard />}>
           <Route index element={<DashboardOverview />} />
@@ -190,6 +197,7 @@ const router = createBrowserRouter(
         />
 
         <Route path="/events/:eventId/dashboard" element={<EventDashboard />} />
+        <Route path="/events/:eventId/gantt" element={<EventGantt />} />
         {/* Events Map View with clustering */}
         <Route path="events/map" element={<EventsMapPage />} />
         <Route path="challenge" element={<ChallengeArena />} />
@@ -207,6 +215,7 @@ const router = createBrowserRouter(
         <Route path="/admin/reports" element={<AdminReportsPage />} />
         <Route path="/admin/users" element={<AdminUsersPage />} />
         <Route path="/admin/restore" element={<AdminRestorePage />} />
+        <Route path="/admin/dlq" element={<AdminDlqPage />} />
         <Route path="*" element={<NotFoundPage />} />
         {/* Catch-all route for 404 errors */}
         <Route path="*" element={<NotFound />} />
@@ -287,15 +296,18 @@ export default function App() {
               development instead of shipping to production.
             */}
             <LazyMotion features={loadDomAnimation} strict={import.meta.env.DEV}>
-              <CommandPalette />
-              {/* Floating Dark Mode Toggle */}
-              <div className="fixed bottom-4 right-4 z-[9999]">
-                <ThemeToggle />
-              </div>
+              <CommandPaletteProvider>
+                {/* Floating Dark Mode Toggle */}
+                <div className="fixed bottom-4 right-4 z-[9999]">
+                  <ThemeToggle />
+                </div>
 
-              <BreadcrumbProvider>
-                <RouterProvider router={router} />
-              </BreadcrumbProvider>
+                <BreadcrumbProvider>
+                  <MotionConfig reducedMotion="user">
+                    <RouterProvider router={router} />
+                  </MotionConfig>
+                </BreadcrumbProvider>
+              </CommandPaletteProvider>
             </LazyMotion>
           </ErrorBoundary>
         </QueryClientProvider>

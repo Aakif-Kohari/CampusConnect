@@ -14,6 +14,7 @@ import webpush from "https://esm.sh/web-push@3.6.0";
 // @ts-ignore: Deno imports
 import { z } from "https://esm.sh/zod@3.24.2";
 import { parseJsonBody } from "../_shared/validation.ts";
+import { outboundCommunicationLimiter } from "../_shared/rateLimiter.ts";
 
 declare const Deno: any;
 
@@ -37,12 +38,12 @@ const vapidPrivateKey = Deno.env.get("VAPID_PRIVATE_KEY")!;
 
 webpush.setVapidDetails("mailto:admin@campusconnect.com", vapidPublicKey, vapidPrivateKey);
 
-serve(async (req: Request) => {
-  const corsHeaders = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  };
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
+serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -51,6 +52,21 @@ serve(async (req: Request) => {
     const parsed = await parseJsonBody(sendPushSchema, req);
     if (!parsed.ok) return parsed.response;
     const { user_id, message, sender_name } = parsed.data;
+
+    // --- Outbound Communication Rate Limiting ---
+    const ipAddress = req.headers.get("x-forwarded-for") || "unknown-ip";
+    // We can use the target user_id as an identifier, or IP address. Using IP is safer here if triggered anonymously
+    // But since it's triggered by backend/rpc, we'll use IP or sender user if available. Let's use IP.
+    const { success } = await outboundCommunicationLimiter.limit(ipAddress);
+
+    if (!success) {
+      console.warn(`[RateLimit] Outbound communication blocked for IP: ${ipAddress}`);
+      return new Response(
+        JSON.stringify({ error: "Too Many Requests. Maximum 5 requests per 15 minutes." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    // --------------------------------------------
 
     // 1. Fetch all push subscriptions for the target user
     const { data: subscriptions, error: fetchError } = await supabase
