@@ -739,50 +739,55 @@ export default function ClubProfile() {
                         <p className="font-mono text-xs text-black mt-1 mb-3">
                           Meet the team running {clubName} — hover or tap a card to flip it over.
                         </p>
-                        <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                          {officers.map((m) => (
-                            <li key={m.userId} className="h-44">
-                              <FlipCard
-                                className="h-full w-full"
-                                ariaLabel={`${m.name}'s bio`}
-                                front={
-                                  <div className="neu-border bg-white h-full w-full flex flex-col items-center justify-center gap-2 p-3 text-center">
-                                    <Avatar className="h-16 w-16 border-2 border-black rounded-full">
-                                      <AvatarImage
-                                        src={m.avatarUrl || undefined}
-                                        alt={m.name}
-                                        className="rounded-full"
-                                      />
-                                      <AvatarFallback className="rounded-full bg-brand-blue-light text-black font-bold">
-                                        {getInitials(m.name)}
-                                      </AvatarFallback>
-                                    </Avatar>
-                                    <div className="min-w-0">
-                                      <p
-                                        className="font-mono text-sm font-bold truncate"
-                                        title={m.name}
-                                      >
-                                        {m.name}
-                                      </p>
-                                      <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-black/70">
-                                        Officer
-                                      </p>
-                                    </div>
-                                  </div>
-                                }
-                                back={
-                                  <div className="neu-border bg-lime h-full w-full overflow-y-auto p-4">
-                                    <p className="font-mono text-sm font-bold mb-2">{m.name}</p>
-                                    <p className="font-mono text-xs leading-relaxed text-gray-800">
-                                      {m.bio ||
-                                        `${m.name} is one of ${clubName}'s officers and helps keep this club running.`}
-                                    </p>
-                                  </div>
-                                }
-                              />
+                        <ul className="space-y-1">
+                          {headings.map((h) => (
+                            <li key={h.id} style={{ paddingLeft: (h.depth - 1) * 16 }}>
+                              <a
+                                href={`#${h.id}`}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  document.getElementById(h.id)?.scrollIntoView({ behavior: "smooth" });
+                                }}
+                                className="text-blue-900 underline hover:text-black"
+                              >
+                                {h.text}
+                              </a>
                             </li>
                           ))}
                         </ul>
+                      </nav>
+                    )}
+                    <ReactMarkdown>
+                      {club.description || ""}
+                    </ReactMarkdown>
+                  </div>
+
+                  {club.promo_video_url && (
+                    <div className="mt-8 max-w-2xl">
+                      <h3 className="font-display text-xl font-bold text-indigo-900 uppercase tracking-tight">
+                        Featured Club Promo
+                      </h3>
+                      <div className="neu-border bg-black aspect-video mt-4 overflow-hidden">
+                        <LazyHydrate height="360px">
+                          <VideoPlayer src={club.promo_video_url} title="Club Promo" />
+                        </LazyHydrate>
+                      </div>{" "}
+                    </div>
+                  )}
+
+                  {user && membership && membership.status === "approved" && (
+                    <div className="mt-12 max-w-2xl">
+                      <h3 className="font-display text-xl font-bold text-indigo-900 uppercase tracking-tight mb-4">
+                        Collaborative Group Notes
+                      </h3>
+                      <div className="neu-border bg-white p-6">
+                        <CollaborativeEditor
+                          groupId={club.id}
+                          user={{
+                            id: user.id,
+                            name: user.user_metadata?.full_name || user.email || "Member",
+                          }}
+                        />
                       </div>
                     )}
 
