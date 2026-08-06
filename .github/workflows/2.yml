@@ -1,4 +1,4 @@
-name: "Auto Merge PRs"
+name: "issue"
 
 on:
   schedule:
