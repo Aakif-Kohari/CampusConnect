@@ -34,7 +34,8 @@
     "github:create-backend-issues": "npx tsx scripts/create-backend-issues.ts",
     "github:audit-labels": "npx tsx scripts/audit-labels.ts",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "codegen": "graphql-codegen --config codegen.ts"
   },
   "dependencies": {
     "@builder.io/partytown": "^0.10.2",
@@ -196,6 +197,9 @@
     "@cypress/react": "^9.0.2",
     "@cypress/vite-dev-server": "^7.3.4",
     "@eslint/js": "^9.32.0",
+    "@graphql-codegen/cli": "^7.2.0",
+    "@graphql-codegen/typescript": "^6.1.0",
+    "@graphql-codegen/typescript-operations": "^6.1.5",
     "@module-federation/vite": "^1.9.4",
     "@playwright/test": "^1.61.1",
     "@storybook/addon-a11y": "^10.5.5",
