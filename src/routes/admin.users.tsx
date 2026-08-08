@@ -110,7 +110,7 @@ export default function AdminUsersPage() {
           totalProfiles
         }
       `;
-      const variables: GetProfilesQueryVariables = {
+      const variables = {
         limit,
         offset: 0,
         sortBy,
@@ -249,6 +249,23 @@ export default function AdminUsersPage() {
     estimateSize: () => 35, // estimated row height in px
     overscan: 5, // buffer rows above/below viewport
   });
+  const [isHeaderScrolled, setIsHeaderScrolled] = useState(false);
+  const headerScrollRaf = useRef<number | null>(null);
+  const handleContainerScroll = useCallback(() => {
+    if (headerScrollRaf.current !== null) return;
+    headerScrollRaf.current = requestAnimationFrame(() => {
+      headerScrollRaf.current = null;
+      const el = parentRef.current;
+      if (el) setIsHeaderScrolled(el.scrollTop > 0);
+    });
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (headerScrollRaf.current !== null) cancelAnimationFrame(headerScrollRaf.current);
+    },
+    [],
+  );
   return (
     <SiteShell>
       <div className="bg-cream min-h-screen px-4 py-12 md:px-8 font-mono text-black">
@@ -292,12 +309,19 @@ export default function AdminUsersPage() {
                 <span className="text-sm font-bold uppercase">Loading profiles...</span>
               </div>
             ) : (
-              <div ref={parentRef} className="overflow-auto" style={{ height: "600px" }}>
-                <table className="w-full text-left border-collapse">
+              <div
+                ref={parentRef}
+                onScroll={handleContainerScroll}
+                className="overflow-auto"
+                style={{ height: "600px" }}
+              >
+                <table className="w-full text-left border-separate border-spacing-0">
                   {" "}
                   <thead>
-                    <tr className="border-b-4 border-black font-bold uppercase text-sm">
-                      <th className="py-4 px-3 w-12 text-center">
+                    <tr className="font-bold uppercase text-sm">
+                      <th
+                        className={`sticky top-0 z-10 bg-white border-b-4 border-black py-4 px-3 w-12 text-center ${isHeaderScrolled ? "shadow-[0_4px_6px_-1px_rgba(0,0,0,0.25)]" : ""}`}
+                      >
                         <input
                           type="checkbox"
                           checked={allCurrentSelected}
@@ -307,7 +331,7 @@ export default function AdminUsersPage() {
                       </th>
                       <th
                         onClick={() => handleSort("full_name")}
-                        className="py-4 px-4 cursor-pointer hover:bg-cream/40 transition-colors"
+                        className={`sticky top-0 z-10 bg-white border-b-4 border-black py-4 px-4 cursor-pointer hover:bg-cream transition-colors ${isHeaderScrolled ? "shadow-[0_4px_6px_-1px_rgba(0,0,0,0.25)]" : ""}`}
                       >
                         <div className="flex items-center gap-2">
                           Name
@@ -321,7 +345,7 @@ export default function AdminUsersPage() {
                       </th>
                       <th
                         onClick={() => handleSort("handle")}
-                        className="py-4 px-4 cursor-pointer hover:bg-cream/40 transition-colors"
+                        className={`sticky top-0 z-10 bg-white border-b-4 border-black py-4 px-4 cursor-pointer hover:bg-cream transition-colors ${isHeaderScrolled ? "shadow-[0_4px_6px_-1px_rgba(0,0,0,0.25)]" : ""}`}
                       >
                         <div className="flex items-center gap-2">
                           Handle
@@ -335,7 +359,7 @@ export default function AdminUsersPage() {
                       </th>
                       <th
                         onClick={() => handleSort("role")}
-                        className="py-4 px-4 cursor-pointer hover:bg-cream/40 transition-colors"
+                        className={`sticky top-0 z-10 bg-white border-b-4 border-black py-4 px-4 cursor-pointer hover:bg-cream transition-colors ${isHeaderScrolled ? "shadow-[0_4px_6px_-1px_rgba(0,0,0,0.25)]" : ""}`}
                       >
                         <div className="flex items-center gap-2">
                           Role
@@ -349,7 +373,7 @@ export default function AdminUsersPage() {
                       </th>
                       <th
                         onClick={() => handleSort("is_banned")}
-                        className="py-4 px-4 cursor-pointer hover:bg-cream/40 transition-colors"
+                        className={`sticky top-0 z-10 bg-white border-b-4 border-black py-4 px-4 cursor-pointer hover:bg-cream transition-colors ${isHeaderScrolled ? "shadow-[0_4px_6px_-1px_rgba(0,0,0,0.25)]" : ""}`}
                       >
                         <div className="flex items-center gap-2">
                           Status
@@ -395,12 +419,12 @@ export default function AdminUsersPage() {
                               display: "table",
                               transform: `translateY(${virtualRow.start}px)`,
                             }}
-                            className={`border-b-2 border-black font-semibold text-sm hover:bg-cream/20 transition-colors ${
+                            className={`font-semibold text-sm hover:bg-cream/20 transition-colors ${
                               isSelected ? "bg-lime/5" : ""
                             }`}
                           >
                             {" "}
-                            <td className="py-4 px-3 text-center">
+                            <td className="border-b-2 border-black py-4 px-3 text-center">
                               <input
                                 type="checkbox"
                                 checked={isSelected}
@@ -408,14 +432,18 @@ export default function AdminUsersPage() {
                                 className="h-4 w-4 cursor-pointer neu-border accent-lime"
                               />
                             </td>
-                            <td className="py-4 px-4">{profile.full_name || "N/A"}</td>
-                            <td className="py-4 px-4">@{profile.handle || "N/A"}</td>
-                            <td className="py-4 px-4 uppercase text-xs">
+                            <td className="border-b-2 border-black py-4 px-4">
+                              {profile.full_name || "N/A"}
+                            </td>
+                            <td className="border-b-2 border-black py-4 px-4">
+                              @{profile.handle || "N/A"}
+                            </td>
+                            <td className="border-b-2 border-black py-4 px-4 uppercase text-xs">
                               <span className="bg-gray-200 px-2 py-1 border border-black rounded-none">
                                 {profile.role || "member"}
                               </span>
                             </td>
-                            <td className="py-4 px-4 text-xs font-bold uppercase">
+                            <td className="border-b-2 border-black py-4 px-4 text-xs font-bold uppercase">
                               {isSuspended ? (
                                 <span className="bg-peach text-black border border-black px-2 py-1 inline-flex items-center gap-1.5 rounded-none">
                                   <XCircle className="h-3.5 w-3.5" />
