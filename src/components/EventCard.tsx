@@ -254,6 +254,9 @@ export function EventCard({
     <div className="group">
       <article
         id={`event-${event.id}`}
+ test/add-vcardutils-tests
+        className={`neu-border p-5 relative ${colors[index % colors.length]} transition-all duration-300 ease-out group-hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_var(--color-ink)]`}
+
  feat/event-card-button-tooltips
         className={`neu-border p-5 relative ${colors[index % colors.length]} transition-all duration-300 ease-out group-hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_var(--color-ink)]`}
 
@@ -264,6 +267,7 @@ export function EventCard({
             ? "bg-blue-100 border-4 border-blue-600 ring-2 ring-blue-600"
             : colors[index % colors.length]
         } transition-all duration-300 ease-out group-hover:scale-[1.02]`}
+ main
  main
       >
         <div className="flex items-start justify-between gap-3">
@@ -333,6 +337,8 @@ export function EventCard({
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
+ test/add-vcardutils-tests
+
 
             <div className="mt-3 flex gap-2 relative z-10">
               <button
@@ -358,6 +364,7 @@ export function EventCard({
                 </button>
               </ShareMenu>
             </div>
+ main
  main
           </div>
         </div>
