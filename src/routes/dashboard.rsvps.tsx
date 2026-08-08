@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { CalendarPlus } from "lucide-react";
+import { CalendarPlus, Ticket } from "lucide-react";
 import { useQuery, useMutation } from "@/hooks/useReactQueryReplacement";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState } from "react";
@@ -7,11 +7,13 @@ import { User } from "@supabase/supabase-js";
 import { EventCard } from "@/components/EventCard";
 import { EventCardSkeleton } from "@/components/EventCardSkeleton";
 import { toast } from "sonner";
+import { useTicketDownload } from "@/hooks/useTicketDownload";
 
 export default function DashboardRsvps() {
   const [supabase] = useState(() => createClient());
   const [user, setUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<"upcoming" | "past">("upcoming");
+  const { downloadTicket, isGenerating: isTicketGenerating, generatingEventId } = useTicketDownload();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -175,18 +177,32 @@ export default function DashboardRsvps() {
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {displayedEvents.map((e, index) => (
-            <EventCard
-              key={e.id}
-              event={e}
-              index={index}
-              user={user}
-              onRsvpToggle={(eventId, hasRsvpd) => toggleRsvp.mutate({ eventId, hasRsvpd })}
-              isRsvpPending={toggleRsvp.isPending}
-              onBookmarkToggle={() => {
-                toast.error("Bookmarking from RSVPs tab is not supported yet.");
-              }}
-              isBookmarkPending={false}
-            />
+            <div key={e.id} className="flex flex-col gap-2">
+              <EventCard
+                event={e}
+                index={index}
+                user={user}
+                onRsvpToggle={(eventId, hasRsvpd) => toggleRsvp.mutate({ eventId, hasRsvpd })}
+                isRsvpPending={toggleRsvp.isPending}
+                onBookmarkToggle={() => {
+                  toast.error("Bookmarking from RSVPs tab is not supported yet.");
+                }}
+                isBookmarkPending={false}
+              />
+              {/* Download Ticket — shown for all upcoming RSVP'd events */}
+              {activeTab === "upcoming" && (
+                <button
+                  onClick={() => downloadTicket(e)}
+                  disabled={isTicketGenerating && generatingEventId === e.id}
+                  className="neu-border flex w-full items-center justify-center gap-2 bg-lime px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-wider transition-all duration-300 hover:scale-[1.02] active:scale-95 disabled:opacity-60"
+                >
+                  <Ticket size={14} />
+                  {isTicketGenerating && generatingEventId === e.id
+                    ? "Generating…"
+                    : "🎟 Download Ticket"}
+                </button>
+              )}
+            </div>
           ))}
         </div>
       )}

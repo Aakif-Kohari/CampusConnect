@@ -17,10 +17,12 @@ import {
   Link as LinkIcon,
   MapPin,
   MapPinOff,
+  Ticket,
   Users,
   Star,
   Calendar,
 } from "lucide-react";
+import { useTicketDownload } from "@/hooks/useTicketDownload";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Dialog,
@@ -84,6 +86,7 @@ export default function EventDetailsPage() {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackRating, setFeedbackRating] = useState(0);
   const [feedbackComment, setFeedbackComment] = useState("");
+  const { downloadTicket, isGenerating: isTicketGenerating } = useTicketDownload();
 
   // Safe window URL handling for SSR / hydration safety
   const shareUrl = typeof window !== "undefined" ? window.location.href : "";
@@ -617,6 +620,19 @@ export default function EventDetailsPage() {
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
+
+            {/* Download Ticket — visible to confirmed attendees of upcoming/ongoing events */}
+            {hasRsvpd && !hasEnded && (
+              <Button
+                onClick={() => downloadTicket(event)}
+                disabled={isTicketGenerating}
+                variant="outline"
+                className="neu-border neu-press h-12 bg-lime px-5 font-mono text-sm font-bold uppercase tracking-wider transition-all duration-300 hover:scale-105 active:scale-95 disabled:opacity-60"
+              >
+                <Ticket className="mr-2 h-4 w-4" />
+                {isTicketGenerating ? "Generating…" : "Download Ticket"}
+              </Button>
+            )}
 
             {isOrganizer && (
               <Button
