@@ -182,7 +182,11 @@ const router = createBrowserRouter(
           <Route path="calendar" element={<DashboardCalendar />} />
         </Route>
 
+ feat/mobile-bottom-sheet
+        {/* Events Layout with Split-Screen desktop and Mobile Bottom Sheet */}
+
         {/* Events — Split Screen Layout */}
+main
         <Route
           path="/events"
           element={
@@ -191,7 +195,18 @@ const router = createBrowserRouter(
             </Suspense>
           }
         >
+ feat/mobile-bottom-sheet
+          <Route
+            index
+            element={
+              <Suspense fallback={<PageFallback />}>
+                <EmptyState />
+              </Suspense>
+            }
+          />
+
           <Route index element={<EmptyState />} />
+ main
           <Route
             path=":eventId"
             element={
