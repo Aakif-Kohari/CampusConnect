@@ -10,6 +10,7 @@ import { LazyMotion, m } from "framer-motion";
 import { Helmet } from "react-helmet-async";
 import { uploadFileWithProgress } from "@/lib/supabase/uploadFileWithProgress";
 import { useCommand } from "@/components/CommandPaletteProvider";
+import { getRsvpIdempotencyKey, clearRsvpIdempotencyKey } from "@/lib/rsvpIdempotency";
 import { TableOfContents } from "@/components/events/TableOfContents";
 import { buildOpenGraphTags } from "@/lib/seo/eventMeta";
 import { NotFound } from "@/components/NotFound";
@@ -811,6 +812,8 @@ export default function EventDetailsPage() {
         return;
       }
 
+      const idempotencyKey = getRsvpIdempotencyKey(eventId);
+
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -819,10 +822,12 @@ export default function EventDetailsPage() {
         body: { eventId, hasRsvpd, captchaToken },
         headers: {
           Authorization: `Bearer ${session?.access_token}`,
+          "Idempotency-Key": idempotencyKey,
         },
       });
 
       if (error) throw error;
+      clearRsvpIdempotencyKey(eventId);
     },
     onMutate: async ({ hasRsvpd }) => {
       // Snapshot the previous value
