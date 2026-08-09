@@ -50,6 +50,7 @@ import {
 
 import { MultiSelect } from "@/components/MultiSelect";
 import { DateTimePicker } from "@/components/DateTimePicker";
+import CollaborativeDescriptionEditor from "@/components/events/CollaborativeDescriptionEditor";
 
 const EVENT_CONCURRENT_EDIT_CONFLICT = "EVENT_CONCURRENT_EDIT_CONFLICT";
 
@@ -308,7 +309,13 @@ export function EditEventDialog({ event, user, onSuccess }: EditEventDialogProps
                   <FormItem>
                     <FormLabel required>Description</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="Event description" rows={3} {...field} />
+                      <CollaborativeDescriptionEditor
+                        eventId={event.id}
+                        initialDescription={event.description || ""}
+                        userId={user?.id || "anon"}
+                        userName={user?.email?.split("@")[0] || "User"}
+                        onChange={field.onChange}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
