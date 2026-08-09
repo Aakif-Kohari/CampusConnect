@@ -54,6 +54,7 @@ import {
 import PredictiveTurnout from "@/components/events/PredictiveTurnout";
 import LiveQA from "@/components/qa/LiveQA";
 import EventFeedbackForm from "@/components/EventFeedbackForm";
+import { CarpoolSection } from "@/components/events/carpool/CarpoolSection";
 import { ReportDialog } from "@/components/ReportDialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
@@ -613,10 +614,9 @@ export default function EventDetailsPage() {
         return;
       }
       // Refresh the cached query so the displayed view count is up-to-date.
-      const cached = (event as any);
+      const cached = event as any;
       if (cached?.event_metrics) {
-        const currentViews =
-          (cached.event_metrics as { views: number } | null)?.views ?? 0;
+        const currentViews = (cached.event_metrics as { views: number } | null)?.views ?? 0;
         setQueryData(["event", eventId], {
           ...cached,
           event_metrics: { views: currentViews + 1 },
@@ -1058,7 +1058,6 @@ export default function EventDetailsPage() {
   const coordsCheck = event.location
     ? parseCoordinates(event.location)
     : { isCoordinates: false, isValid: true };
-
 
   const captchaSiteKey =
     import.meta.env.VITE_TURNSTILE_SITE_KEY || import.meta.env.VITE_HCAPTCHA_SITE_KEY;
@@ -1526,6 +1525,11 @@ export default function EventDetailsPage() {
           {/* Live Q&A */}
           <div className="mt-8">
             <LiveQA eventId={eventId} userId={user?.id} isOrganizer={isOrganizer} />
+          </div>
+
+          {/* Transportation / Carpool (Issue #2748) */}
+          <div className="mt-8">
+            <CarpoolSection eventId={eventId} user={user} />
           </div>
           {/* Description */}
           <div className="mt-8">

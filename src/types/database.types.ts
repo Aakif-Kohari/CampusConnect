@@ -499,18 +499,18 @@ export type Database = {
        */
       event_metrics: {
         Row: {
-          event_id:   string;
-          views:      number;
+          event_id: string;
+          views: number;
           updated_at: string;
         };
         Insert: {
-          event_id:    string;
-          views?:      number;
+          event_id: string;
+          views?: number;
           updated_at?: string;
         };
         Update: {
-          event_id?:   string;
-          views?:      number;
+          event_id?: string;
+          views?: number;
           updated_at?: string;
         };
         Relationships: [
@@ -1676,6 +1676,171 @@ export type Database = {
         };
         Relationships: [];
       };
+      carpools: {
+        Row: {
+          id: string;
+          event_id: string;
+          driver_id: string;
+          capacity: number;
+          departure_time: string;
+          meeting_point: string;
+          notes: string | null;
+          status: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          event_id: string;
+          driver_id: string;
+          capacity: number;
+          departure_time: string;
+          meeting_point: string;
+          notes?: string | null;
+          status?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          event_id?: string;
+          driver_id?: string;
+          capacity?: number;
+          departure_time?: string;
+          meeting_point?: string;
+          notes?: string | null;
+          status?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "carpools_driver_id_fkey";
+            columns: ["driver_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "carpools_event_id_fkey";
+            columns: ["event_id"];
+            isOneToOne: false;
+            referencedRelation: "events";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      carpool_passengers: {
+        Row: {
+          id: string;
+          carpool_id: string;
+          passenger_id: string;
+          seat_claimed_at: string;
+        };
+        Insert: {
+          id?: string;
+          carpool_id: string;
+          passenger_id: string;
+          seat_claimed_at?: string;
+        };
+        Update: {
+          id?: string;
+          carpool_id?: string;
+          passenger_id?: string;
+          seat_claimed_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "carpool_passengers_carpool_id_fkey";
+            columns: ["carpool_id"];
+            isOneToOne: false;
+            referencedRelation: "carpools";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "carpool_passengers_passenger_id_fkey";
+            columns: ["passenger_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      carpool_chats: {
+        Row: {
+          id: string;
+          carpool_id: string;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          carpool_id: string;
+          created_by: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          carpool_id?: string;
+          created_by?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "carpool_chats_carpool_id_fkey";
+            columns: ["carpool_id"];
+            isOneToOne: false;
+            referencedRelation: "carpools";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "carpool_chats_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      carpool_chat_messages: {
+        Row: {
+          id: string;
+          carpool_chat_id: string;
+          sender_id: string;
+          content: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          carpool_chat_id: string;
+          sender_id: string;
+          content: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          carpool_chat_id?: string;
+          sender_id?: string;
+          content?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "carpool_chat_messages_carpool_chat_id_fkey";
+            columns: ["carpool_chat_id"];
+            isOneToOne: false;
+            referencedRelation: "carpool_chats";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "carpool_chat_messages_sender_id_fkey";
+            columns: ["sender_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       club_analytics_view: {
@@ -1802,6 +1967,41 @@ export type Database = {
         Args: {
           p_club_id: string;
           p_action: string;
+        };
+        Returns: Json;
+      };
+      is_carpool_member: {
+        Args: {
+          p_carpool_id: string;
+          p_user_id: string;
+        };
+        Returns: boolean;
+      };
+      offer_carpool: {
+        Args: {
+          p_event_id: string;
+          p_capacity: number;
+          p_departure_time: string;
+          p_meeting_point: string;
+          p_notes?: string;
+        };
+        Returns: Json;
+      };
+      claim_carpool_seat: {
+        Args: {
+          p_carpool_id: string;
+        };
+        Returns: Json;
+      };
+      leave_carpool: {
+        Args: {
+          p_carpool_id: string;
+        };
+        Returns: Json;
+      };
+      cancel_carpool: {
+        Args: {
+          p_carpool_id: string;
         };
         Returns: Json;
       };
