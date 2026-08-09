@@ -757,10 +757,20 @@ export default function EventDetailsPage() {
       });
 
       if (error) throw error;
-      return data;
+      
+      // Ensure we have a Blob
+      return data instanceof Blob ? data : new Blob([data], { type: "text/csv" });
     },
-    onSuccess: () => {
-      toast.success("We will email you shortly");
+    onSuccess: (blob) => {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `event_${event!.id}_rsvps.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+      toast.success("RSVP list downloaded successfully!");
     },
     onError: (error: Error) => {
       toast.error(error.message || "Failed to export RSVP list.");
