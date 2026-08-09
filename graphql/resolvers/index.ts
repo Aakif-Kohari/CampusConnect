@@ -141,11 +141,21 @@ export interface ClubRecord {
 export const clubsCache = new LRUCache<string, ClubRecord[]>(5);
 export const CLUBS_CACHE_KEY = "all_clubs";
 
+// Cache for directory search / profiles query
+export const profilesCache = new LRUCache<string, ProfileRecord[]>(50);
+
 if (typeof supabase.channel === "function") {
   supabase
     .channel("clubs-cache-invalidation")
     .on("postgres_changes", { event: "*", schema: "public", table: "clubs" }, () => {
       clubsCache.delete(CLUBS_CACHE_KEY);
+    })
+    .subscribe();
+
+  supabase
+    .channel("profiles-cache-invalidation")
+    .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => {
+      profilesCache.clear();
     })
     .subscribe();
 }
@@ -561,6 +571,12 @@ export const resolvers = {
         sortOrder?: string;
       },
     ) => {
+      const cacheKey = `profiles:${limit}:${offset}:${sortBy}:${sortOrder}`;
+      const cached = profilesCache.get(cacheKey);
+      if (cached) {
+        return cached;
+      }
+
       let query = supabase.from("profiles").select("*");
 
       const allowedColumns = ["id", "full_name", "handle", "role", "is_banned"];
@@ -573,7 +589,10 @@ export const resolvers = {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data || [];
+      
+      const result = data || [];
+      profilesCache.set(cacheKey, result);
+      return result;
     },
     totalProfiles: async () => {
       const { count, error } = await supabase
