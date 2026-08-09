@@ -694,7 +694,7 @@ export default function EventDetailsPage() {
       if (event) {
         const eventRsvps = Array.isArray(event.event_rsvps) ? event.event_rsvps : [];
         const updatedRsvps = hasRsvpd
-          ? eventRsvps.filter((r) => r.user_id !== user?.id)
+          ? eventRsvps.filter((r: any) => r.user_id !== user?.id)
           : [...eventRsvps, { id: `temp-${Date.now()}`, user_id: user?.id || "" }];
 
         const updatedEvent = {
@@ -757,10 +757,20 @@ export default function EventDetailsPage() {
       });
 
       if (error) throw error;
-      return data;
+      
+      // Ensure we have a Blob
+      return data instanceof Blob ? data : new Blob([data], { type: "text/csv" });
     },
-    onSuccess: () => {
-      toast.success("We will email you shortly");
+    onSuccess: (blob) => {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `event_${event!.id}_rsvps.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+      toast.success("RSVP list downloaded successfully!");
     },
     onError: (error: Error) => {
       toast.error(error.message || "Failed to export RSVP list.");
@@ -1556,6 +1566,7 @@ export default function EventDetailsPage() {
               </main>
               <aside className="lg:w-64 shrink-0">
                 <TableOfContents items={tocItems} />
+              </aside>
             </div>
           </div>
 
@@ -1808,7 +1819,7 @@ export default function EventDetailsPage() {
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-                {galleryPhotos.map((url, idx) => (
+                {galleryPhotos.map((url: string, idx: number) => (
                   <div
                     key={url}
                     className="neu-border bg-white p-2 hover:scale-[1.02] transition-transform duration-300 group cursor-zoom-in"
