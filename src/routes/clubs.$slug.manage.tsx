@@ -775,9 +775,7 @@ export default function ClubManageRoute() {
               </div>
             )}
 
-            {activeTab === "analytics" && (
-              <ClubAnalyticsDashboard clubId={club.id} />
-            )}
+            {activeTab === "analytics" && <ClubAnalyticsDashboard clubId={club.id} />}
           </main>
         </div>
       </div>

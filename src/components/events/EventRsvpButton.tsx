@@ -149,9 +149,7 @@ export function EventRsvpButton({
             <Clock className="h-4 w-4" aria-hidden="true" />
             On Waitlist
             {state.user_waitlist_position && (
-              <span className="font-mono text-xs">
-                (#{state.user_waitlist_position})
-              </span>
+              <span className="font-mono text-xs">(#{state.user_waitlist_position})</span>
             )}
           </Button>
           <Button
@@ -185,7 +183,11 @@ export function EventRsvpButton({
           <span>
             <strong>Event Full</strong>
             {state.waitlist_count > 0 && (
-              <> — {state.waitlist_count} {state.waitlist_count === 1 ? "person" : "people"} on Waitlist</>
+              <>
+                {" "}
+                — {state.waitlist_count} {state.waitlist_count === 1 ? "person" : "people"} on
+                Waitlist
+              </>
             )}
           </span>
         </div>

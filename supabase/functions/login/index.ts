@@ -156,7 +156,8 @@ serve(async (req) => {
       console.log(`[SECURITY] Login successful for ${normalizedEmail}. Failure counter reset.`);
     }
 
-    const isProduction = Deno.env.get("ENVIRONMENT") === "production" || Deno.env.get("DENO_ENV") === "production";
+    const isProduction =
+      Deno.env.get("ENVIRONMENT") === "production" || Deno.env.get("DENO_ENV") === "production";
     const cookieFlags = [
       `sb-access-token=${data.session?.access_token}; Path=/`,
       "HttpOnly",

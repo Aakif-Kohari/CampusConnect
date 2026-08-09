@@ -417,7 +417,14 @@ export default function Feed() {
     ) {
       fetchNextPage();
     }
-  }, [virtualItems, filteredPosts.length, hasNextPage, isFetchingNextPage, isLoading, fetchNextPage]);
+  }, [
+    virtualItems,
+    filteredPosts.length,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    fetchNextPage,
+  ]);
 
   // Scroll position restoration (#1432)
   useEffect(() => {

@@ -100,8 +100,11 @@ serve(async (req: Request) => {
   // request has already finished.
   EdgeRuntime.waitUntil(finalizeDeleteAfterDelay(supabase, postId, deletionToken));
 
-  return new Response(JSON.stringify({ postId, deletionToken, undoWindowSeconds: UNDO_WINDOW_SECONDS }), {
-    status: 202,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+  return new Response(
+    JSON.stringify({ postId, deletionToken, undoWindowSeconds: UNDO_WINDOW_SECONDS }),
+    {
+      status: 202,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    },
+  );
 });

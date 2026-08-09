@@ -13,8 +13,7 @@ export type JoinResult =
  * Outcome of a cancel-RSVP call.
  */
 export type CancelResult =
-  | { success: true; wasAttending: boolean; message: string }
-  | { success: false; error: string };
+  { success: true; wasAttending: boolean; message: string } | { success: false; error: string };
 
 /**
  * The RSVP state for an event, returned by `get_event_rsvp_state`.
@@ -37,10 +36,7 @@ export interface EventRsvpState {
  * the current attending count vs. `max_attendees`. This is the
  * race-condition-safe path described in issue #2693.
  */
-export async function joinEventOrWaitlist(
-  eventId: string,
-  userId: string
-): Promise<JoinResult> {
+export async function joinEventOrWaitlist(eventId: string, userId: string): Promise<JoinResult> {
   const { data, error } = await supabase.rpc("join_event_or_waitlist", {
     p_event_id: eventId,
     p_user_id: userId,
@@ -74,10 +70,7 @@ export async function joinEventOrWaitlist(
  * `cancelled` (preserving the audit trail) and triggers automatic
  * promotion of the next waitlisted user.
  */
-export async function cancelEventRsvp(
-  eventId: string,
-  userId: string
-): Promise<CancelResult> {
+export async function cancelEventRsvp(eventId: string, userId: string): Promise<CancelResult> {
   const { data, error } = await supabase.rpc("cancel_event_rsvp", {
     p_event_id: eventId,
     p_user_id: userId,
@@ -107,7 +100,7 @@ export async function cancelEventRsvp(
  */
 export async function getEventRsvpState(
   eventId: string,
-  userId?: string
+  userId?: string,
 ): Promise<EventRsvpState | null> {
   const { data, error } = await supabase.rpc("get_event_rsvp_state", {
     p_event_id: eventId,

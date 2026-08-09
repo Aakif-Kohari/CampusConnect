@@ -166,7 +166,9 @@ serve(async (req) => {
 
     if (!upcomingEvents || upcomingEvents.length === 0) {
       return new Response(
-        JSON.stringify({ message: "No upcoming events in the next 7 days. Skipping newsletter digest." }),
+        JSON.stringify({
+          message: "No upcoming events in the next 7 days. Skipping newsletter digest.",
+        }),
         {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -180,10 +182,13 @@ serve(async (req) => {
     if (subError) throw new Error(`Failed to fetch newsletter subscribers: ${subError.message}`);
 
     if (!subscribers || subscribers.length === 0) {
-      return new Response(JSON.stringify({ message: "No subscribers opted into newsletter digest." }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ message: "No subscribers opted into newsletter digest." }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     const emailList = (subscribers as SubscriberEmail[])
@@ -213,7 +218,9 @@ serve(async (req) => {
 
     if (!resendApiKey) {
       if (Deno.env.get("MOCK_EMAIL") === "true" || Deno.env.get("DENO_ENV") === "test") {
-        console.log(`[weekly-digest] Mock Mode: Simulated dispatch to ${emailList.length} newsletter subscribers.`);
+        console.log(
+          `[weekly-digest] Mock Mode: Simulated dispatch to ${emailList.length} newsletter subscribers.`,
+        );
         return new Response(
           JSON.stringify({
             message: "Mock newsletter digest sent successfully.",

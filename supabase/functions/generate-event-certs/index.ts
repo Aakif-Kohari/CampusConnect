@@ -225,7 +225,9 @@ serve(async (req) => {
       .eq("id", certRow.id);
 
     if (ledgerError) {
-      console.warn(`Failed to store ledger hash for certificate ${certRow.id}: ${ledgerError.message}`);
+      console.warn(
+        `Failed to store ledger hash for certificate ${certRow.id}: ${ledgerError.message}`,
+      );
     }
 
     return new Response(

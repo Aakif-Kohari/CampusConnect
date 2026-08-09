@@ -757,7 +757,7 @@ export default function EventDetailsPage() {
       });
 
       if (error) throw error;
-      
+
       // Ensure we have a Blob
       return data instanceof Blob ? data : new Blob([data], { type: "text/csv" });
     },
@@ -1585,7 +1585,10 @@ export default function EventDetailsPage() {
                   backgroundSize: "20px 20px",
                 }}
               >
-                <div className="absolute inset-0 overflow-auto p-4" style={{ minWidth: "800px", minHeight: "600px" }}>
+                <div
+                  className="absolute inset-0 overflow-auto p-4"
+                  style={{ minWidth: "800px", minHeight: "600px" }}
+                >
                   {event.map_layout.map((element: any) => {
                     const colors = {
                       table: "bg-amber-100",

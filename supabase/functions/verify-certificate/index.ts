@@ -61,9 +61,7 @@ serve(async (req: Request) => {
       `,
       )
       .limit(1);
-    query = certId
-      ? query.eq("id", certId)
-      : query.eq("verification_hash", leafHash);
+    query = certId ? query.eq("id", certId) : query.eq("verification_hash", leafHash);
 
     const { data: rows, error: fetchError } = await query;
 
@@ -86,7 +84,8 @@ serve(async (req: Request) => {
     // 2. Recompute the canonical leaf hash — proves the DB record is intact.
     const expectedLeaf = computeCertificateLeafHash(cert.event_id, cert.user_id, cert.id);
     const recordIntact =
-      !!cert.verification_hash && expectedLeaf.toLowerCase() === cert.verification_hash.toLowerCase();
+      !!cert.verification_hash &&
+      expectedLeaf.toLowerCase() === cert.verification_hash.toLowerCase();
 
     // 3. Prove membership in the anchored daily batch (off-chain Merkle path).
     const merklePath = cert.merkle_path as {

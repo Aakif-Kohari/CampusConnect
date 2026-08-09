@@ -33,8 +33,7 @@ let wasmInitialised = false;
 async function ensureWasm() {
   if (wasmInitialised) return;
   // Fetch precompiled WASM binary from the same esm.sh CDN that hosts the JS
-  const wasmUrl =
-    "https://esm.sh/@resvg/resvg-wasm@2.6.2/index_bg.wasm";
+  const wasmUrl = "https://esm.sh/@resvg/resvg-wasm@2.6.2/index_bg.wasm";
   const wasmBuffer = await fetch(wasmUrl).then((r) => r.arrayBuffer());
   await initWasm(wasmBuffer);
   wasmInitialised = true;
@@ -351,7 +350,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const url = new URL(req.url);
   const eventId = url.searchParams.get("event_id");
 
-  if (!eventId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId)) {
+  if (
+    !eventId ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId)
+  ) {
     return new Response(
       JSON.stringify({ error: "Missing or invalid event_id. Must be a valid UUID." }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },

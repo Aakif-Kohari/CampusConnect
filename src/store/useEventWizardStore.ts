@@ -66,7 +66,7 @@ export interface EventWizardStore {
  */
 export function validateStep(
   stepIndex: number,
-  formData: EventWizardFormData
+  formData: EventWizardFormData,
 ): { errors: Record<string, string>; isValid: boolean } {
   const step = WIZARD_STEPS[stepIndex];
   if (!step || !step.schema) {
@@ -100,9 +100,10 @@ export function validateStep(
  * Helper: validate the entire form against the master schema.
  * Used on the final step before submitting to Supabase.
  */
-export function validateMaster(
-  formData: EventWizardFormData
-): { errors: Record<string, string>; isValid: boolean } {
+export function validateMaster(formData: EventWizardFormData): {
+  errors: Record<string, string>;
+  isValid: boolean;
+} {
   const result = eventWizardMasterSchema.safeParse(formData);
   if (result.success) {
     return { errors: {}, isValid: true };
@@ -224,8 +225,8 @@ export const useEventWizardStore = create<EventWizardStore>()(
         step: state.step,
         formData: state.formData,
       }),
-    }
-  )
+    },
+  ),
 );
 
 /**

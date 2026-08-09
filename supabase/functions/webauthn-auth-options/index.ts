@@ -9,7 +9,11 @@ import { parseJsonBody } from "../_shared/validation.ts";
 const authOptionsSchema = z
   .object({
     rpId: z.string().min(1),
-    email: z.string().max(255, "email is too long").email("email must be a valid email address").optional(),
+    email: z
+      .string()
+      .max(255, "email is too long")
+      .email("email must be a valid email address")
+      .optional(),
   })
   .strict();
 const corsHeaders = {

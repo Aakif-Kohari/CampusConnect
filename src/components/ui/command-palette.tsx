@@ -179,7 +179,10 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
 
             {activePage === "home" && !query && (
               <>
-                <Command.Group heading="Sub-Searches" className="font-mono text-[10px] font-black uppercase text-gray-500 px-2 py-1">
+                <Command.Group
+                  heading="Sub-Searches"
+                  className="font-mono text-[10px] font-black uppercase text-gray-500 px-2 py-1"
+                >
                   <Command.Item
                     value="search-clubs"
                     onSelect={() => {
@@ -226,7 +229,10 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
                   </Command.Item>
                 </Command.Group>
 
-                <Command.Group heading="Navigation" className="font-mono text-[10px] font-black uppercase text-gray-500 px-2 py-1 mt-2">
+                <Command.Group
+                  heading="Navigation"
+                  className="font-mono text-[10px] font-black uppercase text-gray-500 px-2 py-1 mt-2"
+                >
                   {navigationItems.map((item) => {
                     const Icon = item.icon;
                     return (
@@ -244,7 +250,10 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
                 </Command.Group>
 
                 {commands.length > 0 && (
-                  <Command.Group heading="Actions" className="font-mono text-[10px] font-black uppercase text-gray-500 px-2 py-1 mt-2">
+                  <Command.Group
+                    heading="Actions"
+                    className="font-mono text-[10px] font-black uppercase text-gray-500 px-2 py-1 mt-2"
+                  >
                     {commands.map((cmd) => {
                       const Icon = cmd.icon;
                       return (
@@ -265,7 +274,10 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
             )}
 
             {query && results.length > 0 && (
-              <Command.Group heading="Results" className="font-mono text-[10px] font-black uppercase text-gray-500 px-2 py-1">
+              <Command.Group
+                heading="Results"
+                className="font-mono text-[10px] font-black uppercase text-gray-500 px-2 py-1"
+              >
                 {results.map((result) => (
                   <Command.Item
                     key={result.id}
@@ -283,7 +295,10 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
             )}
 
             {!query && activePage === "clubs" && (
-              <Command.Group heading="Popular Clubs" className="font-mono text-[10px] font-black uppercase text-gray-500 px-2 py-1">
+              <Command.Group
+                heading="Popular Clubs"
+                className="font-mono text-[10px] font-black uppercase text-gray-500 px-2 py-1"
+              >
                 {fallbackClubs.map((club) => (
                   <Command.Item
                     key={club.id}
@@ -299,7 +314,10 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
             )}
 
             {!query && activePage === "events" && (
-              <Command.Group heading="Recent Events" className="font-mono text-[10px] font-black uppercase text-gray-500 px-2 py-1">
+              <Command.Group
+                heading="Recent Events"
+                className="font-mono text-[10px] font-black uppercase text-gray-500 px-2 py-1"
+              >
                 {fallbackEvents.map((evt) => (
                   <Command.Item
                     key={evt.id}
@@ -315,7 +333,10 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
             )}
 
             {!query && activePage === "users" && (
-              <Command.Group heading="Recent Users" className="font-mono text-[10px] font-black uppercase text-gray-500 px-2 py-1">
+              <Command.Group
+                heading="Recent Users"
+                className="font-mono text-[10px] font-black uppercase text-gray-500 px-2 py-1"
+              >
                 {fallbackUsers.map((user) => {
                   const name = `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim();
                   const displayName = name || `@${user.handle}`;
