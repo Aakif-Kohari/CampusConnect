@@ -57,13 +57,20 @@ export function ClubHeader({
   const [stickyOffset, setStickyOffset] = useState(NAVBAR_HEIGHT_FALLBACK);
 
   useLayoutEffect(() => {
+    let rAfId: number | null = null;
     const measure = () => {
-      const navbar = document.querySelector("header.sticky");
-      if (navbar) setStickyOffset(navbar.getBoundingClientRect().height);
+      if (rAfId !== null) cancelAnimationFrame(rAfId);
+      rAfId = window.requestAnimationFrame(() => {
+        const navbar = document.querySelector("header.sticky");
+        if (navbar) setStickyOffset(navbar.getBoundingClientRect().height);
+      });
     };
     measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
+    window.addEventListener("resize", measure, { passive: true });
+    return () => {
+      if (rAfId !== null) cancelAnimationFrame(rAfId);
+      window.removeEventListener("resize", measure);
+    };
   }, []);
 
   return (

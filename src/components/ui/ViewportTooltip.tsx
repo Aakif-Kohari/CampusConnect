@@ -110,12 +110,19 @@ export const ViewportTooltip: React.FC<ViewportTooltipProps> = ({
 
   useEffect(() => {
     if (isVisible) {
-      calculatePosition();
-      window.addEventListener("scroll", calculatePosition, { passive: true });
-      window.addEventListener("resize", calculatePosition, { passive: true });
+      let rAfId: number | null = null;
+      const scheduledCalculate = () => {
+        if (rAfId !== null) cancelAnimationFrame(rAfId);
+        rAfId = window.requestAnimationFrame(calculatePosition);
+      };
+
+      scheduledCalculate();
+      window.addEventListener("scroll", scheduledCalculate, { passive: true });
+      window.addEventListener("resize", scheduledCalculate, { passive: true });
       return () => {
-        window.removeEventListener("scroll", calculatePosition);
-        window.removeEventListener("resize", calculatePosition);
+        if (rAfId !== null) cancelAnimationFrame(rAfId);
+        window.removeEventListener("scroll", scheduledCalculate);
+        window.removeEventListener("resize", scheduledCalculate);
       };
     }
   }, [isVisible, calculatePosition]);

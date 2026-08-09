@@ -14,18 +14,20 @@ export const AutoResizeTextarea = forwardRef<HTMLTextAreaElement, AutoResizeText
       const textarea = internalRef.current;
       if (!textarea) return;
 
-      // Reset height to 0px so scrollHeight reflects true content shrink
-      textarea.style.height = "0px";
+      window.requestAnimationFrame(() => {
+        if (!textarea) return;
 
-      // Compute top and bottom border widths to handle border-box sizing physics
-      const computedStyle = window.getComputedStyle(textarea);
-      const borderTop = parseFloat(computedStyle.borderTopWidth) || 0;
-      const borderBottom = parseFloat(computedStyle.borderBottomWidth) || 0;
+        const computedStyle = window.getComputedStyle(textarea);
+        const borderTop = parseFloat(computedStyle.borderTopWidth) || 0;
+        const borderBottom = parseFloat(computedStyle.borderBottomWidth) || 0;
+        const targetHeight = Math.max(textarea.scrollHeight + borderTop + borderBottom, minHeight);
 
-      // Final height = scrollHeight + border offsets
-      const targetHeight = Math.max(textarea.scrollHeight + borderTop + borderBottom, minHeight);
-
-      textarea.style.height = `${targetHeight}px`;
+        window.requestAnimationFrame(() => {
+          if (textarea) {
+            textarea.style.height = `${targetHeight}px`;
+          }
+        });
+      });
     };
 
     useEffect(() => {
