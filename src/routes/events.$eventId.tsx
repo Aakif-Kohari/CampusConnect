@@ -694,7 +694,7 @@ export default function EventDetailsPage() {
       if (event) {
         const eventRsvps = Array.isArray(event.event_rsvps) ? event.event_rsvps : [];
         const updatedRsvps = hasRsvpd
-          ? eventRsvps.filter((r) => r.user_id !== user?.id)
+          ? eventRsvps.filter((r: any) => r.user_id !== user?.id)
           : [...eventRsvps, { id: `temp-${Date.now()}`, user_id: user?.id || "" }];
 
         const updatedEvent = {
@@ -1566,6 +1566,7 @@ export default function EventDetailsPage() {
               </main>
               <aside className="lg:w-64 shrink-0">
                 <TableOfContents items={tocItems} />
+              </aside>
             </div>
           </div>
 
@@ -1818,7 +1819,7 @@ export default function EventDetailsPage() {
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-                {galleryPhotos.map((url, idx) => (
+                {galleryPhotos.map((url: string, idx: number) => (
                   <div
                     key={url}
                     className="neu-border bg-white p-2 hover:scale-[1.02] transition-transform duration-300 group cursor-zoom-in"
