@@ -1402,6 +1402,12 @@ export default function EventDetailsPage() {
                 </Button>
                 <CreatePollDialog eventId={eventId} user={user!} onPollCreated={() => refetch()} />
                 <EditEventDialog event={event} user={user} onSuccess={() => refetch()} />
+                <Link
+                  to={`/events/${eventId}/builder`}
+                  className="neu-border neu-press flex h-12 items-center justify-center bg-sky px-5 font-mono text-sm font-bold uppercase tracking-wider text-black transition-all duration-300 hover:scale-105 active:scale-95"
+                >
+                  Layout Builder
+                </Link>
               </>
             )}
 
@@ -1546,9 +1552,55 @@ export default function EventDetailsPage() {
               </main>
               <aside className="lg:w-64 shrink-0">
                 <TableOfContents items={tocItems} />
-              </aside>
             </div>
           </div>
+
+          {/* Read-only map layout for attendees */}
+          {event.map_layout && Array.isArray(event.map_layout) && event.map_layout.length > 0 && (
+            <div className="mt-10 border-t-2 border-black pt-8">
+              <h2 className="font-display text-xl font-bold uppercase tracking-tight text-blue-900 mb-4">
+                Floor Plan / Venue Layout
+              </h2>
+              <div
+                className="relative border-4 border-black bg-white shadow-[4px_4px_0_0_#000] overflow-hidden mx-auto max-w-full"
+                style={{
+                  width: "100%",
+                  height: "400px",
+                  backgroundImage: "radial-gradient(#000 6%, transparent 7%)",
+                  backgroundSize: "20px 20px",
+                }}
+              >
+                <div className="absolute inset-0 overflow-auto p-4" style={{ minWidth: "800px", minHeight: "600px" }}>
+                  {event.map_layout.map((element: any) => {
+                    const colors = {
+                      table: "bg-amber-100",
+                      stage: "bg-indigo-100",
+                      boundary: "bg-red-50",
+                      booth: "bg-emerald-100",
+                    };
+                    return (
+                      <div
+                        key={element.id}
+                        style={{
+                          position: "absolute",
+                          left: `${element.x}px`,
+                          top: `${element.y}px`,
+                          width: `${element.width}px`,
+                          height: `${element.height}px`,
+                          transform: `rotate(${element.rotation || 0}deg)`,
+                          zIndex: element.zIndex || 10,
+                        }}
+                        className={`border-2 border-black flex flex-col items-center justify-center p-1 text-center shadow-[1px_1px_0_0_#000] text-[9px] font-mono uppercase font-bold leading-none ${colors[element.type as "table"] || "bg-white"}`}
+                      >
+                        <span>{element.label}</span>
+                        <span className="opacity-75 text-[7px] mt-0.5">{element.type}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* FAQ Section */}
           {Array.isArray((event as Record<string, unknown>).faqs) &&
