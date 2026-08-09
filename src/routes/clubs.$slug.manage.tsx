@@ -13,12 +13,15 @@ import {
   XCircle,
   CheckCircle,
   Download,
+  Trash2,
+  BarChart3,
 } from "lucide-react";
 import { PromoVideoUploader } from "@/components/PromoVideoUploader";
 import { ClubManageSkeleton } from "@/components/DashboardWidgetSkeleton";
 import { ImageCropUpload } from "@/components/ImageCropUpload";
 import { ClubMembersTable } from "@/components/Clubs/ClubMembersTable";
 import { ClubSocialLinksEditor } from "@/components/Clubs/ClubSocialLinksEditor";
+import ClubAnalyticsDashboard from "@/components/clubs/ClubAnalyticsDashboard";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -49,7 +52,7 @@ export default function ClubManageRoute() {
   const supabase = createClient();
   const [user, setUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<
-    "settings" | "members" | "permissions" | "events" | "trash"
+    "settings" | "members" | "permissions" | "events" | "trash" | "analytics"
   >("settings");
 
   // Fetch Trash Events
@@ -457,6 +460,16 @@ export default function ClubManageRoute() {
               >
                 <Trash2 size={18} /> Trash
               </button>
+              <button
+                onClick={() => setActiveTab("analytics")}
+                className={`neu-border flex items-center gap-3 p-4 font-mono text-sm font-bold uppercase transition-all ${
+                  activeTab === "analytics"
+                    ? "bg-black text-white hover:-translate-y-1"
+                    : "bg-white text-black hover:bg-gray-55 hover:bg-gray-50"
+                }`}
+              >
+                <BarChart3 size={18} /> Analytics
+              </button>
             </nav>
           </aside>
 
@@ -760,6 +773,10 @@ export default function ClubManageRoute() {
                   )}
                 </div>
               </div>
+            )}
+
+            {activeTab === "analytics" && (
+              <ClubAnalyticsDashboard clubId={club.id} />
             )}
           </main>
         </div>
