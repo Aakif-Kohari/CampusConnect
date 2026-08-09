@@ -23,6 +23,8 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:report": "playwright show-report",
+    "test:visual": "docker-compose -f docker-compose.visual.yml run --rm playwright bash -c \"npm install && npx playwright test e2e/visual.spec.ts\"",
+    "test:visual:update": "docker-compose -f docker-compose.visual.yml run --rm playwright bash -c \"npm install && npx playwright test e2e/visual.spec.ts --update-snapshots\"",
     "test:edge": "deno test --allow-env --allow-net --allow-read supabase/functions",
     "auth:verify-jwks": "node scripts/verify-jwks.mjs",
     "test:cypress": "cypress run",
