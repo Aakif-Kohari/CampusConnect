@@ -20,45 +20,45 @@ test.describe("Visual Regression: Core Pages", () => {
     });
   });
 
-  const maskOptions = {
+  const getMaskOptions = (page: any) => ({
     // Mask typical dynamic elements like dates, timestamps, or dynamic feeds
     mask: [
-      '.dynamic-timestamp', 
-      '.user-avatar',
-      '[data-testid="feed-timestamp"]'
+      page.locator('.dynamic-timestamp'), 
+      page.locator('.user-avatar'),
+      page.locator('[data-testid="feed-timestamp"]')
     ],
     animations: "disabled" as const,
     fullPage: true,
-  };
+  });
 
   test("Home Page", async ({ page }) => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-    await expect(page).toHaveScreenshot("home-page.png", maskOptions);
+    await expect(page).toHaveScreenshot("home-page.png", getMaskOptions(page));
   });
 
   test("Login Page", async ({ page }) => {
     await page.goto("/login");
     await page.waitForLoadState("networkidle");
-    await expect(page).toHaveScreenshot("login-page.png", maskOptions);
+    await expect(page).toHaveScreenshot("login-page.png", getMaskOptions(page));
   });
 
   test("Profile Page", async ({ page }) => {
     // Assuming /profile or /profile/me redirects, let's use a known static profile path if possible
     await page.goto("/profile/test-user"); 
     await page.waitForLoadState("networkidle");
-    await expect(page).toHaveScreenshot("profile-page.png", maskOptions);
+    await expect(page).toHaveScreenshot("profile-page.png", getMaskOptions(page));
   });
 
   test("Feed Page", async ({ page }) => {
     await page.goto("/feed");
     await page.waitForLoadState("networkidle");
-    await expect(page).toHaveScreenshot("feed-page.png", maskOptions);
+    await expect(page).toHaveScreenshot("feed-page.png", getMaskOptions(page));
   });
 
   test("Directory Page", async ({ page }) => {
     await page.goto("/directory");
     await page.waitForLoadState("networkidle");
-    await expect(page).toHaveScreenshot("directory-page.png", maskOptions);
+    await expect(page).toHaveScreenshot("directory-page.png", getMaskOptions(page));
   });
 });
