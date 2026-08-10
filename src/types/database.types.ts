@@ -401,6 +401,7 @@ export type Database = {
           blurhash: string | null;
           created_at: string;
           updated_at: string;
+          accommodation_deadline: string | null;
         };
         Insert: {
           id?: string;
@@ -444,6 +445,7 @@ export type Database = {
           blurhash?: string | null;
           created_at?: string;
           updated_at?: string;
+          accommodation_deadline?: string | null;
         };
         Update: {
           id?: string;
@@ -487,6 +489,7 @@ export type Database = {
           blurhash?: string | null;
           created_at?: string;
           updated_at?: string;
+          accommodation_deadline?: string | null;
         };
         Relationships: [
           {
@@ -570,6 +573,7 @@ export type Database = {
           rsvp_at: string | null;
           created_at: string;
           updated_at: string;
+          accommodations_requested: string | null;
         };
         Insert: {
           id?: string;
@@ -581,6 +585,7 @@ export type Database = {
           rsvp_at?: string | null;
           created_at?: string;
           updated_at?: string;
+          accommodations_requested?: string | null;
         };
         Update: {
           id?: string;
@@ -592,6 +597,7 @@ export type Database = {
           rsvp_at?: string | null;
           created_at?: string;
           updated_at?: string;
+          accommodations_requested?: string | null;
         };
         Relationships: [
           {
@@ -604,6 +610,44 @@ export type Database = {
           {
             foreignKeyName: "event_rsvps_user_id_fkey";
             columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      accommodation_audit_logs: {
+        Row: {
+          id: string;
+          viewer_id: string | null;
+          rsvp_id: string;
+          event_id: string | null;
+          club_id: string | null;
+          action: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          viewer_id?: string | null;
+          rsvp_id: string;
+          event_id?: string | null;
+          club_id?: string | null;
+          action?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          viewer_id?: string | null;
+          rsvp_id?: string;
+          event_id?: string | null;
+          club_id?: string | null;
+          action?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "accommodation_audit_logs_viewer_id_fkey";
+            columns: ["viewer_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
             referencedColumns: ["id"];
