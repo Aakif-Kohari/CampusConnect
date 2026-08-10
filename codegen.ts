@@ -6,6 +6,7 @@ const config: CodegenConfig = {
     "src/routes/admin.users.tsx",
     "src/routes/notifications.tsx",
     "src/hooks/useCursorEventsQuery.ts",
+    "src/graphql/chat.ts",
   ],
   generates: {
     "./src/generated/graphql.ts": {

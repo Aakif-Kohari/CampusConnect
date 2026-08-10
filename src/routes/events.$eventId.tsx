@@ -60,6 +60,7 @@ import PredictiveTurnout from "@/components/events/PredictiveTurnout";
 import LiveQA from "@/components/qa/LiveQA";
 import EventFeedbackForm from "@/components/EventFeedbackForm";
 import { CarpoolSection } from "@/components/events/carpool/CarpoolSection";
+import { EventLiveChat } from "@/components/events/EventLiveChat";
 import { ReportDialog } from "@/components/ReportDialog";
 import { GeofencedCheckInButton } from "@/components/GeofencedCheckInButton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -1694,6 +1695,11 @@ export default function EventDetailsPage() {
           {/* Transportation / Carpool (Issue #2748) */}
           <div className="mt-8">
             <CarpoolSection eventId={eventId} user={user} />
+          </div>
+
+          {/* Live Chat (Issue #2741) */}
+          <div className="mt-8">
+            <EventLiveChat eventId={eventId} user={user} />
           </div>
           {/* Description */}
           <div className="mt-8">

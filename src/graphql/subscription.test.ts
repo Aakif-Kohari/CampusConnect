@@ -1,71 +1,104 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { pubsub, RedisPubSub } from "../../graphql/resolvers";
+import { RedisPubSub, channelKey } from "../../graphql/pubsub";
 
-// Mock ioredis completely
+const { mockPublish, mockSubscribe, mockUnsubscribe, mockDisconnect, mockOn, mockOff } = vi.hoisted(
+  () => ({
+    mockPublish: vi.fn().mockResolvedValue(1),
+    mockSubscribe: vi.fn().mockResolvedValue(1),
+    mockUnsubscribe: vi.fn().mockResolvedValue(1),
+    mockDisconnect: vi.fn(),
+    mockOn: vi.fn(),
+    mockOff: vi.fn(),
+  }),
+);
+
+// Mock ioredis entirely: the class under test only depends on the
+// publish/subscribe/disconnect surface, so a stub class is sufficient.
 vi.mock("ioredis", () => {
-  const mockPublish = vi.fn().mockResolvedValue(1);
-  const mockSubscribe = vi.fn().mockResolvedValue(undefined);
-  const mockDisconnect = vi.fn();
-  const mockOn = vi.fn();
-
   class MockRedis {
     publish = mockPublish;
     subscribe = mockSubscribe;
+    unsubscribe = mockUnsubscribe;
     disconnect = mockDisconnect;
     on = mockOn;
+    off = mockOff;
   }
-
-  return {
-    default: MockRedis,
-  };
+  return { default: MockRedis };
 });
 
-describe("RedisPubSub Integration", () => {
+describe("channelKey", () => {
+  it("namespaces the channel with the topic", () => {
+    expect(channelKey("MESSAGE_ADDED", "event-1")).toBe("MESSAGE_ADDED:event-1");
+  });
+
+  it("returns the bare channel when no topic is given", () => {
+    expect(channelKey("ANNOUNCEMENT_CREATED", null)).toBe("ANNOUNCEMENT_CREATED");
+  });
+});
+
+describe("RedisPubSub", () => {
   let ps: RedisPubSub;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    ps = new RedisPubSub();
+    ps = new RedisPubSub("redis://test:6379");
   });
 
-  it("publishes serialized payloads to the constructed channels", async () => {
-    await ps.publish("TEST_EVENT", "topic-1", { foo: "bar" });
-    const ioredis = await import("ioredis");
-    expect(vi.mocked(ioredis.default.prototype.publish)).toHaveBeenCalledWith(
-      "TEST_EVENT:topic-1",
-      JSON.stringify({ foo: "bar" }),
+  it("publishes JSON-serialized payloads to the topic channel", async () => {
+    await ps.publish("MESSAGE_ADDED", "event-1", { id: "m1", content: "hello" });
+
+    expect(mockPublish).toHaveBeenCalledWith(
+      "MESSAGE_ADDED:event-1",
+      JSON.stringify({ id: "m1", content: "hello" }),
     );
   });
 
-  it("subscribes and yields messages correctly", async () => {
-    const ioredis = await import("ioredis");
-    const subGenerator = ps.subscribe("ANNOUNCEMENT_CREATED", "club-123");
+  it("publishes to the bare channel when no topic is provided", async () => {
+    await ps.publish("BROADCAST", null, { notice: true });
 
-    // Simulate incoming messages via emitter
-    let messageCallback: ((chan: string, msg: string) => void) | null = null;
-    vi.mocked(ioredis.default.prototype.on).mockImplementation((event: string, cb: any) => {
-      if (event === "message") {
-        messageCallback = cb;
-      }
-      return {} as any;
+    expect(mockPublish).toHaveBeenCalledWith("BROADCAST", JSON.stringify({ notice: true }));
+  });
+
+  it("subscribes to the channel and yields parsed messages", async () => {
+    let messageHandler: ((chan: string, message: string) => void) | null = null;
+    mockOn.mockImplementation((event: string, cb: (chan: string, message: string) => void) => {
+      if (event === "message") messageHandler = cb;
     });
 
-    const nextPromise = subGenerator.next();
+    const generator = ps.subscribe("MESSAGE_ADDED", "event-1");
+    const nextPromise = generator.next();
 
-    // Trigger the callback
-    expect(messageCallback).toBeNull(); // Wait: beforeEach ran, let's trigger next() which starts generator
-
-    // We start the generator execution, which triggers subscribe
+    // Let the generator run up to its first await (subscriber registration).
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    expect(messageCallback).toBeDefined();
-    messageCallback!(
-      "ANNOUNCEMENT_CREATED:club-123",
-      JSON.stringify({ id: "123", content: "hello" }),
-    );
+    expect(messageHandler).toBeDefined();
+    expect(mockSubscribe).toHaveBeenCalledWith("MESSAGE_ADDED:event-1");
+
+    messageHandler!("MESSAGE_ADDED:event-1", JSON.stringify({ id: "m1", content: "hello" }));
 
     const res = await nextPromise;
-    expect(res.value).toEqual({ id: "123", content: "hello" });
+    expect(res.value).toEqual({ id: "m1", content: "hello" });
     expect(res.done).toBe(false);
+  });
+
+  it("cleans up the Redis subscription when the iterator is disposed", async () => {
+    const generator = ps.subscribe("MESSAGE_ADDED", "event-1");
+
+    // Start iteration without awaiting: the generator blocks until a message
+    // arrives, which is the point of a subscription.
+    void generator.next();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    await generator.return(undefined);
+
+    expect(mockUnsubscribe).toHaveBeenCalledWith("MESSAGE_ADDED:event-1");
+    expect(mockOff).toHaveBeenCalledWith("message", expect.any(Function));
+  });
+
+  it("disconnect closes both the publisher and subscriber connections", () => {
+    ps.disconnect();
+    ps.disconnect(); // idempotent
+
+    expect(mockDisconnect).toHaveBeenCalledTimes(2);
   });
 });
