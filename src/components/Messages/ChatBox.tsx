@@ -17,6 +17,7 @@ import { ShieldCheck, Send, Search, Lock, AlertTriangle, RefreshCw, Smile } from
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import EmojiPicker from "emoji-picker-react";
+import RichLinkCard from "./RichLinkCard";
 import { EmptyState } from "@/components/EmptyState";
 import { LinkPreview } from "./LinkPreview";
 import { TypingBubble } from "./TypingBubble";
@@ -730,6 +731,14 @@ export default function ChatBox() {
                                 : "bg-white text-black dark:bg-zinc-800 dark:text-cream dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.15)]"
                             }`}
                           >
+                            <div className="whitespace-pre-wrap font-sans text-sm font-medium">
+                              {msg.content?.split(/(https?:\/\/[^\s]+)/g).map((part, i) => {
+                                if (part.match(/https?:\/\/[^\s]+/)) {
+                                  return <RichLinkCard key={i} url={part} />;
+                                }
+                                return <span key={i}>{part}</span>;
+                              })}
+                            </div>
                             <p className="whitespace-pre-wrap font-sans text-sm font-medium">
                               {msg.content}
                             </p>
@@ -799,6 +808,39 @@ export default function ChatBox() {
                   onSubmit={handleSendMessage}
                   className="border-t-2 border-black p-3 bg-white dark:bg-zinc-900 dark:border-cream flex flex-col gap-2"
                 >
+                  <input
+                    type="text"
+                    value={inputMessage}
+                    onChange={(e) => setInputMessage(e.target.value)}
+                    placeholder="Type a secure message..."
+                    className="flex-1 border-2 border-black px-3 py-2 font-mono text-sm focus:outline-none dark:bg-zinc-800 dark:border-cream dark:text-cream"
+                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        className="h-10 w-10 border-2 border-black bg-yellow-300 text-black neu-border neu-press"
+                      >
+                        <Smile className="h-4 w-4" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent side="top" align="end" className="p-0 border-2 border-black">
+                      <EmojiPicker
+                        onEmojiClick={(emojiData) =>
+                          setInputMessage((prev) => prev + emojiData.emoji)
+                        }
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <Button
+                    type="submit"
+                    size="icon"
+                    className="h-10 w-10 border-2 border-black bg-lime text-black neu-border neu-press"
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
                   {/* Typing indicator — visible only when someone else is typing */}
                   <TypingBubble typingUsers={typingUsers} />
 
