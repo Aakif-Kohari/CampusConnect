@@ -254,13 +254,16 @@ export function EventCard({
     <div className="group">
       <article
         id={`event-${event.id}`}
+ fix/offline-banner-accessibility
+        className={`neu-border p-5 relative ${colors[index % colors.length]} transition-all duration-300 ease-out group-hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_var(--color-ink)]`}
+
         onMouseEnter={preloadEvent.onMouseEnter}
         onMouseLeave={preloadEvent.onMouseLeave}
         className={`neu-border p-5 relative ${
           active
             ? "bg-blue-100 border-4 border-blue-600 ring-2 ring-blue-600"
             : colors[index % colors.length]
-        } transition-all duration-300 ease-out group-hover:scale-[1.02]`}
+ main
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-col">
