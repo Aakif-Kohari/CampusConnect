@@ -13,6 +13,16 @@ import {
   decryptMessage,
 } from "@/lib/crypto";
 import { toast } from "sonner";
+import {
+  ShieldCheck,
+  Send,
+  Search,
+  Lock,
+  AlertTriangle,
+  RefreshCw,
+  Smile,
+  Languages,
+} from "lucide-react";
 import { ShieldCheck, Send, Search, Lock, AlertTriangle, RefreshCw, Smile } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -750,7 +760,37 @@ export default function ChatBox() {
                               ) : null;
                             })()}
                             <div className="mt-1.5 flex items-center justify-between gap-4 font-mono text-[9px] uppercase opacity-60">
-                              <span>{time}</span>
+                              <div className="flex items-center gap-2">
+                                <span>{time}</span>
+                                <button
+                                  onClick={async () => {
+                                    if (!msg.content) return;
+                                    try {
+                                      const res = await supabase.functions.invoke(
+                                        "translate-message",
+                                        {
+                                          body: {
+                                            message_id: msg.id,
+                                            target_language:
+                                              navigator.language.split("-")[0] || "en",
+                                            text: msg.content,
+                                          },
+                                        },
+                                      );
+                                      if (res.data?.translated_text) {
+                                        toast.success(res.data.translated_text, { duration: 5000 });
+                                      }
+                                    } catch (e) {
+                                      toast.error("Translation failed");
+                                    }
+                                  }}
+                                  className="flex items-center gap-1 hover:text-black dark:hover:text-white transition-colors"
+                                  title="Translate Message"
+                                >
+                                  <Languages size={10} />
+                                  Translate
+                                </button>
+                              </div>
                               <span className="flex items-center gap-0.5">
                                 {isMe ? (
                                   msg.read_at ? (
