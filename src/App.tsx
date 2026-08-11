@@ -1,8 +1,4 @@
-import {
-  QueryClientProvider as NormalQueryClientProvider,
-  queryClient,
-  persister,
-} from "@/hooks/useReactQueryReplacement";
+import { queryClient, persister } from "@/hooks/useReactQueryReplacement";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { Suspense, lazy, useEffect, useState } from "react";
 import { AnimatePresence, LazyMotion, MotionConfig } from "framer-motion";
@@ -26,24 +22,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import MaintenancePage from "./components/MaintenancePage";
 import { CommandPaletteProvider } from "@/components/CommandPaletteProvider";
 import { createClient } from "./lib/supabase/client";
-// Pages
-import Index from "./routes/index";
-import Auth from "./routes/auth";
-import Certificates from "./routes/certificates";
-import ClubsIndex from "./routes/clubs.index";
-import ClubDetails from "./routes/clubs.$slug";
-import ClubsLayout from "./routes/clubs";
-import Dashboard from "./routes/dashboard";
-import DashboardOverview from "./routes/dashboard.index";
-import DashboardRsvps from "./routes/dashboard.rsvps";
-import DashboardBookmarks from "./routes/dashboard.bookmarks";
-import EventsIndex from "./routes/events";
-import EventDetails from "./routes/events.$eventId";
-import Feed from "./routes/feed";
-import ForgotPassword from "./routes/forgot-password";
-import ResetPassword from "./routes/reset-password";
-import Settings from "./routes/settings";
-import PendingClubsAdmin from "./routes/admin.clubs.pending";
 import GalleryPage from "./routes/gallery";
 import { RouteSkeleton } from "./components/RouteSkeleton";
 import { BreadcrumbProvider } from "@/components/BreadcrumbsContext";
