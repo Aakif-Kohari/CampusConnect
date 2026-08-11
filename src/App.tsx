@@ -49,6 +49,7 @@ import GalleryPage from "./routes/gallery";
 import { BreadcrumbProvider } from "@/components/BreadcrumbsContext";
 import AriaAnnouncer from "@/components/accessibility/AriaAnnouncer";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
+import { LoginRecoveryModal } from "@/components/auth/LoginRecoveryModal";
 import { MfaChallengeGuard } from "@/components/auth/MfaChallengeGuard";
 function RemoteLoadingScreen() {
   return (
@@ -368,6 +369,7 @@ export default function App() {
             <LazyMotion features={loadDomAnimation} strict={import.meta.env.DEV}>
               <CommandPaletteProvider>
                 <OfflineIndicator />
+                <LoginRecoveryModal />
                 {/* Floating Dark Mode Toggle */}
                 <div className="fixed bottom-4 right-4 z-[9999]">
                   <ThemeToggle />

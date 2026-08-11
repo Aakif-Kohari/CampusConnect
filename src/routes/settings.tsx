@@ -2,9 +2,7 @@ import { useNavigate, useBlocker } from "react-router-dom";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { SiteShell } from "@/components/site/SiteShell";
 import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
-import { Camera, Loader2, X, Plus, CreditCard } from "lucide-react";
-import { useTheme } from "@/components/theme-provider";
-import { Check, Loader2, X, Plus } from "lucide-react";
+import { Camera, Check, Loader2, X, Plus, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 
@@ -106,7 +104,7 @@ export default function SettingsPage() {
     skillInputRef.current?.focus();
   };
 
-  const handleSkillKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+  const handleSkillKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
       handleAddSkill();
@@ -125,8 +123,7 @@ export default function SettingsPage() {
         setUser(user);
       }
     });
-  }, [navigate, supabase]);
-
+  }, []);
   useEffect(() => {
     // Load appearance settings from localStorage
     const savedThickness = localStorage.getItem("theme-border-thickness");
@@ -560,11 +557,7 @@ export default function SettingsPage() {
     }
   }, [currentHandle, profile?.handle]);
 
-  const pStats = profile as typeof profile & {
-    lastActivityAt?: string;
-    welcomeSource?: string;
-    processedClaimCommentIds?: number[];
-  };
+  const pStats = profile as Record<string, any> | null;
 
   if (isProfileLoading && !profile) {
     return (
@@ -672,7 +665,7 @@ export default function SettingsPage() {
             </div>
 
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit as any)} className="space-y-4">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <FormField
                     control={form.control}
@@ -881,7 +874,9 @@ export default function SettingsPage() {
                     <input
                       ref={skillInputRef}
                       value={skillInput}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) => setSkillInput(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        setSkillInput(e.target.value)
+                      }
                       onKeyDown={handleSkillKeyDown}
                       placeholder="e.g. React, Python, UI Design…"
                       className="flex-1 border-0 border-b-2 border-black bg-transparent px-1 py-2 font-mono text-sm outline-none focus:bg-lime/40"

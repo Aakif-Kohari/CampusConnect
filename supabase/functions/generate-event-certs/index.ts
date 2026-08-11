@@ -44,9 +44,6 @@ serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  // Rate Limiting: 5 requests per minute per IP
-  const rateLimitResponse = await limitRate(req, "generate-event-certs", {
-    limit: 5,
   // Rate Limiting: 30 requests per minute per IP
   const rateLimitResponse = await limitRate(req, "generate-event-certs", {
     limit: 30,
@@ -357,12 +354,10 @@ serve(async (req) => {
         emailSent = true;
       }
 
-      if (emailSent) {
-        await supabase
-          .from("certificates")
-          .update({ email_sent_at: new Date().toISOString() })
-          .eq("id", certId);
-      }
+    if (ledgerError) {
+      console.warn(
+        `Failed to store ledger hash for certificate ${certRow.id}: ${ledgerError.message}`,
+      );
     }
 
     return new Response(
