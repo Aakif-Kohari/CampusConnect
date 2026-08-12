@@ -84,6 +84,8 @@ export default function SettingsPage() {
   const [user, setUser] = useState<User | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [handleAvailability, setHandleAvailability] = useState<HandleAvailability>("idle");
+  const [personalEmail, setPersonalEmail] = useState("");
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [handleFeedback, setHandleFeedback] = useState<string | null>(null);
   const handleCheckTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [borderThickness, setBorderThickness] = useState(4);
@@ -216,6 +218,37 @@ export default function SettingsPage() {
       toast.error(error.message || "Failed to request data takeout");
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleAlumniTransition = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !personalEmail.trim()) return;
+    setIsTransitioning(true);
+    try {
+      const { error: authError } = await supabase.auth.updateUser({
+        email: personalEmail.trim(),
+      });
+      if (authError) throw authError;
+
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({
+          role: "alumni",
+          alumni_transitioned_at: new Date().toISOString(),
+        })
+        .eq("id", user.id);
+      
+      if (profileError) throw profileError;
+
+      toast.success(
+        "Alumni transition initiated! A confirmation link has been sent to your new email. Please confirm it to complete the authentication change."
+      );
+      refetch();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to initiate alumni transition.");
+    } finally {
+      setIsTransitioning(false);
     }
   };
 
@@ -1047,6 +1080,74 @@ export default function SettingsPage() {
               )}
             </div>
           </Panel>
+
+          {profile?.role !== "alumni" && (
+            <Panel title="Alumni Account Transition" tone="bg-[#e0f2fe]">
+              <div className="space-y-4">
+                <p className="font-mono text-xs text-gray-700">
+                  Graduating soon? Transition your account to an Alumni status. This allows you to retain your profile using a personal email address (like Gmail) after your university email is deactivated.
+                </p>
+                <div className="bg-amber-50 border-2 border-black p-3 font-mono text-[10px] text-amber-800">
+                  ⚠️ Note: A 3-month grace period begins immediately, during which you will retain full student capabilities. After 3 months, you will be restricted from RSVPing to student-only events or holding active club executive roles.
+                </div>
+                <form onSubmit={handleAlumniTransition} className="space-y-4">
+                  <div className="space-y-1">
+                    <label htmlFor="personalEmail" className="eyebrow font-bold text-black">
+                      New Personal Email Address
+                    </label>
+                    <input
+                      id="personalEmail"
+                      type="email"
+                      required
+                      placeholder="your.name@gmail.com"
+                      value={personalEmail}
+                      onChange={(e) => setPersonalEmail(e.target.value)}
+                      className="w-full border-2 border-black bg-white px-3 py-2 font-mono text-sm outline-none focus:bg-lime/20"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={isTransitioning || !personalEmail}
+                    className="neu-border neu-press bg-[#0284c7] hover:bg-[#0369a1] text-white px-4 py-2 font-mono text-xs font-bold uppercase disabled:opacity-50"
+                  >
+                    {isTransitioning ? "Transitioning..." : "Transition Account to Alumni"}
+                  </button>
+                </form>
+              </div>
+            </Panel>
+          )}
+
+          {profile?.role === "alumni" && (
+            <Panel title="Alumni Account Status" tone="bg-[#f0fdf4]">
+              <div className="space-y-3 font-mono text-xs text-gray-700">
+                <p className="font-bold text-emerald-800 flex items-center gap-1.5">
+                  ✓ Alumni Status Active
+                </p>
+                <p>
+                  Transitioned on:{" "}
+                  <strong>
+                    {profile.alumni_transitioned_at
+                      ? new Date(profile.alumni_transitioned_at).toLocaleDateString()
+                      : "Recently"}
+                  </strong>
+                </p>
+                {profile.alumni_transitioned_at && (
+                  <p>
+                    Grace Period Status:{" "}
+                    {new Date(profile.alumni_transitioned_at).getTime() + 90 * 24 * 60 * 60 * 1000 > Date.now() ? (
+                      <span className="text-blue-700 font-bold">
+                        Active (Student privileges remain for summer handover)
+                      </span>
+                    ) : (
+                      <span className="text-gray-500 font-bold">
+                        Expired (Standard Alumni restrictions active)
+                      </span>
+                    )}
+                  </p>
+                )}
+              </div>
+            </Panel>
+          )}
 
           <Panel title="Danger zone" tone="bg-red-50">
             <button
