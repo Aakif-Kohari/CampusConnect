@@ -14,6 +14,9 @@ import { User } from "@supabase/supabase-js";
 import { useEmailVerification } from "@/hooks/useEmailVerification";
 import { SiteShell } from "@/components/site/SiteShell";
 import { SkeletonEventDetails } from "@/components/events/SkeletonEventDetails";
+import { EventSeatingManager } from "@/components/events/EventSeatingManager";
+import { InteractiveSeatingChart } from "@/components/events/InteractiveSeatingChart";
+import { formatEventDateRange, getGoogleCalendarUrl } from "@/lib/utils";
 import { useBannerColor } from "@/hooks/useBannerColor";
 import { MapSkeleton } from "@/components/ui/MapSkeleton";
 
@@ -1904,6 +1907,11 @@ export default function EventDetailsPage() {
             </div>
           </div>
 
+          <EventSeatingManager eventId={event.id} isOrganizer={isOrganizer} />
+
+          <InteractiveSeatingChart eventId={event.id} user={user} />
+
+          {/* Map Embed */}
           {/* Read-only map layout for attendees */}
           {event.map_layout && Array.isArray(event.map_layout) && event.map_layout.length > 0 && (
             <div className="mt-10 border-t-2 border-black pt-8">
