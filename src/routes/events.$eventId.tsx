@@ -85,6 +85,7 @@ import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { OptimizedImage } from "@/components/media/OptimizedImage";
 import { ImageWithBlur } from "@/components/ui/ImageWithBlur";
 import { parseCoordinates } from "@/lib/eventUtils";
+import { EventFaqSection } from "@/components/events/EventFaqSection";
 import { AccessibilityBadges } from "@/components/events/AccessibilityBadges";
 import { ReportAccessibilityIssueDialog } from "@/components/events/ReportAccessibilityIssueDialog";
 import { ManageAccessibilityOverridesDialog } from "@/components/events/ManageAccessibilityOverridesDialog";
@@ -2271,6 +2272,7 @@ export default function EventDetailsPage() {
             </div>
           </div>
 
+          <EventFaqSection eventId={event.id} isOrganizer={isOrganizer} userId={user?.id} />
           {/* Kanban Board for Organizer */}
           {isOrganizer && (
             <div className="mt-12 border-t-4 border-black pt-10">
