@@ -17,9 +17,11 @@ import {
   RefreshCw,
   BarChart3,
   AlertTriangle,
-  ClipboardList,
+  Mail,
 } from "lucide-react";
-import { EventLogisticsChecklist } from "@/components/events/EventLogisticsChecklist";
+import { NewsletterAnalyticsPanel } from "@/components/Clubs/NewsletterAnalyticsPanel";
+import { NewsletterEditor } from "@/components/Editor/NewsletterEditor";
+import type { Newsletter } from "@/types/newsletter";
 import { HoldToConfirmButton } from "@/components/ui/HoldToConfirmButton";
 import { PromoVideoUploader } from "@/components/PromoVideoUploader";
 import { ClubManageSkeleton } from "@/components/DashboardWidgetSkeleton";
@@ -73,6 +75,7 @@ export default function ClubManageRoute() {
     | "members"
     | "permissions"
     | "events"
+    | "newsletters"
     | "logistics"
     | "constitution"
     | "trash"
@@ -80,6 +83,9 @@ export default function ClubManageRoute() {
     | "milestones"
   >("settings");
   const [selectedLogisticsEventId, setSelectedLogisticsEventId] = useState<string>("");
+
+  const [isEditingNewsletter, setIsEditingNewsletter] = useState(false);
+  const [selectedNewsletter, setSelectedNewsletter] = useState<Newsletter | null>(null);
 
   // Mock constitution versions for demo
   const oldConstitution =
@@ -523,14 +529,17 @@ export default function ClubManageRoute() {
                 <Calendar size={18} /> Events
               </button>
               <button
-                onClick={() => setActiveTab("logistics")}
+                onClick={() => {
+                  setActiveTab("newsletters");
+                  setIsEditingNewsletter(false);
+                }}
                 className={`neu-border flex items-center gap-3 p-4 font-mono text-sm font-bold uppercase transition-all ${
-                  activeTab === "logistics"
+                  activeTab === "newsletters"
                     ? "bg-black text-white hover:-translate-y-1"
                     : "bg-white text-black hover:bg-gray-50"
                 }`}
               >
-                <ClipboardList size={18} /> Logistics
+                <Mail size={18} /> Newsletters
               </button>
               <button
                 onClick={() => setActiveTab("constitution")}
@@ -931,6 +940,31 @@ export default function ClubManageRoute() {
                     No active events found for this club. Create an event to start managing
                     logistics tasks.
                   </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === "newsletters" && (
+              <div>
+                {isEditingNewsletter ? (
+                  <NewsletterEditor
+                    clubId={club.id}
+                    existingNewsletter={selectedNewsletter}
+                    onSaved={() => setIsEditingNewsletter(false)}
+                    onCancel={() => setIsEditingNewsletter(false)}
+                  />
+                ) : (
+                  <NewsletterAnalyticsPanel
+                    clubId={club.id}
+                    onCreateNew={() => {
+                      setSelectedNewsletter(null);
+                      setIsEditingNewsletter(true);
+                    }}
+                    onEditNewsletter={(nl) => {
+                      setSelectedNewsletter(nl);
+                      setIsEditingNewsletter(true);
+                    }}
+                  />
                 )}
               </div>
             )}
