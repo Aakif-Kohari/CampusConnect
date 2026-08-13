@@ -68,8 +68,15 @@ export default function ClubManageRoute() {
   const supabase = createClient();
   const [user, setUser] = useState<User | null>(null);
 
-  const [activeTab, setActiveTab] = useState<
-    "settings" | "members" | "permissions" | "events" | "logistics" | "constitution" | "trash" | "analytics"
+const [activeTab, setActiveTab] = useState<
+    | "settings"
+    | "members"
+    | "permissions"
+    | "events"
+    | "constitution"
+    | "trash"
+    | "analytics"
+    | "milestones"
   >("settings");
   const [selectedLogisticsEventId, setSelectedLogisticsEventId] = useState<string>("");
 
@@ -533,6 +540,16 @@ export default function ClubManageRoute() {
                 }`}
               >
                 <Settings size={18} /> Constitution
+              </button>
+              <button
+                onClick={() => setActiveTab("milestones")}
+                className={`neu-border flex items-center gap-3 p-4 font-mono text-sm font-bold uppercase transition-all ${
+                  activeTab === "milestones"
+                    ? "bg-black text-white hover:-translate-y-1"
+                    : "bg-white text-black hover:bg-gray-50"
+                }`}
+              >
+                <Calendar size={18} /> Legacy Timeline
               </button>
               <button
                 onClick={() => setActiveTab("trash")}
