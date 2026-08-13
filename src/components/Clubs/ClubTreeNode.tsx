@@ -1,7 +1,5 @@
 import { Handle, Position } from "@xyflow/react";
-import ChevronDown from "lucide-react/dist/esm/icons/chevron-down";
-import ChevronUp from "lucide-react/dist/esm/icons/chevron-up";
-import User from "lucide-react/dist/esm/icons/user";
+import { ChevronDown, ChevronUp, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface ClubTreeNodeData {
