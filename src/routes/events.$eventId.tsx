@@ -1215,6 +1215,8 @@ const eventUrl =
     ? window.location.href
     : `${import.meta.env.VITE_SITE_URL ?? ""}/events/${event.short_id ?? event.id}`;
 
+<<<<<<< HEAD
+=======
 const ogTags = buildOpenGraphTags({
   title: event.title,
   description: event.description,
@@ -1224,6 +1226,7 @@ const ogTags = buildOpenGraphTags({
   url: eventUrl,
   eventId: event.id,
 });
+>>>>>>> origin/main
   // We calculate waitlist info earlier in useMemo now
   const rawWaitlist = (event as Record<string, unknown>).event_waitlist;
 

@@ -12,7 +12,7 @@ import {
   getEventRsvpState,
   type EventRsvpState,
 } from "../../lib/waitlist";
- feature/carpool-matching-2877
+
 import { useIdempotentPayment } from "../../hooks/useIdempotentPayment";
 import { Checkbox } from "../ui/checkbox";
 import {
@@ -24,10 +24,7 @@ import {
   DialogDescription,
 } from "../ui/dialog";
 import { Label } from "../ui/label";
-
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../ui/dialog";
 import { ResumeDropzone } from "../resume/ResumeDropzone";
- main
 
 interface EventRsvpButtonProps {
   eventId: string;
@@ -65,6 +62,15 @@ export function EventRsvpButton({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isResumeModalOpen, setIsResumeModalOpen] = useState(false);
+
+  // Mocking a ticket price since database schema lacks it currently
+  const ticketPrice = 14.5;
+  const isPaidEvent = true;
+
+  const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
+  const [roundUp, setRoundUp] = useState(false);
+
+  const { processPayment, isProcessing } = useIdempotentPayment();
 
   // Mocking a ticket price since database schema lacks it currently
   const ticketPrice = 14.5;
@@ -288,9 +294,9 @@ export function EventRsvpButton({
 
   // ── Not RSVPed, spots available → RSVP NOW ──────────────────────
   return (
- feature/carpool-matching-2877
     <>
       <div className="flex flex-col gap-2">
+        {renderResumeModal()}
         {isPaidEvent ? (
           <Button
             onClick={() => setIsCheckoutModalOpen(true)}
@@ -302,7 +308,7 @@ export function EventRsvpButton({
             Buy Ticket
           </Button>
         ) : (
-          <Button onClick={handleJoin} disabled={loading} size="lg" className="gap-2">
+          <Button onClick={handleJoinClick} disabled={loading} size="lg" className="gap-2">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Users className="h-4 w-4" />}
             RSVP NOW
           </Button>
@@ -356,20 +362,5 @@ export function EventRsvpButton({
         </DialogContent>
       </Dialog>
     </>
-
-    <div className="flex flex-col gap-2">
-      {renderResumeModal()}
-      <Button onClick={handleJoinClick} disabled={loading} size="lg" className="gap-2">
-        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Users className="h-4 w-4" />}
-        RSVP NOW
-      </Button>
-      {state.max_attendees && (
-        <p className="text-xs text-slate-500 dark:text-slate-400">
-          {state.attending_count} / {state.max_attendees} spots filled
-        </p>
-      )}
-      {error && <p className="text-sm text-red-600">{error}</p>}
-    </div>
- main
   );
 }
