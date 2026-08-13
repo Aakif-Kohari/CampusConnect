@@ -63,12 +63,15 @@ export function EventRsvpButton({
   const [error, setError] = useState<string | null>(null);
   const [isResumeModalOpen, setIsResumeModalOpen] = useState(false);
 
+
+
   // Mocking a ticket price since database schema lacks it currently
   const ticketPrice = 14.5;
   const isPaidEvent = true;
 
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
   const [roundUp, setRoundUp] = useState(false);
+  const [isAnonymous, setIsAnonymous] = useState(false);
 
   const { processPayment, isProcessing } = useIdempotentPayment();
 
@@ -116,8 +119,7 @@ export function EventRsvpButton({
     setError(null);
     setIsResumeModalOpen(false);
 
-    const result = await joinEventOrWaitlist(eventId, userId, resumePath);
-
+    const result = await joinEventOrWaitlist(eventId, userId, isAnonymous, resumePath);
     setLoading(false);
     if (!result.success) {
       setError(result.error);
@@ -294,6 +296,12 @@ export function EventRsvpButton({
 
   // ── Not RSVPed, spots available → RSVP NOW ──────────────────────
   return (
+ feature/ghost-mode-2878
+    <>
+      <div className="flex flex-col gap-2">
+        {renderResumeModal()}
+
+ main
     <>
       <div className="flex flex-col gap-2">
         {renderResumeModal()}
@@ -313,6 +321,23 @@ export function EventRsvpButton({
             RSVP NOW
           </Button>
         )}
+
+        <div className="flex items-start space-x-2 my-2 p-3 border rounded-md bg-slate-50 dark:bg-slate-900">
+          <Checkbox
+            id="anonymous-rsvp"
+            checked={isAnonymous}
+            onCheckedChange={(checked) => setIsAnonymous(checked as boolean)}
+          />
+          <div className="grid gap-1.5 leading-none mt-0.5">
+            <Label htmlFor="anonymous-rsvp" className="font-semibold cursor-pointer">
+              Hide my name from the public guest list
+            </Label>
+            <p className="text-xs text-slate-500">
+              Your RSVP will count toward capacity, but your identity will be masked publicly.
+            </p>
+          </div>
+        </div>
+        
         {state.max_attendees && (
           <p className="text-xs text-slate-500 dark:text-slate-400">
             {state.attending_count} / {state.max_attendees} spots filled
@@ -362,5 +387,9 @@ export function EventRsvpButton({
         </DialogContent>
       </Dialog>
     </>
+ feature/ghost-mode-2878
+
+
+ main
   );
 }

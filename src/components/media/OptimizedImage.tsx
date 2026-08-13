@@ -36,18 +36,26 @@ export function OptimizedImage({
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
+ feature/ghost-mode-2878
+feature/ghost-mode-2878
+ feature/ghost-mode-2878
+  const isPublic = useMemo(() => isSafeImageSrc(src), [src]);
+
 feature/micro-donations-2876
  feature/micro-donations-2876
 fix/webauthn-config-2866
 
  HEAD
+ main
 
 
 feat/waitlist-priority
  main
 
  main
+ main
   const isPublic = useMemo(() => isSupabasePublicImage(src), [src]);
+ main
 
   const lqipSrc = useMemo(
     () =>
@@ -158,11 +166,19 @@ feature/micro-donations-2876
       </div>
     );
   }
+ feature/ghost-mode-2878
+ feature/ghost-mode-2878
+
+ main
+ origin/main
+ main
+
  feature/micro-donations-2876
 
  main
  origin/main
 main
+ main
   return (
     <div className={wrapperClass} style={{ ...imageProps.style, width, height }}>
       {lqipSrc && (
