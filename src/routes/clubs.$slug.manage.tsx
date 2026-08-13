@@ -30,8 +30,8 @@ import { ClubSocialLinksEditor } from "@/components/Clubs/ClubSocialLinksEditor"
 import { ClubColorPicker } from "@/components/Clubs/ClubColorPicker";
 import { isValidHexColor } from "@/lib/clubTheming";
 import { sanitizeHtml } from "@/lib/sanitizeHtml";
-import ClubAnalyticsDashboard from "@/components/clubs/ClubAnalyticsDashboard";
-import PermissionsGrid from "@/components/Clubs/PermissionsGrid";
+import { ClubAnalyticsDashboard } from "@/components/clubs/ClubAnalyticsDashboard";
+import { PermissionsGrid } from "@/components/Clubs/PermissionsGrid";
 import ClubRenewalWizard from "@/components/ClubRenewalWizard";
 import { ClubFinancesTab } from "@/components/Clubs/ClubFinancesTab";
 import DollarSign from "lucide-react/dist/esm/icons/dollar-sign";
@@ -68,11 +68,12 @@ export default function ClubManageRoute() {
   const supabase = createClient();
   const [user, setUser] = useState<User | null>(null);
 
-const [activeTab, setActiveTab] = useState<
+  const [activeTab, setActiveTab] = useState<
     | "settings"
     | "members"
     | "permissions"
     | "events"
+    | "logistics"
     | "constitution"
     | "trash"
     | "analytics"
@@ -919,12 +920,16 @@ const [activeTab, setActiveTab] = useState<
                     <EventLogisticsChecklist
                       eventId={selectedLogisticsEventId || club.events[0]?.id || ""}
                       clubId={club.id}
-                      eventData={club.events.find((e: { id: string }) => e.id === (selectedLogisticsEventId || club.events[0]?.id))}
+                      eventData={club.events.find(
+                        (e: { id: string }) =>
+                          e.id === (selectedLogisticsEventId || club.events[0]?.id),
+                      )}
                     />
                   </>
                 ) : (
                   <div className="neu-border p-8 bg-white text-center font-mono text-xs text-gray-500">
-                    No active events found for this club. Create an event to start managing logistics tasks.
+                    No active events found for this club. Create an event to start managing
+                    logistics tasks.
                   </div>
                 )}
               </div>
@@ -988,13 +993,9 @@ const [activeTab, setActiveTab] = useState<
                 <DiffViewer oldText={oldConstitution} newText={newConstitution} />
               </div>
             )}
-            {activeTab === "analytics" && (
-              <ClubAnalyticsDashboard clubId={club.id} />
-            )}
+            {activeTab === "analytics" && <ClubAnalyticsDashboard clubId={club.id} />}
 
-            {activeTab === "finances" && (
-              <ClubFinancesTab clubId={club.id} />
-            )}
+            {activeTab === "finances" && <ClubFinancesTab clubId={club.id} />}
           </main>
         </div>
       </div>

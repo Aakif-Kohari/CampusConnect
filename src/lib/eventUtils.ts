@@ -99,7 +99,7 @@ export const eventFormSchema = z
       message: "Custom venues require an accessibility audit.",
       path: ["accessibility_features"],
     },
-  );
+  )
   .refine((data) => !data.geofencingEnabled || (data.latitude != null && data.longitude != null), {
     message: "Drop a pin on the map to set the check-in geofence location.",
     path: ["latitude"],
