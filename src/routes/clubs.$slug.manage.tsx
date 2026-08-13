@@ -17,9 +17,11 @@ import {
   RefreshCw,
   BarChart3,
   AlertTriangle,
-  ClipboardList,
+  Mail,
 } from "lucide-react";
-import { EventLogisticsChecklist } from "@/components/events/EventLogisticsChecklist";
+import { NewsletterAnalyticsPanel } from "@/components/Clubs/NewsletterAnalyticsPanel";
+import { NewsletterEditor } from "@/components/Editor/NewsletterEditor";
+import type { Newsletter } from "@/types/newsletter";
 import { HoldToConfirmButton } from "@/components/ui/HoldToConfirmButton";
 import { PromoVideoUploader } from "@/components/PromoVideoUploader";
 import { ClubManageSkeleton } from "@/components/DashboardWidgetSkeleton";
@@ -68,17 +70,13 @@ export default function ClubManageRoute() {
   const supabase = createClient();
   const [user, setUser] = useState<User | null>(null);
 
-const [activeTab, setActiveTab] = useState<
-    | "settings"
-    | "members"
-    | "permissions"
-    | "events"
-    | "constitution"
-    | "trash"
-    | "analytics"
-    | "milestones"
+  const [activeTab, setActiveTab] = useState<
+    "settings" | "members" | "permissions" | "events" | "newsletters" | "constitution" | "trash" | "analytics"
   >("settings");
   const [selectedLogisticsEventId, setSelectedLogisticsEventId] = useState<string>("");
+
+  const [isEditingNewsletter, setIsEditingNewsletter] = useState(false);
+  const [selectedNewsletter, setSelectedNewsletter] = useState<Newsletter | null>(null);
 
   // Mock constitution versions for demo
   const oldConstitution =
@@ -522,14 +520,17 @@ const [activeTab, setActiveTab] = useState<
                 <Calendar size={18} /> Events
               </button>
               <button
-                onClick={() => setActiveTab("logistics")}
+                onClick={() => {
+                  setActiveTab("newsletters");
+                  setIsEditingNewsletter(false);
+                }}
                 className={`neu-border flex items-center gap-3 p-4 font-mono text-sm font-bold uppercase transition-all ${
-                  activeTab === "logistics"
+                  activeTab === "newsletters"
                     ? "bg-black text-white hover:-translate-y-1"
                     : "bg-white text-black hover:bg-gray-50"
                 }`}
               >
-                <ClipboardList size={18} /> Logistics
+                <Mail size={18} /> Newsletters
               </button>
               <button
                 onClick={() => setActiveTab("constitution")}
@@ -897,35 +898,27 @@ const [activeTab, setActiveTab] = useState<
               </div>
             )}
 
-            {activeTab === "logistics" && (
-              <div className="space-y-6">
-                {club.events && club.events.length > 0 ? (
-                  <>
-                    <div className="flex items-center gap-3 neu-border p-4 bg-white dark:bg-zinc-900 font-mono text-xs">
-                      <span className="font-bold uppercase">Select Event:</span>
-                      <select
-                        value={selectedLogisticsEventId || club.events[0]?.id || ""}
-                        onChange={(e) => setSelectedLogisticsEventId(e.target.value)}
-                        className="p-2 neu-border bg-white dark:bg-zinc-800 text-black dark:text-white font-bold"
-                      >
-                        {club.events.map((e: { id: string; title: string }) => (
-                          <option key={e.id} value={e.id}>
-                            {e.title}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <EventLogisticsChecklist
-                      eventId={selectedLogisticsEventId || club.events[0]?.id || ""}
-                      clubId={club.id}
-                      eventData={club.events.find((e: { id: string }) => e.id === (selectedLogisticsEventId || club.events[0]?.id))}
-                    />
-                  </>
+            {activeTab === "newsletters" && (
+              <div>
+                {isEditingNewsletter ? (
+                  <NewsletterEditor
+                    clubId={club.id}
+                    existingNewsletter={selectedNewsletter}
+                    onSaved={() => setIsEditingNewsletter(false)}
+                    onCancel={() => setIsEditingNewsletter(false)}
+                  />
                 ) : (
-                  <div className="neu-border p-8 bg-white text-center font-mono text-xs text-gray-500">
-                    No active events found for this club. Create an event to start managing logistics tasks.
-                  </div>
+                  <NewsletterAnalyticsPanel
+                    clubId={club.id}
+                    onCreateNew={() => {
+                      setSelectedNewsletter(null);
+                      setIsEditingNewsletter(true);
+                    }}
+                    onEditNewsletter={(nl) => {
+                      setSelectedNewsletter(nl);
+                      setIsEditingNewsletter(true);
+                    }}
+                  />
                 )}
               </div>
             )}
