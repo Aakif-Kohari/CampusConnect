@@ -398,6 +398,7 @@ export default function App() {
 
                 <BreadcrumbProvider>
                   <MotionConfig reducedMotion="user">
+                    <PushDeepLinkListener router={router} />
                     <RouterProvider router={router} />
                   </MotionConfig>
                 </BreadcrumbProvider>
