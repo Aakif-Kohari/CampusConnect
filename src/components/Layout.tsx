@@ -18,6 +18,8 @@ import { CommandPalette } from "@/components/ui/command-palette";
 import { showAnnouncementToast } from "@/lib/announcements/sse";
 import { SkipToContent } from "@/components/SkipToContent";
 import ImpersonationBanner from "@/components/ImpersonationBanner";
+import { GlobalAudioPlayer } from "@/components/audio/GlobalAudioPlayer";
+
 // Persistent banner shown while the browser has no network connection.
 function OfflineBanner() {
   const [isOffline, setIsOffline] = useState(
@@ -175,6 +177,11 @@ export default function Layout() {
           <OfflineBanner />
           <TopProgressBar />
           <SessionExpiryModal />
+ feature/3014-referral-leaderboard
+          <ImpersonationBanner />
+          <GlobalAudioPlayer />
+
+ main
 
           <ShortcutsModal open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
           <PWAInstallPrompt />
@@ -183,14 +190,21 @@ export default function Layout() {
             <Outlet />
           </main>
 
+ feature/3014-referral-leaderboard
+          <Toaster richColors />
+
           <Toaster />
+ main
           <ScrollToTop />
           <RadialFAB />
           {userId && <FloatingChat />}
           <CommandPalette />
         </WebRTCProvider>
       </TooltipProvider>
+ feature/3014-referral-leaderboard
+
       <ImpersonationBanner />
+ main
     </>
   );
 }

@@ -96,6 +96,7 @@ const ClubSeriesAnalyticsRoute = lazy(() => import("./routes/clubs.$slug.series-
 const ClubNotesRoute = lazy(() => import("./routes/clubs.$slug.notes"));
 const ClubArticlesRoute = lazy(() => import("./routes/clubs.$slug.articles"));
 const ClubArticleDetailsRoute = lazy(() => import("./routes/clubs.$slug.articles.$articleId"));
+const ClubVaultRoute = lazy(() => import("./routes/clubs.$slug.vault"));
 const ClubsLayout = lazy(() => import("./routes/clubs"));
 const ClubDiscoveryQuiz = lazy(() => import("./routes/clubs.fit"));
 const Dashboard = lazy(() => import("./routes/dashboard"));
@@ -138,6 +139,10 @@ const LazyEventDetails = lazy(() => import("./pages/Events/EventDetail"));
 const EmptyState = lazy(() => import("./pages/Events/EmptyState"));
 const TourManager = lazy(() => import("./routes/tours.manage"));
 const TourMode = lazy(() => import("./routes/tours.$tourId"));
+const BundleCheckoutRoute = lazy(() => import("./pages/BundleCheckoutPage"));
+const BundleDetailsRoute = lazy(() => import("./pages/BundleDetailsPage"));
+const ReferralDashboardRoute = lazy(() => import("./pages/ReferralDashboard"));
+const ReferralLeaderboardRoute = lazy(() => import("./pages/ReferralLeaderboard"));
 // ---------------------------------------------------------------------------
 // Animated Outlet Wrapper for Framer Motion transitions with Skeleton Fallback
 // ---------------------------------------------------------------------------
@@ -186,8 +191,13 @@ const router = createBrowserRouter(
             <Route path=":slug/notes" element={<ClubNotesRoute />} />
             <Route path=":slug/articles" element={<ClubArticlesRoute />} />
             <Route path=":slug/articles/:articleId" element={<ClubArticleDetailsRoute />} />
+            <Route path=":slug/vault" element={<ClubVaultRoute />} />
           </Route>
           <Route path="/print/charter/:slug" element={<PrintableCharter />} />
+          <Route path="/bundles/:bundleId" element={<BundleDetailsRoute />} />
+          <Route path="/bundles/:bundleId/checkout" element={<BundleCheckoutRoute />} />
+          <Route path="/referrals/dashboard" element={<ReferralDashboardRoute />} />
+          <Route path="/referrals/leaderboard" element={<ReferralLeaderboardRoute />} />
           <Route path="/dashboard" element={<Dashboard />}>
             <Route index element={<DashboardOverview />} />
             <Route path="rsvps" element={<DashboardRsvps />} />

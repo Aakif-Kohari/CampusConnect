@@ -7,10 +7,9 @@ import {
 } from "@/lib/utils";
 import { Link } from "react-router-dom";
 import { useState } from "react";
-import Calendar from "lucide-react/dist/esm/icons/calendar";
-import Share2 from "lucide-react/dist/esm/icons/share-2";
-import LinkIcon from "lucide-react/dist/esm/icons/link";
-import Bookmark from "lucide-react/dist/esm/icons/bookmark";
+import { MapPin, Calendar, Clock, Link as LinkIcon, Share2, Bookmark, Play } from "lucide-react";
+import { useAudioStore } from "@/store/audioStore";
+import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { TicketDialog } from "@/components/ui/ticket-modal";
 import { Button } from "@/components/ui/button";
@@ -183,6 +182,30 @@ export function EventCard({
   const [ticketOpen, setTicketOpen] = useState(false);
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
 
+  const { playTrack } = useAudioStore();
+  const supabase = createClient();
+
+  const handlePlayRecording = async () => {
+    if (!event.audio_recording_url) return;
+    try {
+      const { data, error } = await supabase.storage
+        .from("event_audio")
+        .createSignedUrl(event.audio_recording_url, 7200);
+
+      if (error) throw error;
+
+      playTrack({
+        url: data.signedUrl,
+        eventId: event.id,
+        title: event.title,
+        clubName: club?.name,
+        clubLogo: club?.logo_url,
+      });
+    } catch (err: any) {
+      toast.error("Could not play recording.");
+    }
+  };
+
   const handleCopyLink = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
@@ -283,7 +306,10 @@ export function EventCard({
               </span>
             )}
           </div>
+ feature/3014-referral-leaderboard
 
+
+ main
           <div className="flex gap-2 relative z-10">
             <TooltipProvider>
               <Tooltip>
@@ -419,6 +445,16 @@ export function EventCard({
               className="neu-border neu-press bg-white hover:bg-cream h-9 px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider transition-all duration-300 hover:scale-105 active:scale-95 text-black"
             >
               View Ticket
+            </Button>
+          )}
+          {event.audio_recording_url && (
+            <Button
+              type="button"
+              onClick={handlePlayRecording}
+              className="neu-border neu-press bg-blue-600 hover:bg-blue-700 h-9 px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider transition-all duration-300 hover:scale-105 active:scale-95 text-white flex items-center gap-2"
+            >
+              <Play className="w-4 h-4 fill-current" />
+              Listen Recording
             </Button>
           )}
         </div>
