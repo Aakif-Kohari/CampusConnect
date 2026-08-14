@@ -130,6 +130,7 @@ const Leaderboard = lazy(() =>
 const Recap = lazy(() => import("./routes/recap"));
 const NetworkPage = lazy(() => import("./routes/network"));
 const MfaChallenge = lazy(() => import("./routes/mfa-challenge"));
+const VolunteerRecord = lazy(() => import("./routes/volunteer-record"));
 
 const EventsLayout = lazy(() => import("./pages/Events/EventsLayout"));
 const LazyEventsIndex = lazy(() => import("./pages/Events/EventsList"));
@@ -243,7 +244,11 @@ const router = createBrowserRouter(
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/recap" element={<Recap />} />
+ feature/2974-volunteer-hours-ledger
+          <Route path="/volunteer-record" element={<VolunteerRecord />} />
+
           <Route path="/network" element={<NetworkPage />} />
+ main
           <Route path="/admin/clubs/pending" element={<PendingClubsAdmin />} />
           <Route path="/admin/analytics" element={<AnalyticsAdmin />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
