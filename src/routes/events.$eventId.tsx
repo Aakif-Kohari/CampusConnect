@@ -320,6 +320,16 @@ function downloadCsv(csvContent: string, filename: string) {
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 }
+interface EventSignature {
+  id: string;
+  event_id: string;
+  signer_role: string;
+  signer_name: string;
+  signer_email: string;
+  signature_token: string;
+  signed_at: string | null;
+  ip_address: string | null;
+}
 
 export default function EventDetailsPage() {
   const { eventId = "" } = useParams();
@@ -609,16 +619,7 @@ clubs (name, slug, logo_url, primary_color, secondary_color),          event_met
       return data || [];
     },
     enabled: !!event?.venue_id,
-  interface EventSignature {
-    id: string;
-    event_id: string;
-    signer_role: string;
-    signer_name: string;
-    signer_email: string;
-    signature_token: string;
-    signed_at: string | null;
-    ip_address: string | null;
-  }
+  });
 
   const { data: signatures = [], refetch: refetchSignatures } = useQuery({
     queryKey: ["event_signatures", eventId],
