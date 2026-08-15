@@ -54,6 +54,8 @@ import { ClubOrgChart } from "@/components/Clubs/ClubOrgChart";
 import { CrowdfundingCampaignSection } from "@/components/Clubs/Crowdfunding/CrowdfundingCampaignSection";
 import { FlipCard } from "@/components/ui/FlipCard";
 import { useSearchParams } from "react-router-dom";
+import { ClubStatusBadge } from "@/components/clubs/ClubStatusBadge";
+import { ClubHibernationBanner } from "@/components/clubs/ClubHibernationBanner";
 
 interface ClubMemberProfile {
   full_name: string;
@@ -697,7 +699,12 @@ export default function ClubProfile() {
                 <ClubHeader
                   clubName={club.name}
                   logoInitials={getInitials(club.name)}
-                  eyebrow={<p className="eyebrow font-bold text-blue-900">Club</p>}
+                  eyebrow={
+                    <div className="flex items-center gap-2">
+                      <p className="eyebrow font-bold text-blue-900">Club</p>
+                      <ClubStatusBadge status={club.status} />
+                    </div>
+                  }
                   banner={
                     <AudioReactiveBackground
                       className="h-64 md:h-80 border-2 border-black rounded-lg shadow-xl"
@@ -743,6 +750,14 @@ export default function ClubProfile() {
                 />
 
                 <div className="mx-auto max-w-6xl px-4 py-4">
+                  {(club.status === "hibernating" || club.status === "archived") && (
+                    <ClubHibernationBanner
+                      clubId={club.id}
+                      clubName={club.name}
+                      isArchived={club.status === "archived"}
+                    />
+                  )}
+
                   <a
                     href={`/api/clubs/${club.slug}/charter.pdf`}
                     target="_blank"
