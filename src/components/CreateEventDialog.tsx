@@ -37,6 +37,11 @@ import {
 } from "@/lib/eventUtils";
 import { EventLogisticsService } from "@/services/eventLogisticsService";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import {
+  calendarEventTypeLabel,
+  findCampusCalendarConflicts,
+  type CampusCalendarEvent,
+} from "@/lib/campusCalendar";
 import { queueOfflineEvent } from "@/lib/offlineSync";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -476,6 +481,28 @@ export function CreateEventDialog({
 
   const startDateStr = form.watch("startDate");
   const endDateStr = form.watch("endDate");
+
+  const { data: campusCalendarEvents = [] } = useQuery({
+    queryKey: ["campusCalendarEvents", startDateStr, endDateStr],
+    queryFn: async (): Promise<CampusCalendarEvent[]> => {
+      const { data, error } = await supabase
+        .from("campus_calendar_events")
+        .select("id, title, start_date, end_date, type")
+        .lte("start_date", endDateStr)
+        .gte("end_date", startDateStr)
+        .order("start_date", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as CampusCalendarEvent[];
+    },
+    enabled: open && step === 1 && Boolean(startDateStr && endDateStr),
+    staleTime: 1000 * 60 * 15,
+  });
+
+  const campusCalendarConflicts = findCampusCalendarConflicts(
+    campusCalendarEvents,
+    startDateStr,
+    endDateStr,
+  );
 
   const parsedStart = startDateStr ? new Date(startDateStr) : undefined;
   const parsedEnd = endDateStr ? new Date(endDateStr) : undefined;
@@ -1111,6 +1138,27 @@ export function CreateEventDialog({
                     <p className="text-sm font-medium text-destructive">
                       {form.formState.errors.endDate.message}
                     </p>
+                  )}
+                  {campusCalendarConflicts.length > 0 && (
+                    <div
+                      role="status"
+                      className="neu-border flex gap-3 bg-amber-200 p-3 text-sm text-black"
+                    >
+                      <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+                      <div className="space-y-1">
+                        <p className="font-bold">Academic calendar conflict</p>
+                        {campusCalendarConflicts.map((conflict) => (
+                          <p key={conflict.id}>
+                            Warning: This date falls during <strong>{conflict.title}</strong>.
+                            Expected attendance may be impacted. (
+                            {calendarEventTypeLabel(conflict.type)})
+                          </p>
+                        ))}
+                        <p className="text-xs font-semibold">
+                          You can still create this event; this warning is advisory only.
+                        </p>
+                      </div>
+                    </div>
                   )}
                 </div>
 
