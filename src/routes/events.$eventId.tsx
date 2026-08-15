@@ -22,6 +22,8 @@ import { InteractiveSeatingChart } from "@/components/events/InteractiveSeatingC
 import { formatEventDateRange, getGoogleCalendarUrl } from "@/lib/utils";
 import { useBannerColor } from "@/hooks/useBannerColor";
 import { MapSkeleton } from "@/components/ui/MapSkeleton";
+import { useGeofencedCheckIn } from "@/hooks/useGeofencedCheckIn";
+import { calculateHaversineDistance } from "@/lib/scavengerHunt";
 import { Helmet } from "react-helmet-async";
 import { buildOpenGraphTags } from "@/lib/seo/eventMeta";
 const EventMap = lazy(() => import("@/components/EventMap").then((m) => ({ default: m.EventMap })));
@@ -347,6 +349,9 @@ export default function EventDetailsPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [rsvpDialogOpen, setRsvpDialogOpen] = useState(false);
   const [needAccommodations, setNeedAccommodations] = useState(false);
+  const [showLocationPrompt, setShowLocationPrompt] = useState(false);
+  const hasAttemptedAutoCheckInRef = useRef(false);
+  const { checkIn: performAutoCheckIn } = useGeofencedCheckIn();
   const [accommodationsText, setAccommodationsText] = useState("");
   const [validationError, setValidationError] = useState("");
   const [captchaToken, setCaptchaToken] = useState<string | undefined>(undefined);
@@ -534,14 +539,16 @@ export default function EventDetailsPage() {
         .select(
           `
           id, title, description, event_date, start_date, end_date, location, banner_url, created_by, venue_id, accessibility_features,
-clubs (name, slug, logo_url, primary_color, secondary_color),          event_rsvps (id, user_id),
-          attendee_count,
-          venues (
-            name, building, capacity, accessibility_features
-          )
-          id, title, description, event_date, start_date, end_date, location, banner_url, created_by, is_high_risk, status, short_id, max_attendees, requires_approval, category_id, tags, version, version_vector, blurhash, latitude, longitude, geofencing_enabled, geofence_radius_meters, accommodation_deadline,
+          is_high_risk, status, short_id, max_attendees, requires_approval, category_id, tags, version, version_vector, blurhash,
+          latitude, longitude, geofencing_enabled, geofence_radius_meters, accommodation_deadline,
           profiles (full_name, email),
-clubs (name, slug, logo_url, primary_color, secondary_color),          event_metrics (views)
+          clubs (name, slug, logo_url, primary_color, secondary_color),
+          event_rsvps (id, user_id, checked_in, status),
+          attendee_count,
+          event_metrics (views),
+          venues (
+            name, building, capacity, accessibility_features, latitude, longitude, geofence_radius_meters
+          )
         `,
         )
         .or(`short_id.eq.${eventId},id.eq.${eventId}`)
@@ -1331,6 +1338,65 @@ clubs (name, slug, logo_url, primary_color, secondary_color),          event_met
   const coordsCheck = event.location
     ? parseCoordinates(event.location)
     : { isCoordinates: false, isValid: true };
+
+  const isWithinCheckInWindow = useMemo(() => {
+    if (!event?.start_date) return false;
+    const now = new Date().getTime();
+    const startTime = new Date(event.start_date).getTime();
+    return now >= startTime - 60 * 60 * 1000 && !hasEnded;
+  }, [event?.start_date, hasEnded]);
+
+  const triggerAutoCheckIn = useCallback(() => {
+    if (typeof window === "undefined" || !navigator.geolocation) {
+      toast.error("Geolocation is not supported by your browser.");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        const venueObj = Array.isArray(event.venues) ? event.venues[0] : event.venues;
+        const targetLat = venueObj?.latitude ?? event.latitude;
+        const targetLng = venueObj?.longitude ?? event.longitude;
+        const targetRadius = venueObj?.geofence_radius_meters ?? event.geofence_radius_meters ?? 100;
+
+        if (targetLat != null && targetLng != null) {
+          const distance = calculateHaversineDistance(latitude, longitude, targetLat, targetLng);
+          if (distance <= targetRadius) {
+            try {
+              const res = await performAutoCheckIn(myRsvpId!);
+              if (res.status === "success" || res.status === "already_checked_in") {
+                toast.success("Welcome! You have been automatically checked in.");
+                refetch();
+              }
+            } catch (err) {
+              console.error("Auto check-in verification failed:", err);
+            }
+          } else {
+            toast.error(`You are too far from the venue to check in (${Math.round(distance)}m away).`);
+          }
+        }
+      },
+      (error) => {
+        toast.error("Location access failed. Please check your browser location permissions.");
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  }, [event, myRsvpId, performAutoCheckIn, refetch]);
+
+  useEffect(() => {
+    if (
+      event?.geofencing_enabled &&
+      hasRsvpd &&
+      myRsvpId &&
+      !isCheckedIn &&
+      isWithinCheckInWindow &&
+      !hasAttemptedAutoCheckInRef.current
+    ) {
+      hasAttemptedAutoCheckInRef.current = true;
+      setShowLocationPrompt(true);
+    }
+  }, [event?.geofencing_enabled, hasRsvpd, myRsvpId, isCheckedIn, isWithinCheckInWindow]);
 
   const captchaSiteKey =
     import.meta.env.VITE_TURNSTILE_SITE_KEY || import.meta.env.VITE_HCAPTCHA_SITE_KEY;
@@ -3180,6 +3246,46 @@ clubs (name, slug, logo_url, primary_color, secondary_color),          event_met
             />
           </div>
         )}
+        {/* Auto Check-In Location Privacy Prompt Dialog */}
+        <Dialog open={showLocationPrompt} onOpenChange={setShowLocationPrompt}>
+          <DialogContent className="max-w-md border-4 border-black bg-white p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-none font-mono">
+            <DialogHeader className="border-b-2 border-black pb-4">
+              <DialogTitle className="text-xl font-black uppercase text-black">
+                Automatic Check-In
+              </DialogTitle>
+              <DialogDescription className="text-xs text-black/60 font-mono">
+                Verify your attendance at {event.title} using location access.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4 text-sm text-black">
+              <p className="leading-relaxed">
+                📍 <strong>Location Check:</strong> CampusConnect can automatically check you in to this event. We need to verify that you are physically present at the venue.
+              </p>
+              <p className="text-xs text-black/60">
+                🔒 <strong>Privacy details:</strong> Your location coordinates are processed only in your browser to compute the distance from the venue. We never store, track, or share your GPS history.
+              </p>
+            </div>
+
+            <div className="border-t-2 border-black pt-4 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+              <Button
+                className="neu-press border-2 border-black bg-white px-4 py-2 font-mono text-xs font-bold uppercase rounded-none text-black hover:bg-neutral-100"
+                onClick={() => setShowLocationPrompt(false)}
+              >
+                No Thanks
+              </Button>
+              <Button
+                className="neu-press border-2 border-black bg-lime px-4 py-2 font-mono text-xs font-bold uppercase rounded-none text-black hover:bg-lime/90"
+                onClick={() => {
+                  setShowLocationPrompt(false);
+                  triggerAutoCheckIn();
+                }}
+              >
+                Enable & Check In
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </SiteShell>
     </>
   );
