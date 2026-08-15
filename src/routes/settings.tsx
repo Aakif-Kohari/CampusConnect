@@ -170,6 +170,33 @@ export default function SettingsPage() {
     enabled: !!user?.id,
   });
 
+  const [birthDate, setBirthDate] = useState("");
+  const [shareBirthday, setShareBirthday] = useState(false);
+
+  const {
+    data: privateDetails,
+    refetch: refetchPrivateDetails,
+  } = useQuery({
+    queryKey: ["user_private_details", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("user_private_details")
+        .select("*")
+        .eq("user_id", user?.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  useEffect(() => {
+    if (privateDetails) {
+      setBirthDate(privateDetails.birth_date || "");
+      setShareBirthday(privateDetails.share_birthday || false);
+    }
+  }, [privateDetails]);
+
   interface UserBadge {
     id: string;
     user_id: string;
@@ -1034,6 +1061,63 @@ export default function SettingsPage() {
 
           <Panel title="Auto-Tagging (Facial Recognition)">
             <AutoTaggingSettings user={user} />
+          </Panel>
+
+          <Panel title="Birthday Settings (Privacy Controls)">
+            <div className="space-y-4">
+              <p className="font-mono text-xs text-muted-foreground">
+                If you opt-in, we will notify your Club Executives 3 days before your birthday, and optionally post a celebratory shoutout to the club forum. Your birthday is kept strictly private otherwise.
+              </p>
+              
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <label className="eyebrow font-bold text-black">Birth Date</label>
+                  <input
+                    type="date"
+                    value={birthDate}
+                    onChange={(e) => setBirthDate(e.target.value)}
+                    className="w-full border-2 border-black bg-white px-2 py-2 font-mono text-sm outline-none focus:bg-lime/40"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between gap-4 pt-4 sm:pt-6">
+                  <div>
+                    <label className="eyebrow font-bold text-black">Opt-In to Share</label>
+                    <p className="font-mono text-xs text-muted-foreground">Share birthday with Club Executives</p>
+                  </div>
+                  <Switch
+                    checked={shareBirthday}
+                    onCheckedChange={setShareBirthday}
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      if (!user) return;
+                      const { error } = await supabase
+                        .from("user_private_details")
+                        .upsert({
+                          user_id: user.id,
+                          birth_date: birthDate ? birthDate : null,
+                          share_birthday: shareBirthday,
+                        });
+                      if (error) throw error;
+                      toast.success("Birthday privacy settings saved!");
+                      refetchPrivateDetails();
+                    } catch (err: any) {
+                      toast.error(err.message || "Failed to save birthday settings.");
+                    }
+                  }}
+                  className="neu-border neu-press bg-black px-4 py-2 font-mono text-xs font-bold uppercase text-cream hover:scale-105 active:scale-95 transition-all"
+                >
+                  Save Birthday Settings
+                </button>
+              </div>
+            </div>
           </Panel>
 
           <Panel title="Privacy / Account">

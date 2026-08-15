@@ -118,6 +118,7 @@ export default function ClubManageRoute() {
   const [promoVideoUrl, setPromoVideoUrl] = useState("");
   const [primaryColor, setPrimaryColor] = useState("");
   const [secondaryColor, setSecondaryColor] = useState("");
+  const [autoPostBirthdays, setAutoPostBirthdays] = useState(false);
   const [isConflictDialogOpen, setIsConflictDialogOpen] = useState(false);
   const [serverClub, setServerClub] = useState<ServerClub | null>(null);
 
@@ -139,7 +140,7 @@ export default function ClubManageRoute() {
         .from("clubs")
         .select(
           `
-          id, name, slug, status, description, banner_url, logo_url, visibility, github_repo_url, social_links, social_links_order, promo_video_url, version,
+          id, name, slug, status, description, banner_url, logo_url, visibility, github_repo_url, social_links, social_links_order, promo_video_url, version, auto_post_birthdays,
           club_members (id, role, status, user_id, joined_at, can_edit_events, can_manage_finance, can_remove_members, can_post_news, can_manage_permissions, profiles (full_name, avatar_url, handle)),
           events (id, title, event_date, max_attendees, event_rsvps(id))
         `,
@@ -217,6 +218,7 @@ export default function ClubManageRoute() {
       setPromoVideoUrl(club.promo_video_url || "");
       setPrimaryColor(club.primary_color || "");
       setSecondaryColor(club.secondary_color || "");
+      setAutoPostBirthdays(club.auto_post_birthdays || false);
     }
   }, [club]);
 
@@ -350,6 +352,7 @@ export default function ClubManageRoute() {
           visibility,
           github_repo_url: githubRepo,
           social_links: socialLinks,
+          auto_post_birthdays: autoPostBirthdays,
           version: targetVersion + 1,
         })
         .eq("id", club.id)
@@ -705,6 +708,20 @@ export default function ClubManageRoute() {
                         onChange={setSecondaryColor}
                       />
                     </div>
+                  </div>
+                  <div className="flex items-center justify-between border-t-2 border-black pt-4 pb-4">
+                    <div>
+                      <label className="font-mono text-sm font-bold uppercase mb-1 block">
+                        Auto-post Birthday shoutouts
+                      </label>
+                      <p className="text-xs font-mono text-gray-600">
+                        Automatically post celebratory wishes to the club forum when a member's birthday is in 3 days.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={autoPostBirthdays}
+                      onCheckedChange={setAutoPostBirthdays}
+                    />
                   </div>
                   <div>
                     <label className="font-mono text-sm font-bold uppercase mb-1 block">
