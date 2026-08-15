@@ -42,12 +42,14 @@ export async function joinEventOrWaitlist(
   userId: string,
   isAnonymous: boolean = false,
   resumePath?: string,
+  referredBy?: string | null,
 ): Promise<JoinResult> {
   const { data, error } = await supabase.rpc("join_event_or_waitlist", {
     p_event_id: eventId,
     p_user_id: userId,
     p_is_anonymous: isAnonymous,
     p_resume_path: resumePath ?? null,
+    p_referred_by: referredBy ?? null,
   });
 
   if (error) {

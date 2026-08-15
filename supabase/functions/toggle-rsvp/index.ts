@@ -13,6 +13,7 @@ const toggleRsvpSchema = z
     hasRsvpd: z.boolean().optional(),
     captchaToken: z.string().optional(),
     accommodationsRequested: z.string().max(1000).optional().nullable(),
+    referredBy: z.string().uuid().optional().nullable(),
   })
   .strict();
 
@@ -161,7 +162,7 @@ serve(async (req: Request) => {
 
     const parsed = await parseJsonBody(toggleRsvpSchema, req);
     if (!parsed.ok) return parsed.response;
-    const { eventId, hasRsvpd, captchaToken, accommodationsRequested } = parsed.data;
+    const { eventId, hasRsvpd, captchaToken, accommodationsRequested, referredBy } = parsed.data;
 
     const siteKey = Deno.env.get("TURNSTILE_SITE_KEY") || Deno.env.get("HCAPTCHA_SITE_KEY");
     const secretKey = Deno.env.get("TURNSTILE_SECRET_KEY") || Deno.env.get("HCAPTCHA_SECRET_KEY");
@@ -282,6 +283,9 @@ serve(async (req: Request) => {
         const { data, error } = await supabase.rpc("join_event_or_waitlist", {
           p_event_id: eventId,
           p_user_id: user.id,
+          p_is_anonymous: false,
+          p_resume_path: null,
+          p_referred_by: referredBy || null,
         });
 
         if (error) {

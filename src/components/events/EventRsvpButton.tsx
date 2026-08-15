@@ -62,9 +62,6 @@ export function EventRsvpButton({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isResumeModalOpen, setIsResumeModalOpen] = useState(false);
-
-
-
   // Mocking a ticket price since database schema lacks it currently
   const ticketPrice = 14.5;
   const isPaidEvent = true;
@@ -72,15 +69,6 @@ export function EventRsvpButton({
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
   const [roundUp, setRoundUp] = useState(false);
   const [isAnonymous, setIsAnonymous] = useState(false);
-
-  const { processPayment, isProcessing } = useIdempotentPayment();
-
-  // Mocking a ticket price since database schema lacks it currently
-  const ticketPrice = 14.5;
-  const isPaidEvent = true;
-
-  const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
-  const [roundUp, setRoundUp] = useState(false);
 
   const { processPayment, isProcessing } = useIdempotentPayment();
 
@@ -119,7 +107,8 @@ export function EventRsvpButton({
     setError(null);
     setIsResumeModalOpen(false);
 
-    const result = await joinEventOrWaitlist(eventId, userId, isAnonymous, resumePath);
+    const ref = new URLSearchParams(window.location.search).get("ref");
+    const result = await joinEventOrWaitlist(eventId, userId, isAnonymous, resumePath, ref);
     setLoading(false);
     if (!result.success) {
       setError(result.error);
@@ -296,12 +285,6 @@ export function EventRsvpButton({
 
   // ── Not RSVPed, spots available → RSVP NOW ──────────────────────
   return (
- feature/ghost-mode-2878
-    <>
-      <div className="flex flex-col gap-2">
-        {renderResumeModal()}
-
- main
     <>
       <div className="flex flex-col gap-2">
         {renderResumeModal()}
@@ -387,9 +370,5 @@ export function EventRsvpButton({
         </DialogContent>
       </Dialog>
     </>
- feature/ghost-mode-2878
-
-
- main
   );
 }

@@ -1,4 +1,4 @@
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation } from "@/hooks/useReactQueryReplacement";
 import { createClient, getSupabaseUrl } from "@/lib/supabase/client";
 import { useState, useEffect } from "react";
@@ -337,6 +337,8 @@ interface EventSignature {
 
 export default function EventDetailsPage() {
   const { eventId = "" } = useParams();
+  const [searchParams] = useSearchParams();
+  const ref = searchParams.get("ref");
   const supabase = createClient();
   const [user, setUser] = useState<User | null>(null);
   const emailVerified = useEmailVerification();
@@ -868,11 +870,13 @@ clubs (name, slug, logo_url, primary_color, secondary_color),          event_met
       hasRsvpd,
       captchaToken,
       accommodationsRequested,
+      referredBy,
     }: {
       eventId: string;
       hasRsvpd: boolean;
       captchaToken?: string;
       accommodationsRequested?: string | null;
+      referredBy?: string | null;
     }) => {
       if (!user) throw new Error("Please log in to RSVP");
       if (eventId.startsWith("mock-")) {
@@ -888,7 +892,7 @@ clubs (name, slug, logo_url, primary_color, secondary_color),          event_met
       let funcError = null;
       try {
         const { error } = await supabase.functions.invoke("toggle-rsvp", {
-          body: { eventId, hasRsvpd, captchaToken, accommodationsRequested },
+          body: { eventId, hasRsvpd, captchaToken, accommodationsRequested, referredBy },
           headers: {
             Authorization: `Bearer ${session?.access_token}`,
             "Idempotency-Key": idempotencyKey,
@@ -2456,16 +2460,44 @@ clubs (name, slug, logo_url, primary_color, secondary_color),          event_met
             </div>
 
             {/* Social Share */}
-            <div className="mt-10 border-t-2 border-black pt-6">
-              <h3 className="font-mono text-xs font-bold uppercase text-blue-900">
-                Share with Friends
-              </h3>
-              <div className="mt-4">
-                <ShareMenu
-                  url={shareUrl}
-                  title={event.title}
-                  text={`Check out this event: ${event.title}`}
-                />
+            <div className="mt-10 border-t-2 border-black pt-6 space-y-6">
+              <div>
+                <h3 className="font-mono text-xs font-bold uppercase text-blue-900">
+                  Share with Friends
+                </h3>
+                <div className="mt-4">
+                  <ShareMenu
+                    url={shareUrl}
+                    title={event.title}
+                    text={`Check out this event: ${event.title}`}
+                  />
+                </div>
+              </div>
+
+              <div className="border-t border-black/10 pt-4">
+                <h3 className="font-mono text-xs font-bold uppercase text-blue-900 mb-2">
+                  Referral Invite Link 🎁
+                </h3>
+                <p className="text-xs font-mono text-gray-500 mb-3">
+                  Invite friends to earn 50 Gamification Points for both of you when they RSVP!
+                </p>
+                {user ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const refUrl = `${window.location.origin}/events/${event.id}?ref=${user.id}`;
+                      navigator.clipboard.writeText(refUrl);
+                      toast.success("Referral invite link copied to clipboard!");
+                    }}
+                    className="neu-border neu-press w-full bg-[#a3e635] p-2.5 font-mono text-xs font-bold uppercase text-black"
+                  >
+                    Generate & Copy Invite Link
+                  </button>
+                ) : (
+                  <p className="text-xs font-mono text-gray-400 italic">
+                    Log in to generate your unique invite link and earn points.
+                  </p>
+                )}
               </div>
             </div>
 
@@ -3059,6 +3091,7 @@ clubs (name, slug, logo_url, primary_color, secondary_color),          event_met
                     hasRsvpd: false,
                     captchaToken,
                     accommodationsRequested: needAccommodations ? accommodationsText : null,
+                    referredBy: ref,
                   });
                 }}
                 disabled={toggleRsvp.isPending}
