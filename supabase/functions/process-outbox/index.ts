@@ -1,6 +1,7 @@
 import { z } from "https://esm.sh/zod@3.24.2";
 import { parseJsonBody } from "../_shared/validation.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import Stripe from "https://esm.sh/stripe@14.25.0?target=deno";
 
 const processOutboxPayloadSchema = z
   .object({
@@ -53,6 +54,135 @@ Deno.serve(async (req) => {
       console.log(
         `[Outbox Worker] [Guaranteed Delivery] Dispatching notifications for new post: ${record?.id}`,
       );
+    } else if (table === "sponsor_pitches" && action === "PITCH_APPROVED") {
+      const pitch = record;
+      if (pitch?.id) {
+        console.log(`[Outbox Worker] [Sponsorship Invoicing] Processing approved pitch: ${pitch.id}`);
+
+        // Fetch pitch details
+        const { data: pitchDetails, error: errPitch } = await supabase
+          .from("sponsor_pitches")
+          .select(`
+            id,
+            requested_amount,
+            approved_amount,
+            funding_requests (
+              id,
+              title,
+              club_id,
+              event_id,
+              clubs (
+                id,
+                name,
+                tax_id
+              ),
+              events (
+                id,
+                title
+              )
+            ),
+            sponsorship_campaigns (
+              id,
+              company_name,
+              sponsor_id
+            )
+          `)
+          .eq("id", pitch.id)
+          .single();
+
+        if (errPitch || !pitchDetails) {
+          console.error("Failed to retrieve pitch details:", errPitch);
+          throw new Error("Pitch details not found");
+        }
+
+        const amountCents = pitchDetails.approved_amount ?? pitchDetails.requested_amount;
+        const clubName = pitchDetails.funding_requests?.clubs?.name || "Campus Club";
+        const clubTaxId = pitchDetails.funding_requests?.clubs?.tax_id || "XX-XXXXXXX";
+        const companyName = pitchDetails.sponsorship_campaigns?.company_name || "Sponsor Corp";
+        const sponsorId = pitchDetails.sponsorship_campaigns?.sponsor_id;
+        const eventTitle = pitchDetails.funding_requests?.events?.title;
+        const lineItemDescription = eventTitle
+          ? `Event Sponsorship for event: ${eventTitle}`
+          : `Sponsorship for funding request: ${pitchDetails.funding_requests?.title || "Funding"}`;
+
+        // Get sponsor email
+        let sponsorEmail = "sponsor@campusconnect.app";
+        if (sponsorId) {
+          const { data: sponsorProfile } = await supabase
+            .from("profiles")
+            .select("email")
+            .eq("id", sponsorId)
+            .single();
+          if (sponsorProfile?.email) {
+            sponsorEmail = sponsorProfile.email;
+          }
+        }
+
+        // Initialize Stripe
+        const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY") ?? "";
+        let stripeCustomerId = "cus_mock_sponsorship";
+        let stripeInvoiceId = `in_mock_${crypto.randomUUID().replace(/-/g, "").substring(0, 24)}`;
+        let stripeInvoicePdf = "https://stripe.com/invoice/mock.pdf";
+
+        if (stripeSecretKey && !stripeSecretKey.startsWith("mock-")) {
+          const stripe = new Stripe(stripeSecretKey, { apiVersion: "2023-10-16" });
+
+          // Search or create Stripe Customer
+          const customers = await stripe.customers.list({ email: sponsorEmail, limit: 1 });
+          if (customers.data.length > 0) {
+            stripeCustomerId = customers.data[0].id;
+          } else {
+            const customer = await stripe.customers.create({
+              email: sponsorEmail,
+              name: companyName,
+            });
+            stripeCustomerId = customer.id;
+          }
+
+          // Create Invoice Item
+          await stripe.invoiceItems.create({
+            customer: stripeCustomerId,
+            amount: amountCents,
+            currency: "usd",
+            description: `${lineItemDescription} (Club Tax ID: ${clubTaxId})`,
+          });
+
+          // Create Invoice
+          const invoice = await stripe.invoices.create({
+            customer: stripeCustomerId,
+            auto_advance: true,
+            collection_method: "send_invoice",
+            days_until_due: 30,
+            description: `Sponsorship Invoice for ${clubName}`,
+          });
+
+          // Send Invoice
+          const sentInvoice = await stripe.invoices.sendInvoice(invoice.id);
+          stripeInvoiceId = sentInvoice.id;
+          stripeInvoicePdf = sentInvoice.invoice_pdf || "";
+        } else {
+          console.log(`[Stripe Mock] Simulating Invoice Creation: Customer: ${companyName} (${sponsorEmail}), Amount: ${amountCents} cents`);
+        }
+
+        // Insert into sponsor_invoices
+        const { error: errInsert } = await supabase
+          .from("sponsor_invoices")
+          .insert({
+            pitch_id: pitch.id,
+            stripe_invoice_id: stripeInvoiceId,
+            stripe_customer_id: stripeCustomerId,
+            stripe_invoice_pdf_url: stripeInvoicePdf,
+            amount_cents: amountCents,
+            status: "sent",
+          });
+
+        if (errInsert) {
+          console.error("Failed to insert sponsor_invoices record:", errInsert);
+          throw errInsert;
+        }
+
+        console.log(`[Outbox Worker] [Sponsorship Invoicing] Successfully enqueued and sent invoice ${stripeInvoiceId}`);
+      }
     } else if (table === "lost_item_matches" && action === "INSERT") {
       const match = record;
       if (match?.lost_item_id && match?.found_item_id) {
