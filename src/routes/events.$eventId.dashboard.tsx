@@ -1,7 +1,7 @@
 import { useState, useEffect, lazy, Suspense } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { SiteShell } from "@/components/site/SiteShell";
-import { useQuery } from "@/hooks/useReactQueryReplacement";
+import { useQuery, useMutation } from "@/hooks/useReactQueryReplacement";
 import { createClient } from "@/lib/supabase/client";
 import { duplicateEvent } from "@/lib/events/duplicateEvent";
 import ReactECharts from "echarts-for-react";
@@ -21,6 +21,36 @@ export default function EventDashboard() {
   const navigate = useNavigate();
   const supabase = createClient();
   const [breakdownType, setBreakdownType] = useState<"major" | "year">("major");
+
+  const { data: sheetLink, refetch: refetchSheetLink } = useQuery({
+    queryKey: ["event_google_sheet_link", eventId],
+    queryFn: async () => {
+      const res = await fetch(`/api/events/${eventId}/google-sheet`);
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!eventId,
+  });
+
+  const startSyncMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/events/${eventId}/google-sheet`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const body = await res.text();
+        throw new Error(body || "Failed to initialize sync");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast.success("Google Spreadsheet created and sync enabled!");
+      refetchSheetLink();
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Failed to sync to Google Sheets");
+    },
+  });
 
   const {
     data: analyticsData,
@@ -245,6 +275,38 @@ export default function EventDashboard() {
             >
               Duplicate Event
             </button>
+          </div>
+
+          {/* Google Sheets Live Sync Widget */}
+          <div className="mb-8 border-2 border-black bg-emerald-50 p-5 shadow-[4px_4px_0_0_#000]">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h2 className="font-display text-xl font-black uppercase text-emerald-900">
+                  Google Sheets Live Sync 📊
+                </h2>
+                <p className="font-mono text-xs text-emerald-700/80 mt-1">
+                  Keep your catering team, club officers, and spreadsheet tools up to date with automatic live RSVP exports.
+                </p>
+              </div>
+              {sheetLink?.linked ? (
+                <a
+                  href={`https://docs.google.com/spreadsheets/d/${sheetLink.spreadsheetId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="neu-border neu-press bg-emerald-400 text-black px-4 py-2.5 font-mono text-xs font-bold uppercase hover:-translate-y-1 transition-transform text-center"
+                >
+                  Open Live Spreadsheet
+                </a>
+              ) : (
+                <button
+                  onClick={() => startSyncMutation.mutate()}
+                  disabled={startSyncMutation.isPending}
+                  className="neu-border neu-press bg-[#a3e635] text-black px-4 py-2.5 font-mono text-xs font-bold uppercase hover:-translate-y-1 transition-transform whitespace-nowrap"
+                >
+                  {startSyncMutation.isPending ? "Setting up..." : "Sync to Google Sheets"}
+                </button>
+              )}
+            </div>
           </div>
           <div className="mb-8 border-2 border-black bg-yellow-100 p-5 shadow-[4px_4px_0_0_#000]">
             <div className="flex items-center gap-2">

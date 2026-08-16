@@ -157,6 +157,49 @@ export default function ClubManageRoute() {
     supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
   }, [supabase]);
 
+  const { data: googleIntegration, refetch: refetchGoogleIntegration } = useQuery({
+    queryKey: ["google_sheets_integration", club?.id],
+    queryFn: async () => {
+      if (!club?.id) return null;
+      const { data, error } = await supabase
+        .from("google_sheets_integrations")
+        .select("id, updated_at")
+        .eq("club_id", club.id)
+        .maybeSingle();
+      if (error && error.code !== "PGRST116") throw error;
+      return data;
+    },
+    enabled: !!club?.id,
+  });
+
+  const unlinkGoogleMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("google_sheets_integrations")
+        .delete()
+        .eq("club_id", club.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Google account unlinked successfully!");
+      refetchGoogleIntegration();
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Failed to unlink Google account");
+    },
+  });
+
+  const handleLinkGoogle = () => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || "mock-client-id";
+    const redirectUri = `${window.location.origin}/api/google/callback`;
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(
+      redirectUri
+    )}&response_type=code&scope=${encodeURIComponent(
+      "https://www.googleapis.com/auth/spreadsheets"
+    )}&access_type=offline&prompt=consent&state=${club.id}`;
+    window.location.href = authUrl;
+  };
+
   const {
     data: club,
     isLoading,
@@ -623,6 +666,48 @@ export default function ClubManageRoute() {
                     {updateClubMutation.isPending ? "Saving..." : "Save Settings"}
                   </button>
                 </form>
+
+                {/* Google Sheets Integration */}
+                <div className="neu-border bg-white p-6 mt-6 space-y-4">
+                  <h3 className="font-display text-xl font-bold uppercase">
+                    Google Sheets Integration 📊
+                  </h3>
+                  <p className="text-xs font-mono text-gray-500">
+                    Sync RSVP list data dynamically and in real-time directly to a linked Google Sheet.
+                  </p>
+
+                  {googleIntegration ? (
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border-2 border-dashed border-green-500 bg-green-50/50 gap-4">
+                      <div>
+                        <p className="font-mono text-xs font-bold text-green-700">
+                          Connected with Google Sheets ✅
+                        </p>
+                        <p className="font-mono text-[10px] text-gray-400 mt-1">
+                          Linked on {new Date(googleIntegration.updated_at).toLocaleString()}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => unlinkGoogleMutation.mutate()}
+                        disabled={unlinkGoogleMutation.isPending}
+                        className="neu-border bg-red-100 px-3 py-1.5 font-mono text-xs font-bold uppercase text-red-700 hover:bg-red-200 transition-colors"
+                      >
+                        Disconnect
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border-2 border-black bg-gray-50 gap-4">
+                      <p className="font-mono text-xs text-gray-600">
+                        Link your Google Account to enable live real-time sheets syncing for events.
+                      </p>
+                      <button
+                        onClick={handleLinkGoogle}
+                        className="neu-border neu-press bg-[#a3e635] text-black px-4 py-2 font-mono text-xs font-bold uppercase"
+                      >
+                        Link Google Account
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
