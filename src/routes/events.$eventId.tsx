@@ -2570,9 +2570,68 @@ export default function EventDetailsPage() {
                   </p>
                 )}
               </div>
-            </div>
 
-            <EventFaqSection eventId={event.id} isOrganizer={isOrganizer} userId={user?.id} />
+              {/* Event Live Support Reporting Card */}
+              <div className="border-t border-black/10 pt-4 space-y-3 text-black">
+                <h3 className="font-mono text-xs font-bold uppercase text-red-600">
+                  Event Live Support 🚨
+                </h3>
+                <p className="text-xs font-mono text-gray-500">
+                  Experiencing an issue during the event? Report it instantly to the organizers.
+                </p>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {["🎙️ Mic Broken", "❄️ Too Cold", "🔥 Too Hot", "🔊 Too Quiet"].map((label) => (
+                    <button
+                      key={label}
+                      onClick={async () => {
+                        const { error } = await supabase.from("event_live_tickets").insert({
+                          event_id: event.id,
+                          user_id: user?.id || null,
+                          message: label,
+                          status: "open",
+                        });
+                        if (error) {
+                          toast.error(error.message);
+                        } else {
+                          toast.success("Issue reported! Organizers have been notified.");
+                        }
+                      }}
+                      className="border border-black bg-white hover:bg-red-50 text-[10px] font-mono font-bold uppercase px-2 py-1 transition-colors"
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Report another issue..."
+                    className="w-full border-2 border-black p-2 font-mono text-xs focus:outline-none"
+                    onKeyDown={async (e) => {
+                      if (e.key === "Enter") {
+                        const target = e.currentTarget;
+                        if (!target.value.trim()) return;
+                        const { error } = await supabase.from("event_live_tickets").insert({
+                          event_id: event.id,
+                          user_id: user?.id || null,
+                          message: target.value.trim(),
+                          status: "open",
+                        });
+                        if (error) {
+                          toast.error(error.message);
+                        } else {
+                          toast.success("Issue reported! Organizers have been notified.");
+                          target.value = "";
+                        }
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="border-t border-black/10 pt-4">
+                <EventFaqSection eventId={event.id} isOrganizer={isOrganizer} userId={user?.id} />
+              </div>
             {/* Kanban Board for Organizer */}
             {isOrganizer && (
               <div className="mt-12 border-t-4 border-black pt-10">
