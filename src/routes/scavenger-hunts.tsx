@@ -1,152 +1,92 @@
 import { useState, useEffect } from "react";
-import { Compass, PlusCircle, Trophy, ArrowRight } from "lucide-react";
-import { createClient } from "../lib/supabase/client";
-import { OrganizerHuntBuilder } from "../components/scavenger-hunt/OrganizerHuntBuilder";
-import { AttendeeHuntView } from "../components/scavenger-hunt/AttendeeHuntView";
+import { Link } from "react-router-dom";
+import { SiteShell } from "@/components/site/SiteShell";
+import { useQuery } from "@/hooks/useReactQueryReplacement";
+import { createClient } from "@/lib/supabase/client";
+import Trophy from "lucide-react/dist/esm/icons/trophy";
+import Compass from "lucide-react/dist/esm/icons/compass";
 
-export interface HuntSummary {
-  id: string;
-  title: string;
-  description: string;
-  start_date: string;
-  end_date: string;
-  is_active: boolean;
-}
+export default function ScavengerHuntsList() {
+  const supabase = createClient();
 
-export default function ScavengerHuntsRoute() {
-  const [hunts, setHunts] = useState<HuntSummary[]>([]);
-  const [selectedHuntId, setSelectedHuntId] = useState<string | null>(null);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<"list" | "attendee" | "create">("list");
-
-  useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) setCurrentUserId(user.id);
-    });
-
-    supabase
-      .from("hunts")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .then(({ data }) => {
-        if (data && data.length > 0) {
-          setHunts(data as HuntSummary[]);
-        }
-      });
-  }, []);
+  const { data: hunts = [], isLoading } = useQuery({
+    queryKey: ["scavenger_hunts_list"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("scavenger_hunts")
+        .select(`
+          id,
+          title,
+          description,
+          hunt_waypoints (id)
+        `);
+      if (error) throw error;
+      return data || [];
+    },
+  });
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8 dark:bg-slate-950">
-      <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-        {/* Navigation Bar */}
-        <div className="mb-8 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-md shadow-indigo-500/20">
-              <Compass className="h-5 w-5" />
+    <SiteShell>
+      <div className="min-h-screen bg-cream px-4 py-12 md:px-6 lg:px-8">
+        <div className="mx-auto max-w-4xl space-y-8">
+          {/* Header Card */}
+          <div className="neu-border bg-[#FEE2E2] p-8 shadow-[4px_4px_0_0_#000]">
+            <p className="eyebrow flex items-center gap-1.5 font-mono text-xs font-bold uppercase text-black">
+              <Compass className="h-4 w-4 animate-spin-slow" /> University Gamification
+            </p>
+            <h1 className="mt-2 font-display text-4xl font-black text-black md:text-5xl uppercase">
+              Campus Scavenger Hunts
+            </h1>
+            <p className="mt-4 max-w-xl font-mono text-sm text-black/75">
+              Explore your campus by finding hidden physical locations, scanning waypoints, unlocking clues, and winning huge rewards!
+            </p>
+          </div>
+
+          {isLoading ? (
+            <div className="flex h-64 items-center justify-center">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-black border-t-transparent" />
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-slate-900 dark:text-white">
-                Campus Scavenger Hunts
-              </h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Explore campus checkpoints, decode clues, and climb the leaderboard!
+          ) : hunts.length > 0 ? (
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              {hunts.map((hunt: any) => (
+                <div
+                  key={hunt.id}
+                  className="neu-border bg-white p-6 shadow-[4px_4px_0_0_#000] hover:-translate-y-1 transition-transform flex flex-col justify-between"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="neu-border bg-[#a3e635] px-2.5 py-1 font-mono text-[10px] font-bold uppercase">
+                        {hunt.hunt_waypoints?.length || 0} Waypoints
+                      </span>
+                      <span className="flex items-center gap-1 font-mono text-xs font-bold text-yellow-600">
+                        <Trophy size={14} /> 1000 Pts
+                      </span>
+                    </div>
+                    <h2 className="font-display text-xl font-black uppercase tracking-tight">
+                      {hunt.title}
+                    </h2>
+                    <p className="font-mono text-xs text-black/60 line-clamp-3">
+                      {hunt.description || "No description provided."}
+                    </p>
+                  </div>
+                  <Link
+                    to={`/scavenger-hunts/${hunt.id}`}
+                    className="neu-border neu-press mt-6 block w-full bg-black text-white p-2.5 text-center font-mono text-xs font-bold uppercase"
+                  >
+                    Start Hunt
+                  </Link>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="neu-border bg-white p-12 text-center shadow-[4px_4px_0_0_#000]">
+              <p className="font-mono text-sm text-black/55 italic">
+                No active scavenger hunts found. Check back later!
               </p>
             </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {viewMode !== "list" && (
-              <button
-                type="button"
-                onClick={() => setViewMode("list")}
-                className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-              >
-                All Hunts
-              </button>
-            )}
-            {viewMode !== "create" && (
-              <button
-                type="button"
-                onClick={() => setViewMode("create")}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-indigo-500"
-              >
-                <PlusCircle className="h-4 w-4" />
-                Create Hunt
-              </button>
-            )}
-          </div>
+          )}
         </div>
-
-        {/* View Mode Switching */}
-        {viewMode === "create" ? (
-          <OrganizerHuntBuilder />
-        ) : viewMode === "attendee" && selectedHuntId && currentUserId ? (
-          <AttendeeHuntView huntId={selectedHuntId} userId={currentUserId} />
-        ) : (
-          /* Hunts Directory */
-          <div className="space-y-4">
-            {hunts.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center dark:border-slate-800 dark:bg-slate-900">
-                <Compass className="mx-auto h-12 w-12 text-slate-400" />
-                <h3 className="mt-3 text-base font-semibold text-slate-900 dark:text-white">
-                  No active scavenger hunts yet
-                </h3>
-                <p className="mt-1 text-sm text-slate-500">
-                  Be the first organizer to create an exciting campus discovery trail!
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setViewMode("create")}
-                  className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
-                >
-                  <PlusCircle className="h-4 w-4" />
-                  Create First Hunt
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                {hunts.map((hunt) => (
-                  <div
-                    key={hunt.id}
-                    className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:border-indigo-500/50 hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
-                  >
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <span className="rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300">
-                          Active Mission
-                        </span>
-                        <Trophy className="h-4 w-4 text-amber-500" />
-                      </div>
-                      <h3 className="mt-3 text-lg font-bold text-slate-900 dark:text-white">
-                        {hunt.title}
-                      </h3>
-                      <p className="mt-1 text-sm text-slate-600 line-clamp-2 dark:text-slate-400">
-                        {hunt.description || "Discover campus landmarks and collect points."}
-                      </p>
-                    </div>
-
-                    <div className="mt-6 flex items-center justify-between border-t border-slate-100 pt-4 dark:border-slate-800">
-                      <span className="text-xs text-slate-500">Free to join</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedHuntId(hunt.id);
-                          setViewMode("attendee");
-                        }}
-                        className="inline-flex items-center gap-1 text-sm font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400"
-                      >
-                        Start Hunt
-                        <ArrowRight className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
       </div>
-    </div>
+    </SiteShell>
   );
 }

@@ -98,6 +98,8 @@ const ClubNotesRoute = lazy(() => import("./routes/clubs.$slug.notes"));
 const ClubArticlesRoute = lazy(() => import("./routes/clubs.$slug.articles"));
 const ClubArticleDetailsRoute = lazy(() => import("./routes/clubs.$slug.articles.$articleId"));
 const ClubVaultRoute = lazy(() => import("./routes/clubs.$slug.vault"));
+const ScavengerHuntsList = lazy(() => import("./routes/scavenger-hunts"));
+const ScavengerHuntGame = lazy(() => import("./routes/scavenger-hunts.$id"));
 const ClubsLayout = lazy(() => import("./routes/clubs"));
 const ClubDiscoveryQuiz = lazy(() => import("./routes/clubs.fit"));
 const Dashboard = lazy(() => import("./routes/dashboard"));
@@ -210,6 +212,8 @@ const router = createBrowserRouter(
           <Route path="/bundles/:bundleId/checkout" element={<BundleCheckoutRoute />} />
           <Route path="/referrals/dashboard" element={<ReferralDashboardRoute />} />
           <Route path="/referrals/leaderboard" element={<ReferralLeaderboardRoute />} />
+          <Route path="/scavenger-hunts" element={<ScavengerHuntsList />} />
+          <Route path="/scavenger-hunts/:id" element={<ScavengerHuntGame />} />
           <Route path="/dashboard" element={<Dashboard />}>
             <Route index element={<DashboardOverview />} />
             <Route path="rsvps" element={<DashboardRsvps />} />
