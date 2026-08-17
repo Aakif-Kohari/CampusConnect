@@ -320,6 +320,48 @@ Deno.serve(async (req) => {
           }
         }
       }
+    } else if (table === "lost_items" && action === "POST_EVENT_LOST_FOUND") {
+      const data = record;
+      if (data?.attendee_email) {
+        console.log(`[Outbox Worker] [Post-Event Lost & Found] Dispatching email to attendee: ${data.attendee_email}`);
+
+        const resendApiKey = Deno.env.get("RESEND_API_KEY");
+        const appUrl = Deno.env.get("APP_URL") || "https://campusconnect.edu";
+
+        const emailBody = {
+          from: "CampusConnect Student Union <lost-found@campusconnect.app>",
+          to: [data.attendee_email],
+          subject: `Found items from ${data.event_title}! 🔍`,
+          html: `
+            <h2>Hope you had fun at ${data.event_title}!</h2>
+            <p>By the way, <strong>${data.items_count} items (${data.found_items})</strong> were found at the venue.</p>
+            <p>If you lost something, please click below to view the active Lost & Found listings and claim your item:</p>
+            <p><a href="${appUrl}/lost-found" style="display: inline-block; background-color: #a3e635; color: #000000; font-weight: bold; text-decoration: none; padding: 10px 20px; border: 2px solid #000000;">View Lost & Found Listings</a></p>
+            <p>Thank you for using CampusConnect!</p>
+          `,
+        };
+
+        if (!resendApiKey || Deno.env.get("MOCK_EMAIL") === "true") {
+          console.log(
+            "Mocking post-event lost & found email dispatch. Would have sent to:",
+            data.attendee_email,
+            emailBody,
+          );
+        } else {
+          const res = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${resendApiKey}`,
+            },
+            body: JSON.stringify(emailBody),
+          });
+          if (!res.ok) {
+            const errBody = await res.text();
+            console.error("Resend post-event lost & found notification email delivery failed:", errBody);
+          }
+        }
+      }
     }
 
     return new Response(JSON.stringify({ success: true, outbox_id }), {
