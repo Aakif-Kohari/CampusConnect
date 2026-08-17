@@ -87,12 +87,12 @@ export default function EventDashboard() {
     enabled: !!eventId,
   });
 
-  const { data: eventData } = useQuery({
+  const { data: eventData, refetch: refetchEventData } = useQuery({
     queryKey: ["event_details_dashboard", eventId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("events")
-        .select("title")
+        .select("title, is_public_showcase")
         .eq("id", eventId!)
         .single();
       if (error) throw error;
@@ -406,26 +406,50 @@ function EventLiveSupportPanel({ eventId }: { eventId: string }) {
             <h1 className="font-display text-3xl font-bold tracking-tight md:text-5xl">
               {eventData?.title ? `${eventData.title} Analytics` : "Event Analytics"}
             </h1>
-            <div className="flex-1" />
-            <button
-              onClick={async () => {
-                try {
-                  const {
-                    data: { user },
-                  } = await supabase.auth.getUser();
-                  if (!user) throw new Error("Not logged in");
-                  toast.loading("Duplicating event...", { id: "duplicate" });
-                  const newId = await duplicateEvent(supabase, eventId!, user.id);
-                  toast.success("Event duplicated as draft!", { id: "duplicate" });
-                  navigate("/events/" + newId);
-                } catch (err: any) {
-                  toast.error(err.message || "Failed to duplicate event", { id: "duplicate" });
-                }
-              }}
-              className="neu-border neu-press bg-yellow-300 text-black px-4 py-2 font-mono text-xs font-bold uppercase hover:-translate-y-1 transition-transform whitespace-nowrap"
-            >
-              Duplicate Event
-            </button>
+            <div className="flex flex-wrap gap-3 items-center mt-4 sm:mt-0">
+              {/* Public Showcase Toggle */}
+              <label className="flex items-center gap-2 font-mono text-xs font-bold uppercase cursor-pointer select-none bg-blue-50 dark:bg-blue-950/20 border-2 border-black dark:border-white p-2 hover:bg-blue-100 dark:hover:bg-blue-900/20 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={!!eventData?.is_public_showcase}
+                  onChange={async (e) => {
+                    const checked = e.target.checked;
+                    const { error } = await supabase
+                      .from("events")
+                      .update({ is_public_showcase: checked })
+                      .eq("id", eventId!);
+                    if (error) {
+                      toast.error(error.message);
+                    } else {
+                      toast.success(checked ? "Added to Public Showcase!" : "Removed from Public Showcase.");
+                      refetchEventData();
+                    }
+                  }}
+                  className="h-4 w-4 border-2 border-black rounded-none accent-black"
+                />
+                Public Showcase 🌐
+              </label>
+
+              <button
+                onClick={async () => {
+                  try {
+                    const {
+                      data: { user },
+                    } = await supabase.auth.getUser();
+                    if (!user) throw new Error("Not logged in");
+                    toast.loading("Duplicating event...", { id: "duplicate" });
+                    const newId = await duplicateEvent(supabase, eventId!, user.id);
+                    toast.success("Event duplicated as draft!", { id: "duplicate" });
+                    navigate("/events/" + newId);
+                  } catch (err: any) {
+                    toast.error(err.message || "Failed to duplicate event", { id: "duplicate" });
+                  }
+                }}
+                className="neu-border neu-press bg-yellow-300 text-black px-4 py-2 font-mono text-xs font-bold uppercase hover:-translate-y-1 transition-transform whitespace-nowrap"
+              >
+                Duplicate Event
+              </button>
+            </div>
           </div>
 
           {/* Google Sheets Live Sync Widget */}
