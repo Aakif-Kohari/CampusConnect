@@ -39,6 +39,27 @@ serve(async (req: Request) => {
       });
     }
 
+    // 0. Check for off-platform scalping / payment terms (Venmo, Cashapp, Zelle, PayPal)
+    const lowerContent = content.toLowerCase();
+    const scalpingKeywords = ["venmo", "cashapp", "cash app", "zelle", "paypal"];
+    const isScalpingAlert = scalpingKeywords.some((kw) => lowerContent.includes(kw));
+
+    if (isScalpingAlert) {
+      console.log(`Flagging message ${id} due to off-platform scalping keyword detection.`);
+      const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+      const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+      await supabase
+        .from("chat_messages")
+        .update({
+          is_flagged: true,
+          flagged_reason:
+            "Scalping Alert: Potential off-platform monetary trade detected (Venmo/Cashapp).",
+        })
+        .eq("id", id);
+    }
+
     const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
     if (!openaiApiKey) {
       console.warn("Missing OPENAI_API_KEY environment variable. Moderation skipped.");
