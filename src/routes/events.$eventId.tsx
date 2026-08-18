@@ -19,6 +19,8 @@ import { SiteShell } from "@/components/site/SiteShell";
 import { SkeletonEventDetails } from "@/components/events/SkeletonEventDetails";
 import { EventSeatingManager } from "@/components/events/EventSeatingManager";
 import { InteractiveSeatingChart } from "@/components/events/InteractiveSeatingChart";
+import { SeatSwapMarketplace } from "@/components/events/SeatSwapMarketplace";
+import { CrowdDensityMeter } from "@/components/events/CrowdDensityMeter";
 import { formatEventDateRange, getGoogleCalendarUrl } from "@/lib/utils";
 import { useBannerColor } from "@/hooks/useBannerColor";
 import { MapSkeleton } from "@/components/ui/MapSkeleton";
@@ -2195,7 +2197,10 @@ export default function EventDetailsPage() {
 
             <EventSeatingManager eventId={event.id} isOrganizer={isOrganizer} />
 
+            <CrowdDensityMeter eventId={event.id} />
+
             <InteractiveSeatingChart eventId={event.id} user={user} />
+            <SeatSwapMarketplace eventId={event.id} user={user} />
 
             {/* Interactive venue map layout for attendees */}
             {venueMapData && venueMapData.nodes && venueMapData.nodes.length > 0 ? (

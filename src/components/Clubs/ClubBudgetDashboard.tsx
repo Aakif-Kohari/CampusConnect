@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useClubBudget } from "@/hooks/useClubBudget";
+import { FinancialBurnRateWidget } from "@/components/Clubs/FinancialBurnRateWidget";
 import DollarSign from "lucide-react/dist/esm/icons/dollar-sign";
 import TrendingUp from "lucide-react/dist/esm/icons/trending-up";
 import TrendingDown from "lucide-react/dist/esm/icons/trending-down";
@@ -234,8 +235,10 @@ export function ClubBudgetDashboard({ clubId }: ClubBudgetDashboardProps) {
           <p className="mt-2 font-mono text-[11px] font-bold text-gray-700 dark:text-gray-300 border-t border-black/20 pt-1">
             Net available funds
           </p>
-        </div>
       </div>
+    </div>
+
+    <FinancialBurnRateWidget clubId={clubId} />
 
       <div className="border-2 border-black bg-white p-5 shadow-[4px_4px_0_0_#000] dark:bg-zinc-900 dark:border-white space-y-4">
         <div className="flex items-center justify-between border-b-2 border-black pb-3 dark:border-white">

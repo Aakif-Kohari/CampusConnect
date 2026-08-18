@@ -27,6 +27,7 @@ import { ImageCropUpload } from "@/components/ImageCropUpload";
 import { ClubMembersTable } from "@/components/Clubs/ClubMembersTable";
 import { ClubRolesManager } from "@/components/Clubs/ClubRolesManager";
 import { ClubAnalyticsDashboard } from "@/components/Clubs/ClubAnalyticsDashboard";
+import { ClubBudgetDashboard } from "@/components/Clubs/ClubBudgetDashboard";
 import { ManageMerch } from "@/components/Clubs/Merchandise/ManageMerch";
 import { QuorumPanel } from "@/components/Clubs/QuorumPanel";
 import { FundingRequestBuilder } from "@/components/funding/FundingRequestBuilder";
@@ -74,24 +75,25 @@ export default function ClubManageRoute() {
     | "merchandise"
     | "funding"
     | "developer"
+    | "finances"
   >(
     initialTab === "analytics"
       ? "analytics"
       : initialTab === "meetings"
         ? "meetings"
         : initialTab === "members"
-          ? "members"
-          : initialTab === "roles"
-            ? "roles"
-            : initialTab === "events"
-              ? "events"
-              : initialTab === "merchandise"
-                ? "merchandise"
-                : initialTab === "funding"
-                  ? "funding"
-                  : initialTab === "developer"
-                    ? "developer"
-                    : "settings",
+        ? "members"
+        : initialTab === "roles"
+          ? "roles"
+          : initialTab === "events"
+            ? "events"
+            : initialTab === "merchandise"
+              ? "merchandise"
+              : initialTab === "developer"
+                ? "developer"
+                : initialTab === "finances"
+                  ? "finances"
+                  : "settings",
   );
 
   // Form State
@@ -568,6 +570,16 @@ export default function ClubManageRoute() {
               >
                 <Key size={18} /> API Keys
               </button>
+              <button
+                onClick={() => setActiveTab("finances")}
+                className={`neu-border flex items-center gap-3 p-4 font-mono text-sm font-bold uppercase transition-all ${
+                  activeTab === "finances"
+                    ? "bg-black text-white hover:-translate-y-1"
+                    : "bg-white text-black hover:bg-gray-50"
+                }`}
+              >
+                <DollarSign size={18} /> Finances
+              </button>
             </nav>
           </aside>
 
@@ -858,6 +870,7 @@ export default function ClubManageRoute() {
               </div>
             )}
             {activeTab === "analytics" && <ClubAnalyticsDashboard clubId={club.id} />}
+            {activeTab === "finances" && <ClubBudgetDashboard clubId={club.id} />}
             {activeTab === "meetings" && <QuorumPanel clubId={club.id} />}
             {activeTab === "merchandise" && <ManageMerch clubId={club.id} />}
             {activeTab === "funding" && <FundingRequestBuilder clubId={club.id} />}
