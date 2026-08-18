@@ -153,7 +153,6 @@ const TourMode = lazy(() => import("./routes/tours.$tourId"));
 const BundleCheckoutRoute = lazy(() => import("./pages/BundleCheckoutPage"));
 const BundleDetailsRoute = lazy(() => import("./pages/BundleDetailsPage"));
 const EquipmentMarketplace = lazy(() => import("./routes/equipment"));
-const Wrapped2026 = lazy(() => import("./routes/wrapped.2026"));
 const ReferralDashboardRoute = lazy(() => import("./pages/ReferralDashboard"));
 const ReferralLeaderboardRoute = lazy(() => import("./pages/ReferralLeaderboard"));
 // ---------------------------------------------------------------------------
@@ -371,7 +370,6 @@ const router = createBrowserRouter(
           <Route path="/admin/dlq" element={<AdminDlqPage />} />
           <Route path="/admin/leadership-approvals" element={<AdminLeadershipApprovals />} />
           <Route path="/equipment-rentals" element={<EquipmentMarketplace />} />
-          <Route path="/wrapped/2026" element={<Wrapped2026 />} />
           <Route path="/unsubscribe" element={<UnsubscribeRoute />} />
           {/* Catch-all route for 404 errors */}
           <Route path="*" element={<NotFound />} />
