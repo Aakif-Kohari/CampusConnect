@@ -285,6 +285,9 @@ export function EventCard({
     <div className="group">
       <article
         id={`event-${event.id}`}
+ feat/club-equipment-asset-register-3481
+        className={`neu-border p-5 relative ${colors[index % colors.length]} transition-all duration-300 ease-out group-hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_var(--color-ink)]`}
+
         className={`neu-border p-5 relative ${
           active
             ? "bg-blue-100 border-4 border-blue-600 ring-2 ring-blue-600"
@@ -292,6 +295,7 @@ export function EventCard({
         } transition-all duration-300 ease-out group-hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[6px_6px_0_0_var(--color-ink)]`}
         onMouseEnter={preloadEvent.onMouseEnter}
         onMouseLeave={preloadEvent.onMouseLeave}
+ main
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-col">
@@ -340,12 +344,21 @@ export function EventCard({
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
+ feat/club-equipment-asset-register-3481
+                  <ShareMenu
+                    url={shareUrl}
+                    title={event.title}
+                    text={`Check out this event: ${event.title}`}
+                  >
+                    <button
+
 <ShareMenu
                     url={shareUrl}
                     title={event.title}
                     text={`Check out this event: ${event.title}`}
                     eventId={event.id}
                   >                    <button
+ main
                       type="button"
                       aria-label="Share event link"
                       className="neu-border neu-press grid h-8 w-8 shrink-0 place-items-center bg-white text-black"

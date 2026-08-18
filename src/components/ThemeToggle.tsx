@@ -1,6 +1,8 @@
  fix/theme-toggle-tooltip-provider
 import { Moon, Settings2, Sun } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+feat/club-equipment-asset-register-3481
+
 
 import Moon from "lucide-react/dist/esm/icons/moon";
 import Settings2 from "lucide-react/dist/esm/icons/settings-2";
@@ -8,6 +10,7 @@ import Sun from "lucide-react/dist/esm/icons/sun";
 import Contrast from "lucide-react/dist/esm/icons/contrast";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
         main
+   main
 import { useTheme } from "./theme-provider";
 
 export const ThemeToggle = () => {
@@ -35,7 +38,10 @@ export const ThemeToggle = () => {
           : "System theme (click to switch to light)";
 
   return (
+ feat/club-equipment-asset-register-3481
+
  fix/theme-toggle-tooltip-provider
+     main
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
@@ -53,6 +59,8 @@ export const ThemeToggle = () => {
         <TooltipContent className="font-mono text-xs capitalize">Theme: {theme}</TooltipContent>
       </Tooltip>
     </TooltipProvider>
+ feat/club-equipment-asset-register-3481
+
 
     <Tooltip>
       <TooltipTrigger asChild>
@@ -70,6 +78,7 @@ export const ThemeToggle = () => {
       </TooltipTrigger>
       <TooltipContent className="font-mono text-xs capitalize">Theme: {theme}</TooltipContent>
     </Tooltip>
+ main
  main
   );
 };
