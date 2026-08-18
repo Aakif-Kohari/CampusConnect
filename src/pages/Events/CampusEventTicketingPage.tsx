@@ -20,6 +20,7 @@ import {
 import EventTicketCard, { CampusEvent } from "../../components/events/EventTicketCard";
 import EventActivityTimeline from "../../components/events/EventActivityTimeline";
 import { TicketExchangeBoard } from "../../components/tickets/TicketExchangeBoard";
+import { RealtimeCapacityHeatmap } from "../../components/events/RealtimeCapacityHeatmap";
 
 const INITIAL_EVENTS: CampusEvent[] = [
   {
@@ -80,7 +81,7 @@ export default function CampusEventTicketingPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [activeTab, setActiveTab] = useState<
-    "events" | "activity" | "my-tickets" | "ticket-exchange"
+    "events" | "activity" | "my-tickets" | "ticket-exchange" | "capacity-heatmap"
   >("events");
   const [selectedEventModal, setSelectedEventModal] = useState<CampusEvent | null>(null);
 
@@ -198,6 +199,16 @@ export default function CampusEventTicketingPage() {
             >
               <QrCode className="w-4 h-4" /> Ticket Exchange Marketplace
             </button>
+            <button
+              onClick={() => setActiveTab("capacity-heatmap")}
+              className={`flex-1 md:flex-none px-5 py-2.5 rounded-xl font-medium text-sm transition flex items-center justify-center gap-2 ${
+                activeTab === "capacity-heatmap"
+                  ? "bg-violet-600 text-white shadow-md"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+              }`}
+            >
+              <Flame className="w-4 h-4 text-rose-400" /> Realtime Capacity Heatmap
+            </button>
           </div>
 
           <div className="flex items-center gap-3 w-full md:w-auto">
@@ -217,6 +228,8 @@ export default function CampusEventTicketingPage() {
         {/* Tab Content */}
         {activeTab === "activity" ? (
           <EventActivityTimeline />
+        ) : activeTab === "capacity-heatmap" ? (
+          <RealtimeCapacityHeatmap eventId="evt-901" />
         ) : activeTab === "ticket-exchange" ? (
           <TicketExchangeBoard
             userRsvps={events
