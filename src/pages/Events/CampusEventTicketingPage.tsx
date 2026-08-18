@@ -22,6 +22,7 @@ import EventActivityTimeline from "../../components/events/EventActivityTimeline
 import { TicketExchangeBoard } from "../../components/tickets/TicketExchangeBoard";
 import { RealtimeCapacityHeatmap } from "../../components/events/RealtimeCapacityHeatmap";
 import { CampusSafetyEscortModule } from "../../components/events/CampusSafetyEscortModule";
+import { CancelEventDangerModal } from "../../components/events/CancelEventDangerModal";
 
 const INITIAL_EVENTS: CampusEvent[] = [
   {
@@ -85,6 +86,7 @@ export default function CampusEventTicketingPage() {
     "events" | "activity" | "my-tickets" | "ticket-exchange" | "capacity-heatmap"
   >("events");
   const [selectedEventModal, setSelectedEventModal] = useState<CampusEvent | null>(null);
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
 
   const categories = [
     "All",
@@ -147,11 +149,26 @@ export default function CampusEventTicketingPage() {
           </div>
 
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsCancelModalOpen(true)}
+              className="bg-red-600/20 hover:bg-red-600/30 text-red-300 px-4 py-3 rounded-xl font-medium shadow-md transition flex items-center gap-2 border border-red-500/30 text-sm"
+            >
+              <ShieldAlert className="w-4 h-4 text-red-400" /> Cancel Event Danger Zone
+            </button>
             <button className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white px-5 py-3 rounded-xl font-medium shadow-lg shadow-violet-600/30 transition flex items-center gap-2 border border-violet-400/20 text-sm">
               <PlusCircle className="w-4 h-4" /> Create Student Event
             </button>
           </div>
         </div>
+
+        <CancelEventDangerModal
+          eventId="evt-902"
+          eventTitle="Fall Music Fest & Indie Band Concert"
+          totalAttendees={200}
+          totalRevenueUSD={2400}
+          isOpen={isCancelModalOpen}
+          onClose={() => setIsCancelModalOpen(false)}
+        />
       </header>
 
       {/* Main Container */}
