@@ -20,7 +20,6 @@ import { SkeletonEventDetails } from "@/components/events/SkeletonEventDetails";
 import { EventSeatingManager } from "@/components/events/EventSeatingManager";
 import { InteractiveSeatingChart } from "@/components/events/InteractiveSeatingChart";
 import { SeatSwapMarketplace } from "@/components/events/SeatSwapMarketplace";
-import { CrowdDensityMeter } from "@/components/events/CrowdDensityMeter";
 import { formatEventDateRange, getGoogleCalendarUrl } from "@/lib/utils";
 import { useBannerColor } from "@/hooks/useBannerColor";
 import { MapSkeleton } from "@/components/ui/MapSkeleton";
