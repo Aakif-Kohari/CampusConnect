@@ -135,9 +135,13 @@ import { CaptchaWidget } from "@/components/CaptchaWidget";
 import { Blurhash } from "react-blurhash";
 import { isValidBlurhash, DEFAULT_FALLBACK_BLURHASH } from "@/lib/blurhashUtils";
 import { EventDescriptionTranslation } from "@/components/events/EventDescriptionTranslation";
+ feat/3293-dynamic-ticket-pricing
+import { TicketPricingTimeline } from "@/components/events/TicketPricingTimeline";
+
 import { LiveNowBadge } from "@/components/events/LiveNowBadge";
 import { isEventLive } from "@/lib/utils";
 import { LiveGPSBusTracker } from "@/components/events/LiveGPSBusTracker";
+ main
 
 /**
  * Hero banner for the event detail page.
@@ -1742,6 +1746,10 @@ export default function EventDetailsPage() {
                 maxAttendees={maxAttendees || null}
                 showDetails={true}
               />
+            </div>
+            
+            <div className="mt-6 max-w-md">
+              <TicketPricingTimeline eventId={event.id} />
             </div>
 
             {hasRsvpd && myRsvpId && !isCheckedIn && !hasEnded && (
