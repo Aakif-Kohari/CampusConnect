@@ -1,116 +1,108 @@
 import React from 'react';
-import { Home, CheckCircle2, ShieldCheck, DollarSign, Clock } from 'lucide-react';
+import { HousingInquiry } from '../../../backend/src/models/CampusHousingModel';
+import { Home, Clock, CheckCircle2, XCircle, Mail, Calendar, MessageSquare } from 'lucide-react';
 
-interface SubletActivity {
-  id: string;
-  subletTitle: string;
-  location: string;
-  monthlyRentUSD: number;
-  subleasedToStudent: string;
-  subleasedByStudent: string;
-  completedAgo: string;
+interface ActivityTimelineProps {
+  inquiries: HousingInquiry[];
+  onDecision: (inquiryId: string, status: 'accepted' | 'declined') => void;
 }
 
-const RECENT_HOUSING_ACTIVITY: SubletActivity[] = [
-  {
-    id: 'act-1',
-    subletTitle: 'Modern Luxury Studio - Science Quad',
-    location: '402 University Ave',
-    monthlyRentUSD: 950,
-    subleasedToStudent: 'Lucas Vance',
-    subleasedByStudent: 'Chloe Bennett',
-    completedAgo: '2 hours ago',
-  },
-  {
-    id: 'act-2',
-    subletTitle: 'Spacious Master Bedroom Townhouse',
-    location: '118 College Ave',
-    monthlyRentUSD: 720,
-    subleasedToStudent: 'David Chen',
-    subleasedByStudent: 'Liam O\'Connor',
-    completedAgo: '5 hours ago',
-  },
-  {
-    id: 'act-3',
-    subletTitle: 'Cozy 1BDR Apartment Near Engineering Quad',
-    location: '709 Highland Rd',
-    monthlyRentUSD: 1100,
-    subleasedToStudent: 'Sophia Lin',
-    subleasedByStudent: 'Samantha Lin',
-    completedAgo: '1 day ago',
-  },
-];
-
-export default function HousingActivityTimeline() {
+export const HousingActivityTimeline: React.FC<ActivityTimelineProps> = ({
+  inquiries,
+  onDecision,
+}) => {
   return (
-    <div className="bg-slate-900/60 border border-slate-800/80 rounded-3xl p-6 md:p-8 backdrop-blur-md">
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 flex items-center gap-4">
-          <div className="p-3 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20">
-            <Home className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-2xl font-black text-white">184</div>
-            <div className="text-slate-400 text-xs font-medium">Active Campus Sublets</div>
-          </div>
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h3 className="font-bold text-gray-900 text-lg">My Housing & Sublease Inquiries</h3>
+          <p className="text-sm text-gray-500">Track pending and accepted sublease application inquiries</p>
         </div>
-
-        <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 flex items-center gap-4">
-          <div className="p-3 bg-teal-500/10 text-teal-400 rounded-xl border border-teal-500/20">
-            <ShieldCheck className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-2xl font-black text-white">100%</div>
-            <div className="text-slate-400 text-xs font-medium">Student Verified Identity</div>
-          </div>
-        </div>
-
-        <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 flex items-center gap-4">
-          <div className="p-3 bg-cyan-500/10 text-cyan-400 rounded-xl border border-cyan-500/20">
-            <DollarSign className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-2xl font-black text-white">$0</div>
-            <div className="text-slate-400 text-xs font-medium">Peer Brokerage Fees</div>
-          </div>
-        </div>
+        <span className="bg-indigo-50 text-indigo-700 font-semibold px-3 py-1 rounded-full text-xs">
+          {inquiries.length} Inquiries Sent
+        </span>
       </div>
 
-      <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-        <Clock className="w-5 h-5 text-emerald-400" /> Recent Campus Housing Leases & Transfers
-      </h3>
-
-      <div className="space-y-4">
-        {RECENT_HOUSING_ACTIVITY.map((item) => (
-          <div
-            key={item.id}
-            className="bg-slate-950/90 border border-slate-800/90 rounded-2xl p-5 hover:border-emerald-500/30 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-          >
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="bg-emerald-500/10 text-emerald-400 text-[11px] px-2 py-0.5 rounded border border-emerald-500/20 font-semibold">
-                  {item.location}
-                </span>
-                <span className="text-slate-500 text-xs font-mono">{item.completedAgo}</span>
+      {inquiries.length === 0 ? (
+        <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+          <Home className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+          <p className="text-gray-600 font-medium text-sm">No sublease inquiries submitted yet</p>
+          <p className="text-xs text-gray-400 mt-1">Browse active housing listings above to message student listers.</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {inquiries.map((inq) => (
+            <div
+              key={inq.id}
+              className="flex flex-col md:flex-row md:items-center justify-between p-4 rounded-xl border border-gray-100 bg-gray-50/50 hover:bg-gray-50 transition-colors gap-4"
+            >
+              <div className="flex items-start gap-3">
+                <div className="p-2.5 rounded-xl bg-indigo-100/60 text-indigo-700 mt-0.5">
+                  <Mail className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-900 text-base">{inq.propertyTitle}</h4>
+                  <div className="flex items-center gap-2 text-xs text-gray-500 mt-1 flex-wrap">
+                    <span className="flex items-center gap-1 font-semibold text-indigo-700">
+                      <Calendar className="w-3.5 h-3.5" /> Move-in: {inq.moveInDate}
+                    </span>
+                    <span>•</span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 text-gray-400" />
+                      {inq.submittedDate}
+                    </span>
+                    <span>•</span>
+                    <span className="flex items-center gap-1 text-gray-700 font-medium">
+                      <MessageSquare className="w-3.5 h-3.5 text-gray-400" />
+                      "{inq.message}"
+                    </span>
+                  </div>
+                </div>
               </div>
-              <h4 className="text-base font-bold text-slate-100">{item.subletTitle}</h4>
-              <div className="text-xs text-slate-400 mt-1">
-                Leased by <span className="text-slate-200 font-semibold">{item.subleasedByStudent}</span> to{' '}
-                <span className="text-slate-200 font-semibold">{item.subleasedToStudent}</span>
+
+              {/* Status & Decision Buttons */}
+              <div className="flex items-center justify-between md:justify-end gap-4">
+                <div className="text-right">
+                  <div className="flex items-center gap-1 text-xs">
+                    {inq.status === 'accepted' && (
+                      <span className="text-emerald-600 font-semibold flex items-center gap-1 bg-emerald-50 px-2.5 py-1 rounded-lg">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Inquiry Accepted
+                      </span>
+                    )}
+                    {inq.status === 'pending' && (
+                      <span className="text-amber-600 font-semibold flex items-center gap-1 bg-amber-50 px-2.5 py-1 rounded-lg">
+                        <Clock className="w-3.5 h-3.5" /> Pending Response
+                      </span>
+                    )}
+                    {inq.status === 'declined' && (
+                      <span className="text-red-600 font-semibold flex items-center gap-1 bg-red-50 px-2.5 py-1 rounded-lg">
+                        <XCircle className="w-3.5 h-3.5" /> Inquiry Declined
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {inq.status === 'pending' && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => onDecision(inq.id, 'accepted')}
+                      className="text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                      Accept
+                    </button>
+                    <button
+                      onClick={() => onDecision(inq.id, 'declined')}
+                      className="text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                      Decline
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
-
-            <div className="flex items-center gap-3">
-              <div className="text-emerald-400 font-mono font-extrabold text-lg bg-emerald-500/10 px-3.5 py-1.5 rounded-xl border border-emerald-500/20">
-                ${item.monthlyRentUSD}/mo
-              </div>
-              <div className="text-xs text-emerald-400 flex items-center gap-1 font-semibold">
-                <CheckCircle2 className="w-4 h-4" /> Agreement Signed
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
-}
+};
