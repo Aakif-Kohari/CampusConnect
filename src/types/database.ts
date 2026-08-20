@@ -69,7 +69,8 @@ export interface ClubMember {
   status: "pending" | "approved" | "rejected" | "removed";
   joined_at?: string | null;
   removed_at?: string | null;
-  termination_reason?: "term_completed" | "resigned" | "impeached" | "removed" | "role_changed" | string | null;
+  termination_reason?:
+    "term_completed" | "resigned" | "impeached" | "removed" | "role_changed" | string | null;
   created_at: string;
 }
 
@@ -177,6 +178,17 @@ export interface Certificate {
   issued_at: string;
   /** Timestamp when delivery email was sent */
   email_sent_at?: string | null;
+}
+
+/**
+ * Represents a video transcript record in `resource_transcripts`.
+ */
+export interface ResourceTranscript {
+  resource_id: string;
+  transcript_text: string;
+  vtt_url: string;
+  translated_vtt_urls?: Record<string, string> | null;
+  created_at?: string;
 }
 
 /**

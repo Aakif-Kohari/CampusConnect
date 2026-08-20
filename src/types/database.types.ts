@@ -448,6 +448,30 @@ export type Database = {
         Update: { micro_event_id?: string; user_id?: string; joined_at?: string };
         Relationships: [];
       };
+      resource_transcripts: {
+        Row: {
+          resource_id: string;
+          transcript_text: string;
+          vtt_url: string;
+          translated_vtt_urls: Json | null;
+          created_at?: string;
+        };
+        Insert: {
+          resource_id: string;
+          transcript_text: string;
+          vtt_url: string;
+          translated_vtt_urls?: Json | null;
+          created_at?: string;
+        };
+        Update: {
+          resource_id?: string;
+          transcript_text?: string;
+          vtt_url?: string;
+          translated_vtt_urls?: Json | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       user_preferences: {
         Row: {
           user_id: string;
