@@ -249,11 +249,13 @@ export default function SettingsPage() {
   useEffect(() => {
     if (userPrefs) {
       setTimezone(userPrefs.timezone || "UTC");
-      if (userPrefs.quiet_hours_start) {
-        setQuietHoursStart(userPrefs.quiet_hours_start.substring(0, 5));
+      const start = userPrefs.dnd_start_time || userPrefs.quiet_hours_start;
+      const end = userPrefs.dnd_end_time || userPrefs.quiet_hours_end;
+      if (start) {
+        setQuietHoursStart(start.substring(0, 5));
       }
-      if (userPrefs.quiet_hours_end) {
-        setQuietHoursEnd(userPrefs.quiet_hours_end.substring(0, 5));
+      if (end) {
+        setQuietHoursEnd(end.substring(0, 5));
       }
     }
   }, [userPrefs]);
@@ -262,11 +264,15 @@ export default function SettingsPage() {
     if (!user) return;
     setIsSavingPrefs(true);
     try {
+      const formattedStart = quietHoursStart ? `${quietHoursStart}:00` : null;
+      const formattedEnd = quietHoursEnd ? `${quietHoursEnd}:00` : null;
       const { error } = await supabase.from("user_preferences").upsert({
         user_id: user.id,
         timezone,
-        quiet_hours_start: quietHoursStart ? `${quietHoursStart}:00` : null,
-        quiet_hours_end: quietHoursEnd ? `${quietHoursEnd}:00` : null,
+        dnd_start_time: formattedStart,
+        dnd_end_time: formattedEnd,
+        quiet_hours_start: formattedStart,
+        quiet_hours_end: formattedEnd,
       });
 
       if (error) throw error;
@@ -963,7 +969,9 @@ export default function SettingsPage() {
                   name="expectedGraduationDate"
                   render={({ field }) => (
                     <FormItem className="space-y-1">
-                      <FormLabel className="eyebrow font-bold text-black">Expected Graduation Date</FormLabel>
+                      <FormLabel className="eyebrow font-bold text-black">
+                        Expected Graduation Date
+                      </FormLabel>
                       <FormControl>
                         <input
                           {...field}

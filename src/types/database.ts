@@ -181,6 +181,21 @@ export interface Certificate {
 }
 
 /**
+ * Represents user settings and notification schedule preferences in `user_preferences`.
+ */
+export interface UserPreferences {
+  user_id: string;
+  email_alerts: boolean;
+  push_notifications: boolean;
+  digest: boolean;
+  dark_mode_default: boolean;
+  timezone?: string | null;
+  dnd_start_time?: string | null;
+  dnd_end_time?: string | null;
+  quiet_hours_start?: string | null;
+  quiet_hours_end?: string | null;
+  created_at?: string;
+  updated_at?: string;
  * Represents a video transcript record in `resource_transcripts`.
  */
 export interface ResourceTranscript {
