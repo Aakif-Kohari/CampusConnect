@@ -448,40 +448,46 @@ export type Database = {
         Update: { micro_event_id?: string; user_id?: string; joined_at?: string };
         Relationships: [];
       };
-      kiosk_devices: {
+      event_song_requests: {
         Row: {
-          device_id: string;
-          event_id: string | null;
-          battery_level: number;
-          is_charging: boolean;
-          ping_ms: number;
-          network_type: string | null;
-          last_seen: string;
+          id: string;
+          event_id: string;
+          user_id: string;
+          song_title: string;
+          artist: string;
+          album_art_url: string | null;
+          upvotes: number;
+          played: boolean;
           created_at: string;
-          updated_at: string;
         };
         Insert: {
-          device_id: string;
-          event_id?: string | null;
-          battery_level?: number;
-          is_charging?: boolean;
-          ping_ms?: number;
-          network_type?: string | null;
-          last_seen?: string;
+          id?: string;
+          event_id: string;
+          user_id: string;
+          song_title: string;
+          artist: string;
+          album_art_url?: string | null;
+          upvotes?: number;
+          played?: boolean;
           created_at?: string;
-          updated_at?: string;
         };
         Update: {
-          device_id?: string;
-          event_id?: string | null;
-          battery_level?: number;
-          is_charging?: boolean;
-          ping_ms?: number;
-          network_type?: string | null;
-          last_seen?: string;
+          id?: string;
+          event_id?: string;
+          user_id?: string;
+          song_title?: string;
+          artist?: string;
+          album_art_url?: string | null;
+          upvotes?: number;
+          played?: boolean;
           created_at?: string;
-          updated_at?: string;
         };
+        Relationships: [];
+      };
+      event_song_request_upvotes: {
+        Row: { request_id: string; user_id: string; created_at: string };
+        Insert: { request_id: string; user_id: string; created_at?: string };
+        Update: { request_id?: string; user_id?: string; created_at?: string };
         Relationships: [];
       };
       user_preferences: {

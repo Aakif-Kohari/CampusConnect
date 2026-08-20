@@ -181,18 +181,19 @@ export interface Certificate {
 }
 
 /**
- * Represents a hardware kiosk telemetry record in `kiosk_devices`.
+ * Represents an attendee live DJ song request in `event_song_requests`.
  */
-export interface KioskDevice {
-  device_id: string;
-  event_id?: string | null;
-  battery_level: number;
-  is_charging: boolean;
-  ping_ms: number;
-  network_type?: string | null;
-  last_seen: string;
+export interface EventSongRequest {
+  id: string;
+  event_id: string;
+  user_id: string;
+  song_title: string;
+  artist: string;
+  album_art_url?: string | null;
+  upvotes: number;
+  played: boolean;
+  user_has_upvoted?: boolean;
   created_at?: string;
-  updated_at?: string;
 }
 
 /**
