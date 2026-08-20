@@ -10,6 +10,7 @@ import { useEffect, type ReactNode } from "react";
 import { SessionManager } from "@/lib/SessionManager";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { ensureKeyPair } from "@/lib/crypto/ticketCrypto";
 import { useAuthSecurityStore } from "@/store/useAuthSecurityStore";
 
 interface AuthSecurityContextType {
@@ -104,6 +105,22 @@ export const AuthSecurityProvider: React.FC<{ children: ReactNode }> = ({
     sessionManager.setCallbacks(handleLogout, handleTokenUpdate);
 
     // Initial auth check with Supabase
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session) {
+        setIsAuthenticated(true);
+        setToken(session.access_token);
+        
+        try {
+          const { publicKeyBase64, isNew } = await ensureKeyPair();
+          if (isNew && publicKeyBase64) {
+            await supabase
+              .from("profiles")
+              .update({ public_key: publicKeyBase64 })
+              .eq("id", session.user.id);
+          }
+        } catch (err) {
+          console.error("Failed to setup decentralized ticketing keys:", err);
+        }
     const supabase = createClient();
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
@@ -114,8 +131,24 @@ export const AuthSecurityProvider: React.FC<{ children: ReactNode }> = ({
     // Listen for auth state changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session) {
+        setIsAuthenticated(true);
+        setToken(session.access_token);
+        
+        // Ensure the user has a local cryptographic key pair for decentralized ticketing
+        try {
+          const { publicKeyBase64, isNew } = await ensureKeyPair();
+          if (isNew && publicKeyBase64) {
+            // Upload the newly generated public key to the server
+            await supabase
+              .from("profiles")
+              .update({ public_key: publicKeyBase64 })
+              .eq("id", session.user.id);
+          }
+        } catch (err) {
+          console.error("Failed to setup decentralized ticketing keys:", err);
+        }
         setAuthenticated(session.access_token);
       } else {
         setAuthenticated(null);
