@@ -1,7 +1,16 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
+/**
+ * Issue #2689 — Migrate Global State from Context API to Zustand.
+ *
+ * This file NO LONGER uses React Context. `useAuthSecurity()` is now a
+ * thin selector wrapper around `useAuthSecurityStore`. The
+ * `AuthSecurityProvider` is kept as a passthrough for backward compat —
+ * it only mounts the Supabase auth listener + SessionManager callbacks.
+ */
+import { useEffect, type ReactNode } from "react";
 import { SessionManager } from "@/lib/SessionManager";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { useAuthSecurityStore } from "@/store/useAuthSecurityStore";
 
 interface AuthSecurityContextType {
   isAuthenticated: boolean;
@@ -14,66 +23,32 @@ interface AuthSecurityContextType {
   extendSession: () => void;
 }
 
-const AuthSecurityContext = createContext<AuthSecurityContextType | undefined>(undefined);
-
-export const AuthSecurityProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
-  const [token, setToken] = useState<string | null>(null);
-  const [isLeaderTab, setIsLeaderTab] = useState<boolean>(false);
-  const [mfaVerified, setMfaVerified] = useState<boolean>(true);
-  const [sessionTimeoutWarning, setSessionTimeoutWarning] = useState<boolean>(false);
-
-  const supabase = createClient();
-
-  useEffect(() => {
-    const sessionManager = SessionManager.getInstance();
-    setIsLeaderTab(sessionManager.isLeader);
-
-    const handleLogout = () => {
-      setIsAuthenticated(false);
-      setToken(null);
-      toast.info("Session expired or signed out from another tab.");
-    };
-
-    const handleTokenUpdate = (newToken: string) => {
-      setToken(newToken);
-      setIsAuthenticated(true);
-    };
-
-    sessionManager.setCallbacks(handleLogout, handleTokenUpdate);
-
-    // Initial auth check with Supabase
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setIsAuthenticated(true);
-        setToken(session.access_token);
-      }
-    });
-
-    // Listen for auth state changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) {
-        setIsAuthenticated(true);
-        setToken(session.access_token);
-      } else {
-        setIsAuthenticated(false);
-        setToken(null);
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
+/**
+ * Selector hook — components re-render ONLY when the specific slice they
+ * consume changes. Replaces the previous `useContext(AuthSecurityContext)`.
+ */
+export const useAuthSecurity = (): AuthSecurityContextType => {
+  const isAuthenticated = useAuthSecurityStore((s) => s.isAuthenticated);
+  const token = useAuthSecurityStore((s) => s.token);
+  const isLeaderTab = useAuthSecurityStore((s) => s.isLeaderTab);
+  const mfaVerified = useAuthSecurityStore((s) => s.mfaVerified);
+  const sessionTimeoutWarning = useAuthSecurityStore(
+    (s) => s.sessionTimeoutWarning,
+  );
+  const setAuthenticated = useAuthSecurityStore((s) => s.setAuthenticated);
+  const setIsLeaderTab = useAuthSecurityStore((s) => s.setIsLeaderTab);
+  const setMfaVerified = useAuthSecurityStore((s) => s.setMfaVerified);
+  const setSessionTimeoutWarning = useAuthSecurityStore(
+    (s) => s.setSessionTimeoutWarning,
+  );
+  const clearAuth = useAuthSecurityStore((s) => s.clearAuth);
 
   const triggerLogout = () => {
     const sessionManager = SessionManager.getInstance();
     sessionManager.broadcastLogout();
+    const supabase = createClient();
     supabase.auth.signOut().then(() => {
-      setIsAuthenticated(false);
-      setToken(null);
+      clearAuth();
       window.location.href = "/auth";
     });
   };
@@ -87,28 +62,70 @@ export const AuthSecurityProvider: React.FC<{ children: ReactNode }> = ({ childr
     toast.success("Session successfully extended!");
   };
 
-  return (
-    <AuthSecurityContext.Provider
-      value={{
-        isAuthenticated,
-        token,
-        isLeaderTab,
-        mfaVerified,
-        sessionTimeoutWarning,
-        triggerLogout,
-        verifyMfaSession,
-        extendSession,
-      }}
-    >
-      {children}
-    </AuthSecurityContext.Provider>
-  );
+  return {
+    isAuthenticated,
+    token,
+    isLeaderTab,
+    mfaVerified,
+    sessionTimeoutWarning,
+    triggerLogout,
+    verifyMfaSession,
+    extendSession,
+    // Note: `setAuthenticated` / `setIsLeaderTab` are not part of the
+    // public AuthSecurityContextType — they are internal actions used by
+    // <AuthSecurityProvider>. Including them would widen the public API.
+    // We accept the small TS wart below by casting.
+  } as AuthSecurityContextType;
 };
 
-export const useAuthSecurity = () => {
-  const context = useContext(AuthSecurityContext);
-  if (!context) {
-    throw new Error("useAuthSecurity must be used within an AuthSecurityProvider");
-  }
-  return context;
+/**
+ * Backward-compat wrapper. No Context. Just mounts the side-effects.
+ */
+export const AuthSecurityProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
+  const setAuthenticated = useAuthSecurityStore((s) => s.setAuthenticated);
+  const setIsLeaderTab = useAuthSecurityStore((s) => s.setIsLeaderTab);
+  const clearAuth = useAuthSecurityStore((s) => s.clearAuth);
+
+  useEffect(() => {
+    const sessionManager = SessionManager.getInstance();
+    setIsLeaderTab(sessionManager.isLeader);
+
+    const handleLogout = () => {
+      clearAuth();
+      toast.info("Session expired or signed out from another tab.");
+    };
+
+    const handleTokenUpdate = (newToken: string) => {
+      setAuthenticated(newToken);
+    };
+
+    sessionManager.setCallbacks(handleLogout, handleTokenUpdate);
+
+    // Initial auth check with Supabase
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setAuthenticated(session.access_token);
+      }
+    });
+
+    // Listen for auth state changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        setAuthenticated(session.access_token);
+      } else {
+        setAuthenticated(null);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [setAuthenticated, setIsLeaderTab, clearAuth]);
+
+  return <>{children}</>;
 };

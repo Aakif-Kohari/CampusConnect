@@ -18,6 +18,7 @@ import { ErrorBoundary, RouteErrorBoundary } from "./components/ErrorBoundary";
 import { PageWrapper } from "./components/PageWrapper";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ThemeProvider } from "@/components/theme-provider";
+import { StoreHydrationGate } from "@/components/StoreHydrationGate";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import MaintenancePage from "./components/MaintenancePage";
 import { CommandPaletteProvider } from "@/components/CommandPaletteProvider";
@@ -487,58 +488,60 @@ export default function App() {
 
   return (
     <ThemeProvider>
-      <AriaAnnouncer />
-      <TooltipProvider>
-        <PersistQueryClientProvider
-          client={queryClient}
-          persistOptions={{
-            persister,
-            dehydrateOptions: {
-              shouldDehydrateQuery: (query: any) => {
-                if (query.state.status !== "success") return false;
-                const queryKeyStr = JSON.stringify(query.queryKey).toLowerCase();
-                if (
-                  queryKeyStr.includes("password") ||
-                  queryKeyStr.includes("billing") ||
-                  queryKeyStr.includes("payment")
-                ) {
-                  return false;
-                }
-                return true;
+      <StoreHydrationGate>
+        <AriaAnnouncer />
+        <TooltipProvider>
+          <PersistQueryClientProvider
+            client={queryClient}
+            persistOptions={{
+              persister,
+              dehydrateOptions: {
+                shouldDehydrateQuery: (query: any) => {
+                  if (query.state.status !== "success") return false;
+                  const queryKeyStr = JSON.stringify(query.queryKey).toLowerCase();
+                  if (
+                    queryKeyStr.includes("password") ||
+                    queryKeyStr.includes("billing") ||
+                    queryKeyStr.includes("payment")
+                  ) {
+                    return false;
+                  }
+                  return true;
+                },
               },
-            },
-          }}
-        >
-          <ErrorBoundary>
-            {/*
-              App-wide LazyMotion provider. Every `m.*` component in the tree
-              renders using this lightweight `domAnimation` feature set
-              (fetched from a separate chunk) instead of statically bundling
-              framer-motion's full ~35kb `motion` object. `strict` is only
-              enabled in dev so that any stray `motion.div` (which would
-              silently pull in the full bundle) throws loudly during
-              development instead of shipping to production.
-            */}
-            <LazyMotion features={loadDomAnimation} strict={import.meta.env.DEV}>
-              <CommandPaletteProvider>
+            }}
+          >
+            <ErrorBoundary>
+              {/*
+                App-wide LazyMotion provider. Every `m.*` component in the tree
+                renders using this lightweight `domAnimation` feature set
+                (fetched from a separate chunk) instead of statically bundling
+                framer-motion's full ~35kb `motion` object. `strict` is only
+                enabled in dev so that any stray `motion.div` (which would
+                silently pull in the full bundle) throws loudly during
+                development instead of shipping to production.
+              */}
+              <LazyMotion features={loadDomAnimation} strict={import.meta.env.DEV}>
+                <CommandPaletteProvider>
 <OfflineIndicator />
 <EmergencyBroadcastOverlay />
 <LoginRecoveryModal />                {/* Floating Dark Mode Toggle */}
-                <div className="fixed bottom-4 right-4 z-[9999]">
-                  <ThemeToggle />
-                </div>
+                  <div className="fixed bottom-4 right-4 z-[9999]">
+                    <ThemeToggle />
+                  </div>
 
-                <BreadcrumbProvider>
-                  <MotionConfig reducedMotion="user">
-                    <PushDeepLinkListener router={router} />
-                    <RouterProvider router={router} />
-                  </MotionConfig>
-                </BreadcrumbProvider>
-              </CommandPaletteProvider>
-            </LazyMotion>
-          </ErrorBoundary>
-        </PersistQueryClientProvider>
-      </TooltipProvider>
+                  <BreadcrumbProvider>
+                    <MotionConfig reducedMotion="user">
+                      <PushDeepLinkListener router={router} />
+                      <RouterProvider router={router} />
+                    </MotionConfig>
+                  </BreadcrumbProvider>
+                </CommandPaletteProvider>
+              </LazyMotion>
+            </ErrorBoundary>
+          </PersistQueryClientProvider>
+        </TooltipProvider>
+      </StoreHydrationGate>
     </ThemeProvider>
   );
 }
