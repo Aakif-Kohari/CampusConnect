@@ -181,29 +181,18 @@ export interface Certificate {
 }
 
 /**
- * Represents user settings and notification schedule preferences in `user_preferences`.
+ * Represents a hardware kiosk telemetry record in `kiosk_devices`.
  */
-export interface UserPreferences {
-  user_id: string;
-  email_alerts: boolean;
-  push_notifications: boolean;
-  digest: boolean;
-  dark_mode_default: boolean;
-  timezone?: string | null;
-  dnd_start_time?: string | null;
-  dnd_end_time?: string | null;
-  quiet_hours_start?: string | null;
-  quiet_hours_end?: string | null;
+export interface KioskDevice {
+  device_id: string;
+  event_id?: string | null;
+  battery_level: number;
+  is_charging: boolean;
+  ping_ms: number;
+  network_type?: string | null;
+  last_seen: string;
   created_at?: string;
   updated_at?: string;
- * Represents a video transcript record in `resource_transcripts`.
- */
-export interface ResourceTranscript {
-  resource_id: string;
-  transcript_text: string;
-  vtt_url: string;
-  translated_vtt_urls?: Record<string, string> | null;
-  created_at?: string;
 }
 
 /**

@@ -448,27 +448,39 @@ export type Database = {
         Update: { micro_event_id?: string; user_id?: string; joined_at?: string };
         Relationships: [];
       };
-      resource_transcripts: {
+      kiosk_devices: {
         Row: {
-          resource_id: string;
-          transcript_text: string;
-          vtt_url: string;
-          translated_vtt_urls: Json | null;
-          created_at?: string;
+          device_id: string;
+          event_id: string | null;
+          battery_level: number;
+          is_charging: boolean;
+          ping_ms: number;
+          network_type: string | null;
+          last_seen: string;
+          created_at: string;
+          updated_at: string;
         };
         Insert: {
-          resource_id: string;
-          transcript_text: string;
-          vtt_url: string;
-          translated_vtt_urls?: Json | null;
+          device_id: string;
+          event_id?: string | null;
+          battery_level?: number;
+          is_charging?: boolean;
+          ping_ms?: number;
+          network_type?: string | null;
+          last_seen?: string;
           created_at?: string;
+          updated_at?: string;
         };
         Update: {
-          resource_id?: string;
-          transcript_text?: string;
-          vtt_url?: string;
-          translated_vtt_urls?: Json | null;
+          device_id?: string;
+          event_id?: string | null;
+          battery_level?: number;
+          is_charging?: boolean;
+          ping_ms?: number;
+          network_type?: string | null;
+          last_seen?: string;
           created_at?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };
