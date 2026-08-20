@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense, lazy } from "react";
 import MapPin from "lucide-react/dist/esm/icons/map-pin";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@/hooks/useReactQueryReplacement";
@@ -12,6 +12,10 @@ import { EventDualClockTime } from "@/components/EventDualClockTime";
 import { useEventDualClock } from "@/hooks/useEventDualClock";
 import type { TimezoneAwareEvent } from "@/lib/venueTimezone";
 import { User } from "@supabase/supabase-js";
+
+const AccessibilityRouteMapper = lazy(
+  () => import("@/components/accessibility/AccessibilityRouteMapper"),
+);
 
 interface EventDetailRecord extends TimezoneAwareEvent {
   id: string;
