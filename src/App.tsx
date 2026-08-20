@@ -155,11 +155,7 @@ const TourMode = lazy(() => import("./routes/tours.$tourId"));
 const BundleCheckoutRoute = lazy(() => import("./pages/BundleCheckoutPage"));
 const BundleDetailsRoute = lazy(() => import("./pages/BundleDetailsPage"));
 const EquipmentMarketplace = lazy(() => import("./routes/equipment"));
-<<<<<<< Updated upstream
-=======
-const Wrapped2026 = lazy(() => import("./routes/wrapped.2026"));
-const SkillSwapMarketplace = lazy(() => import("./routes/skill-swap"));
->>>>>>> Stashed changes
+const MentorshipDashboard = lazy(() => import("./routes/mentorship-dashboard"));
 const ReferralDashboardRoute = lazy(() => import("./pages/ReferralDashboard"));
 const ReferralLeaderboardRoute = lazy(() => import("./pages/ReferralLeaderboard"));
 // ---------------------------------------------------------------------------
@@ -379,11 +375,7 @@ const router = createBrowserRouter(
           <Route path="/admin/dlq" element={<AdminDlqPage />} />
           <Route path="/admin/leadership-approvals" element={<AdminLeadershipApprovals />} />
           <Route path="/equipment-rentals" element={<EquipmentMarketplace />} />
-<<<<<<< Updated upstream
-=======
-          <Route path="/wrapped/2026" element={<Wrapped2026 />} />
-          <Route path="/skill-swap" element={<SkillSwapMarketplace />} />
->>>>>>> Stashed changes
+          <Route path="/mentorship-dashboard" element={<MentorshipDashboard />} />
           <Route path="/unsubscribe" element={<UnsubscribeRoute />} />
           {/* Catch-all route for 404 errors */}
           <Route path="*" element={<NotFound />} />
