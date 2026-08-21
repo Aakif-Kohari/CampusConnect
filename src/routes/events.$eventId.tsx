@@ -553,7 +553,7 @@ export default function EventDetailsPage() {
         .select(
           `
           id, title, description, event_date, start_date, end_date, location, banner_url, created_by, venue_id, accessibility_features,
-          is_high_risk, status, short_id, max_attendees, requires_approval, category_id, tags, version, version_vector, blurhash,
+          is_high_risk, status, short_id, max_attendees, waitlist_capacity, waitlist_count, requires_approval, category_id, tags, version, version_vector, blurhash,
           latitude, longitude, geofencing_enabled, geofence_radius_meters, accommodation_deadline, prerequisite_event_id,
           prerequisite_event:events!prerequisite_event_id(id, title),
           rating_metrics,
@@ -602,6 +602,8 @@ export default function EventDetailsPage() {
                   : "Student Activity Centre, IIT Bombay, Powai, Mumbai",
             banner_url: null as string | null,
             max_attendees: eventId === "mock-1" ? 1 : null,
+            waitlist_capacity: eventId === "mock-1" ? 50 : null,
+            waitlist_count: eventId === "mock-1" ? 0 : null,
             latitude: eventId === "mock-1" ? 30.3564 : eventId === "mock-2" ? 28.5355 : 19.076,
             longitude: eventId === "mock-1" ? 76.3647 : eventId === "mock-2" ? 77.209 : 72.8777,
             geofencing_enabled: eventId === "mock-1",
@@ -1563,6 +1565,14 @@ export default function EventDetailsPage() {
     maxAttendees > 0 &&
     attendeeCount >= maxAttendees;
 
+  const waitlistCapacity = (event as Record<string, unknown>).waitlist_capacity as number | null | undefined;
+  const waitlistCount = (event as Record<string, unknown>).waitlist_count as number ?? (rawWaitlist?.length || 0);
+  const isWaitlistFull =
+    waitlistCapacity !== null &&
+    waitlistCapacity !== undefined &&
+    waitlistCapacity > 0 &&
+    waitlistCount >= waitlistCapacity;
+
   const isLive = isEventLive(event);
 
   return (
@@ -1791,17 +1801,19 @@ export default function EventDetailsPage() {
                     }
                     toggleWaitlist.mutate({ isOnWaitlist });
                   }}
-                  disabled={toggleWaitlist.isPending || !prereqMet}
+                  disabled={toggleWaitlist.isPending || !prereqMet || (!isOnWaitlist && isWaitlistFull)}
                   variant={isOnWaitlist ? "secondary" : "primary"}
                   size="lg"
                   title={!prereqMet ? `You must attend '${prereqTitle}' before registering for this event.` : undefined}
-                  className={!prereqMet ? "opacity-50 cursor-not-allowed" : ""}
+                  className={!prereqMet || (!isOnWaitlist && isWaitlistFull) ? "opacity-50 cursor-not-allowed" : ""}
                 >
                   {toggleWaitlist.isPending
                     ? "Updating..."
                     : isOnWaitlist
                       ? "On Waitlist ✓"
-                      : "Join Waitlist"}
+                      : isWaitlistFull
+                        ? "Waitlist Full"
+                        : "Join Waitlist"}
                 </Button>
               ) : (
                 <Button
@@ -3141,16 +3153,18 @@ export default function EventDetailsPage() {
                 }
                 toggleWaitlist.mutate({ isOnWaitlist });
               }}
-              disabled={toggleWaitlist.isPending || !prereqMet}
+              disabled={toggleWaitlist.isPending || !prereqMet || (!isOnWaitlist && isWaitlistFull)}
               variant={isOnWaitlist ? "secondary" : "primary"}
               title={!prereqMet ? `You must attend '${prereqTitle}' before registering for this event.` : undefined}
-              className={!prereqMet ? "opacity-50 cursor-not-allowed" : ""}
+              className={!prereqMet || (!isOnWaitlist && isWaitlistFull) ? "opacity-50 cursor-not-allowed" : ""}
             >
               {toggleWaitlist.isPending
                 ? "Updating..."
                 : isOnWaitlist
                   ? "On Waitlist ✓"
-                  : "Join Waitlist"}
+                  : isWaitlistFull
+                    ? "Waitlist Full"
+                    : "Join Waitlist"}
             </Button>
           ) : (
             <Button

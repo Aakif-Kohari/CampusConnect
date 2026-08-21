@@ -676,6 +676,8 @@ export type Database = {
           geofencing_enabled: boolean;
           geofence_radius_meters: number;
           max_attendees: number | null;
+          waitlist_capacity: number | null;
+          waitlist_count: number | null;
           available_spots: number | null;
           rsvp_count: number;
           // views column removed — view counts now live in the event_metrics table (issue #2274)
@@ -729,6 +731,8 @@ export type Database = {
           geofencing_enabled?: boolean;
           geofence_radius_meters?: number;
           max_attendees?: number | null;
+          waitlist_capacity?: number | null;
+          waitlist_count?: number | null;
           available_spots?: number | null;
           rsvp_count?: number;
           // views column removed — view counts now live in the event_metrics table (issue #2274)
@@ -782,6 +786,8 @@ export type Database = {
           geofencing_enabled?: boolean;
           geofence_radius_meters?: number;
           max_attendees?: number | null;
+          waitlist_capacity?: number | null;
+          waitlist_count?: number | null;
           available_spots?: number | null;
           rsvp_count?: number;
           // views column removed — view counts now live in the event_metrics table (issue #2274)
