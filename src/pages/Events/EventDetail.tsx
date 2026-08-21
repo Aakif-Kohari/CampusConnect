@@ -12,7 +12,7 @@
 // =============================================================================
 
 import React, { useEffect, useState } from "react";
-import MapPin from "lucide-react/dist/esm/icons/map-pin";
+import { MapPin } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@/hooks/useReactQueryReplacement";
 import { createClient } from "@/lib/supabase/client";
@@ -25,6 +25,7 @@ import VolunteerShifts from "@/components/VolunteerShifts";
 import { LiveTaskOrganizerPanel } from "@/components/events/LiveTaskOrganizerPanel";
 import { LiveTaskAttendeePopup } from "@/components/events/LiveTaskAttendeePopup";
 import { User } from "@supabase/supabase-js";
+import { SongRequestSection } from "@/components/events/SongRequestSection";
 
 interface EventDetailRecord {
   id: string;
@@ -154,9 +155,9 @@ export default function EventDetail() {
         )}
       </div>
 
-      {user && event.id && (
-        <LiveTaskAttendeePopup eventId={event.id} userId={user.id} />
-      )}
+      <div className="max-w-4xl mx-auto px-6 md:px-8 mb-8">
+        <SongRequestSection eventId={event.id} isOrganizer={false} />
+      </div>
 
       <EventFeedbackSurvey eventId={event.id} />
       <EventSocialProofToasts eventId={event.id} />
