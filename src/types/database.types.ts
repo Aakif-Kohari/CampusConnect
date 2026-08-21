@@ -654,6 +654,45 @@ export type Database = {
           created_at?: string;
         };
       };
+      noise_violation_logs: {
+        Row: {
+          id: string;
+          event_id: string | null;
+          venue_id: string;
+          venue_name: string;
+          decibels: number;
+          duration_minutes: number;
+          warning_level: string;
+          warning_count: number;
+          alert_message: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          event_id?: string | null;
+          venue_id: string;
+          venue_name: string;
+          decibels: number;
+          duration_minutes: number;
+          warning_level?: string;
+          warning_count?: number;
+          alert_message: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          event_id?: string | null;
+          venue_id?: string;
+          venue_name?: string;
+          decibels?: number;
+          duration_minutes?: number;
+          warning_level?: string;
+          warning_count?: number;
+          alert_message?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       events: {
         Row: {
           id: string;

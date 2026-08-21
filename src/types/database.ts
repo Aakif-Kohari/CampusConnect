@@ -218,6 +218,19 @@ export type DatabaseTable =
   | "comments"
   | "certificates";
 
+export interface NoiseViolationLog {
+  id: string;
+  event_id?: string | null;
+  venue_id: string;
+  venue_name: string;
+  decibels: number;
+  duration_minutes: number;
+  warning_level: "WARNING" | "CRITICAL";
+  warning_count: number;
+  alert_message: string;
+  created_at: string;
+}
+
 /**
  * Generic Row Type
  * Maps a table name to its corresponding TypeScript interface.
