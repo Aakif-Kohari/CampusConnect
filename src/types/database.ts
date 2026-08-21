@@ -223,6 +223,23 @@ export interface CatererDietaryAlert {
   created_at?: string;
 }
 
+export interface RefundPolicyRule {
+  min_hours_before: number;
+  refund_percentage: number;
+}
+
+export interface RefundPolicy {
+  rules: RefundPolicyRule[];
+}
+
+export interface ProratedRefundCalculation {
+  hours_before_event: number;
+  refund_percentage: number;
+  refund_amount_dollars: number;
+  cancellation_fee_dollars: number;
+  policy_description: string;
+}
+
 /**
  * Database Table Enums
  */
