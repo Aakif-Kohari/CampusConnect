@@ -245,6 +245,18 @@ export type DatabaseTable =
   | "comments"
   | "certificates";
 
+export interface RegistrarSyncLog {
+  id: string;
+  user_id: string;
+  student_id: string;
+  user_full_name: string;
+  previous_status: string;
+  new_status: string;
+  action_taken: string;
+  clubs_notified_count: number;
+  created_at: string;
+}
+
 export interface NoiseViolationLog {
   id: string;
   event_id?: string | null;
