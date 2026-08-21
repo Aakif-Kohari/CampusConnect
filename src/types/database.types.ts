@@ -490,6 +490,87 @@ export type Database = {
         Update: { request_id?: string; user_id?: string; created_at?: string };
         Relationships: [];
       };
+      event_caterer_contracts: {
+        Row: {
+          id: string;
+          event_id: string;
+          caterer_name: string;
+          caterer_email: string;
+          caterer_phone: string | null;
+          rfp_finalized_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          event_id: string;
+          caterer_name: string;
+          caterer_email: string;
+          caterer_phone?: string | null;
+          rfp_finalized_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          event_id?: string;
+          caterer_name?: string;
+          caterer_email?: string;
+          caterer_phone?: string | null;
+          rfp_finalized_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      caterer_dietary_alerts: {
+        Row: {
+          id: string;
+          event_id: string;
+          user_id: string | null;
+          attendee_name: string;
+          dietary_tag: string;
+          severity_level: string;
+          caterer_email: string;
+          caterer_phone: string | null;
+          token: string;
+          alert_sent_at: string;
+          acknowledgment_status: string;
+          acknowledged_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          event_id: string;
+          user_id?: string | null;
+          attendee_name: string;
+          dietary_tag: string;
+          severity_level?: string;
+          caterer_email: string;
+          caterer_phone?: string | null;
+          token?: string;
+          alert_sent_at?: string;
+          acknowledgment_status?: string;
+          acknowledged_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          event_id?: string;
+          user_id?: string | null;
+          attendee_name?: string;
+          dietary_tag?: string;
+          severity_level?: string;
+          caterer_email?: string;
+          caterer_phone?: string | null;
+          token?: string;
+          alert_sent_at?: string;
+          acknowledgment_status?: string;
+          acknowledged_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       user_preferences: {
         Row: {
           user_id: string;

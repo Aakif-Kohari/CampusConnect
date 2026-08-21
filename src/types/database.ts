@@ -196,6 +196,33 @@ export interface EventSongRequest {
   created_at?: string;
 }
 
+export interface EventCatererContract {
+  id: string;
+  event_id: string;
+  caterer_name: string;
+  caterer_email: string;
+  caterer_phone?: string | null;
+  rfp_finalized_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CatererDietaryAlert {
+  id: string;
+  event_id: string;
+  user_id?: string | null;
+  attendee_name: string;
+  dietary_tag: string;
+  severity_level: string;
+  caterer_email: string;
+  caterer_phone?: string | null;
+  token: string;
+  alert_sent_at: string;
+  acknowledgment_status: "PENDING" | "ACKNOWLEDGED";
+  acknowledged_at?: string | null;
+  created_at?: string;
+}
+
 /**
  * Database Table Enums
  */
