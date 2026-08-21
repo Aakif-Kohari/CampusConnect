@@ -262,29 +262,21 @@ export type DatabaseTable =
   | "comments"
   | "certificates";
 
-export interface RegistrarSyncLog {
+export interface CrossClubMatch {
   id: string;
-  user_id: string;
-  student_id: string;
-  user_full_name: string;
-  previous_status: string;
-  new_status: string;
-  action_taken: string;
-  clubs_notified_count: number;
+  draft_a_id: string;
+  draft_b_id: string;
+  club_a_id: string;
+  club_b_id: string;
+  club_a_name: string;
+  club_b_name: string;
+  similarity_score: number;
+  status: "PENDING" | "PROPOSED" | "ACCEPTED" | "DECLINED";
+  draft_a_budget: number;
+  draft_b_budget: number;
+  pooled_budget: number;
   created_at: string;
-}
-
-export interface NoiseViolationLog {
-  id: string;
-  event_id?: string | null;
-  venue_id: string;
-  venue_name: string;
-  decibels: number;
-  duration_minutes: number;
-  warning_level: "WARNING" | "CRITICAL";
-  warning_count: number;
-  alert_message: string;
-  created_at: string;
+  updated_at?: string;
 }
 
 /**
