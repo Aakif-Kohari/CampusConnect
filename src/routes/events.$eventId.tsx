@@ -88,6 +88,7 @@ import { Button } from "@/components/ui/button";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { SeatingCanvas } from "@/components/events/SeatingCanvas";
 import { CrowdDensityMeter } from "@/components/events/CrowdDensityMeter";
+import { EventNoiseMonitor } from "@/components/events/EventNoiseMonitor";
 import { EventLogisticsChecklist } from "@/components/events/EventLogisticsChecklist";
 import { SponsorManager } from "@/components/events/SponsorManager";
 import { SteganographicQRScanner } from "@/components/events/SteganographicQRScanner";
@@ -2466,6 +2467,7 @@ export default function EventDetailsPage() {
             <EventSeatingManager eventId={event.id} isOrganizer={isOrganizer} />
 
             <CrowdDensityMeter eventId={event.id} />
+            <EventNoiseMonitor eventId={event.id} />
 
             <InteractiveSeatingChart eventId={event.id} user={user} />
             <SeatSwapMarketplace eventId={event.id} user={user} />
