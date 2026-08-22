@@ -24,6 +24,8 @@ import VolunteerShifts from "@/components/VolunteerShifts";
 // NEW (Issue #3678):
 import { LiveTaskOrganizerPanel } from "@/components/events/LiveTaskOrganizerPanel";
 import { LiveTaskAttendeePopup } from "@/components/events/LiveTaskAttendeePopup";
+import { HelpQueueMentorDashboard } from "@/components/events/HelpQueueMentorDashboard";
+import { HelpQueueAttendeeWidget } from "@/components/events/HelpQueueAttendeeWidget";
 import { User } from "@supabase/supabase-js";
 import { SongRequestSection } from "@/components/events/SongRequestSection";
 
@@ -153,6 +155,18 @@ export default function EventDetail() {
             <LiveTaskOrganizerPanel eventId={event.id} />
           </div>
         )}
+ 
+         {/* ── NEW (Issue #3938): Help Desk Queue ────────────────── */}
+         {isOrganizer && event.id && (
+           <div className="pt-6">
+             <HelpQueueMentorDashboard eventId={event.id} />
+           </div>
+         )}
+         {user && event.id && (
+           <div className="pt-6">
+             <HelpQueueAttendeeWidget eventId={event.id} userId={user.id} />
+           </div>
+         )}
       </div>
 
       <div className="max-w-4xl mx-auto px-6 md:px-8 mb-8">
