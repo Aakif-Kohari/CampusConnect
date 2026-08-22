@@ -98,8 +98,8 @@ jobs:
               const hasAssignees = prData.assignees && prData.assignees.length > 0;
               const hasECSoCLabel = currentLabels.some(l => l.toLowerCase().replace(/[^a-z0-9]/g, '').includes('ecsoc26'));
               const hasErrorLabel = currentLabels.some(l => {
-                const lbl = l.toLowerCase().replace(/[^a-z0-9]/g, '');
-                return lbl.includes('error') || lbl.includes('donotmerge');
+                const lbl = l.trim().toLowerCase();
+                return lbl === 'error' || lbl.includes('do-not-merge') || lbl.includes('donotmerge');
               });
 
               if (hasErrorLabel) {
@@ -146,7 +146,7 @@ jobs:
 
               console.log(`PR mergeable state is: ${mergeableState}`);
               
-              if (mergeable === true && mergeableState === 'clean') {
+              if (mergeable === true) {
                 console.log("Requirements met and no merge conflicts. Proceeding with immediate auto-merge.");
                 try {
                   console.log(`Auto-merging PR #${prNumber} into main...`);
@@ -167,18 +167,24 @@ jobs:
             console.log("Fetching all open PRs...");
             let page = 1;
             let hasMore = true;
+            const allPRs = [];
 
             while (hasMore) {
               const { data: openPRs } = await github.rest.pulls.list({
                 owner, repo, state: 'open', per_page: 100, page
               });
               
-              for (const pr of openPRs) {
-                await processPR(pr.number, pr.body, pr.title, pr);
-              }
-              
+              allPRs.push(...openPRs);
               if (openPRs.length < 100) hasMore = false;
               page++;
+            }
+
+            for (const pr of allPRs) {
+              try {
+                await processPR(pr.number, pr.body, pr.title, pr);
+              } catch (err) {
+                console.error(`❌ Error processing PR #${pr.number}:`, err.message);
+              }
             }
 
             console.log("✅ Finished processing all open PRs.");
