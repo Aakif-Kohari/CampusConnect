@@ -361,6 +361,7 @@ export default function EventDetailsPage() {
   const [idCopied, setIdCopied] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [rsvpDialogOpen, setRsvpDialogOpen] = useState(false);
+  const [revealedWarnings, setRevealedWarnings] = useState(false);
   const [needAccommodations, setNeedAccommodations] = useState(false);
   const [mediaConsent, setMediaConsent] = useState<MediaConsentChoice | null>(null);
   const [showLocationPrompt, setShowLocationPrompt] = useState(false);
@@ -569,7 +570,8 @@ export default function EventDetailsPage() {
 
 
           has_photography, is_high_risk, status, short_id, max_attendees, waitlist_capacity, waitlist_count, requires_approval, category_id, tags, version, version_vector, blurhash,
-          latitude, longitude, geofencing_enabled, geofence_radius_meters, accommodation_deadline, prerequisite_event_id,
+ main
+          latitude, longitude, geofencing_enabled, geofence_radius_meters, accommodation_deadline, content_warnings, prerequisite_event_id,
           prerequisite_event:events!prerequisite_event_id(id, title),
           rating_metrics,
           profiles (full_name, email),
@@ -643,6 +645,7 @@ export default function EventDetailsPage() {
             attendee_count: eventId === "mock-1" ? 1 : 0,
             profiles: { full_name: "Mock Organizer", email: "mock@example.com" },
             accommodation_deadline: null,
+            content_warnings: [] as string[],
             event_metrics: { views: 0 },
           };
         }
@@ -1569,6 +1572,10 @@ export default function EventDetailsPage() {
   };
 
   const handleRsvpClick = () => {
+    if (event && event.content_warnings && event.content_warnings.length > 0 && !revealedWarnings) {
+      toast.error("Please read and acknowledge the content warnings before RSVPing.");
+      return;
+    }
     if (!user) {
       toast.error("Please log in to RSVP");
       return;
@@ -2283,17 +2290,45 @@ export default function EventDetailsPage() {
                 About the Event
               </h2>
               <div className="flex flex-col gap-8 lg:flex-row">
-                <main className="flex-1 min-w-0">
-                  {event.description ? (
-                    <EventDescriptionTranslation
-                      eventId={event.id}
-                      description={event.description}
-                    />
-                  ) : (
-                    <p className="mt-4 font-mono text-sm italic text-black/40">
-                      No description provided for this event.
-                    </p>
-                  )}
+                <main className="flex-1 min-w-0 relative">
+                  {event.content_warnings && event.content_warnings.length > 0 && !revealedWarnings ? (
+                    <div className="relative border-4 border-black bg-yellow-50 p-6 shadow-[4px_4px_0_0_#000] mb-6 z-10">
+                      <div className="flex items-start gap-3">
+                        <span className="text-2xl">⚠️</span>
+                        <div>
+                          <h3 className="font-display text-lg font-black uppercase text-red-700">
+                            Content Warning
+                          </h3>
+                          <p className="mt-1 font-mono text-xs text-zinc-700">
+                            This event contains content warnings:{" "}
+                            <span className="font-bold uppercase text-red-600">
+                              {event.content_warnings.join(", ")}
+                            </span>.
+                            Reader discretion is advised.
+                          </p>
+                          <button
+                            onClick={() => setRevealedWarnings(true)}
+                            className="mt-4 border-2 border-black bg-black text-white px-4 py-2 font-mono text-xs font-bold uppercase hover:bg-zinc-800 active:translate-y-0.5 transition-all shadow-[2px_2px_0_0_rgba(0,0,0,0.4)] cursor-pointer"
+                          >
+                            I understand, reveal description
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div className={event.content_warnings && event.content_warnings.length > 0 && !revealedWarnings ? "blur-sm select-none pointer-events-none" : ""}>
+                    {event.description ? (
+                      <EventDescriptionTranslation
+                        eventId={event.id}
+                        description={event.description}
+                      />
+                    ) : (
+                      <p className="mt-4 font-mono text-sm italic text-black/40">
+                        No description provided for this event.
+                      </p>
+                    )}
+                  </div>
                 </main>
                 <aside className="lg:w-64 shrink-0">
                   <TableOfContents items={tocItems} />
