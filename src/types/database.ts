@@ -393,6 +393,29 @@ export interface BookMentorshipSessionResult {
   error?: string;
 }
 
+export interface CoHostRevenueSplitConfig {
+  clubId: string;
+  stripeAccountId: string;
+  pct: number;
+  isPrimary?: boolean;
+}
+
+export interface CoHostTransferItem {
+  club_id: string;
+  stripe_account_id: string;
+  pct: number;
+  amount_cents: number;
+  transfer_id: string;
+  status: "completed" | "refunded" | "failed";
+}
+
+export interface CoHostFinancialSplitResult {
+  success: boolean;
+  audit_id?: string;
+  message?: string;
+  transfers?: CoHostTransferItem[];
+}
+
 /**
  * Generic Row Type
  * Maps a table name to its corresponding TypeScript interface.
