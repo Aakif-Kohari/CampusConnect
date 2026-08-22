@@ -357,6 +357,42 @@ export interface BundleAvailabilityStatus {
   total_savings_dollars: number;
 }
 
+export interface AlumniMentorshipAvailability {
+  id: string;
+  mentor_id: string;
+  day_of_week: string;
+  start_time: string;
+  end_time: string;
+  slot_duration_minutes: number;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface MentorshipSession {
+  id: string;
+  mentor_id: string;
+  mentee_id: string;
+  start_time: string;
+  end_time: string;
+  topic?: string | null;
+  meeting_link: string;
+  status: "scheduled" | "completed" | "cancelled";
+  created_at: string;
+}
+
+export interface BookMentorshipSessionResult {
+  success: boolean;
+  session_id?: string;
+  mentor_id?: string;
+  mentee_id?: string;
+  start_time?: string;
+  end_time?: string;
+  meeting_link?: string;
+  points_deducted?: number;
+  remaining_points?: number;
+  error?: string;
+}
+
 /**
  * Generic Row Type
  * Maps a table name to its corresponding TypeScript interface.
