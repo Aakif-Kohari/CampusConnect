@@ -21,11 +21,22 @@
 
 ## Feature: Dynamic Ride-Share Carbon Offset Engine
 
+## Feature: Dynamic Ride-Share Carbon Offset Engine
+
 - **Issue Number**: [#3936](https://github.com/krushit1307/CampusConnect/issues/3936)
 - **Pull Request**: [#3968](https://github.com/krushit1307/CampusConnect/pull/3968)
 - **Feature Title**: `feat(analytics): develop dynamic ride-share carbon offset calculator`
 - **Domain**: Sustainability & Environmental Analytics
 - **Status**: PR Submitted & Live
+- **Branch**: `feature/rideshare-carbon-offset-3936`
+- **Components & Services**:
+  - `src/components/sustainability/DynamicRideShareCarbonOffset.tsx` (498 lines)
+  - `src/services/carbonOffsetService.ts` (326 lines)
+  - `src/routes/sustainability.carbon-offset.tsx` (44 lines)
+  - `src/types/carbonOffset.ts` (63 lines)
+  - `supabase/migrations/20261231000025_rideshare_carbon_offsets.sql` (85 lines)
+- **Summary**:
+  Calculates real-time greenhouse gas emissions prevented by carpooling using EPA emissions factors, geodesic Haversine distances, ecological equivalency models, and an aggregated campus-wide sustainability leaderboard with ESG audit reporting.
 
 ---
 
