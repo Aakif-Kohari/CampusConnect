@@ -280,11 +280,17 @@ serve(async (req: Request) => {
       // 1.5 Pre-flight Prerequisite Verification
       const { data: eventData, error: eventErr } = await supabase
         .from("events")
+ feature/vendor-contract-nudges
+        .select("prerequisite_event_id, title")
+
         .select("prerequisite_event_id, title, has_photography")
+ main
         .eq("id", eventId)
         .single();
 
       if (eventErr) throw eventErr;
+
+ feature/vendor-contract-nudges
 
       if (eventData?.has_photography && noMediaConsent == null) {
         return respond(
@@ -293,6 +299,7 @@ serve(async (req: Request) => {
         );
       }
 
+ main
       if (eventData?.prerequisite_event_id) {
         const { data: prereqRsvp } = await supabase
           .from("event_rsvps")
@@ -305,7 +312,11 @@ serve(async (req: Request) => {
             {
               error: `You must attend the prerequisite event before registering for this event.`,
             },
+ feature/vendor-contract-nudges
+            403
+
             403,
+ main
           );
         }
       }
