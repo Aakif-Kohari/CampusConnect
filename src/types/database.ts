@@ -316,6 +316,30 @@ export interface CrossClubMatch {
   updated_at?: string;
 }
 
+export interface WaitlistPriorityScoreBreakdown {
+  base_time_score: number;
+  gamification_bonus: number;
+  attendance_bonus: number;
+  no_show_penalty: number;
+  final_priority_score: number;
+}
+
+export interface DynamicWaitlistUser {
+  id: string;
+  event_id: string;
+  user_id: string;
+  user_full_name: string;
+  avatar_url?: string | null;
+  priority_score: number;
+  rank_position: number;
+  total_waitlisted: number;
+  gamification_points: number;
+  attendance_count: number;
+  no_show_count: number;
+  created_at: string;
+  score_breakdown: WaitlistPriorityScoreBreakdown;
+}
+
 /**
  * Generic Row Type
  * Maps a table name to its corresponding TypeScript interface.
