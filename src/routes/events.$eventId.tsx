@@ -564,14 +564,23 @@ export default function EventDetailsPage() {
         .select(
           `
           id, title, description, event_date, start_date, end_date, location, banner_url, created_by, venue_id, accessibility_features,
+ feature/waitlist-churn-predictor
+ feature/waitlist-churn-predictor
+ feature/waitlist-churn-predictor
+
  feature/club-lifecycle-monitor-3610
  feature/club-lifecycle-monitor-3610
+ main
 
  feature/vendor-contract-nudges
  main
           is_high_risk, status, short_id, max_attendees, requires_approval, category_id, tags, version, version_vector, blurhash,
 
+ feature/waitlist-churn-predictor
+ feature/waitlist-churn-predictor
+
  feature/club-lifecycle-monitor-3610
+ main
           has_photography, is_high_risk, status, short_id, max_attendees, waitlist_capacity, waitlist_count, requires_approval, category_id, tags, version, version_vector, blurhash,
  main
           latitude, longitude, geofencing_enabled, geofence_radius_meters, accommodation_deadline, prerequisite_event_id,
@@ -1858,8 +1867,13 @@ export default function EventDetailsPage() {
                     }
                     toggleWaitlist.mutate({ isOnWaitlist });
                   }}
+ feature/waitlist-churn-predictor
+ feature/waitlist-churn-predictor
+ feature/waitlist-churn-predictor
+
  feature/club-lifecycle-monitor-3610
  feature/club-lifecycle-monitor-3610
+ main
 
  feature/vendor-contract-nudges
  main
@@ -1871,7 +1885,11 @@ export default function EventDetailsPage() {
                   title={!prereqMet ? `You must attend '${prereqTitle}' before registering for this event.` : undefined}
                   className={!prereqMet ? "opacity-50 cursor-not-allowed" : ""}
 
+ feature/waitlist-churn-predictor
+ feature/waitlist-churn-predictor
+
  feature/club-lifecycle-monitor-3610
+ main
                   disabled={
                     toggleWaitlist.isPending || !prereqMet || (!isOnWaitlist && isWaitlistFull)
                   }
@@ -1893,8 +1911,13 @@ export default function EventDetailsPage() {
                     ? "Updating..."
                     : isOnWaitlist
                       ? "On Waitlist ✓"
+ feature/waitlist-churn-predictor
+ feature/waitlist-churn-predictor
+ feature/waitlist-churn-predictor
+
  feature/club-lifecycle-monitor-3610
  feature/club-lifecycle-monitor-3610
+ main
 
  feature/vendor-contract-nudges
  main
@@ -3380,9 +3403,15 @@ export default function EventDetailsPage() {
                 }
                 toggleWaitlist.mutate({ isOnWaitlist });
               }}
+ feature/waitlist-churn-predictor
+ feature/waitlist-churn-predictor
+ feature/waitlist-churn-predictor
+ feature/waitlist-churn-predictor
+
  feature/club-lifecycle-monitor-3610
  feature/club-lifecycle-monitor-3610
  feature/club-lifecycle-monitor-3610
+ main
 
  feature/vendor-contract-nudges
  main
@@ -3418,9 +3447,15 @@ export default function EventDetailsPage() {
             <Button
               onClick={() => {
                 if (!prereqMet && !hasRsvpd) {
+ feature/waitlist-churn-predictor
+ feature/waitlist-churn-predictor
+ feature/waitlist-churn-predictor
+ feature/waitlist-churn-predictor
+
  feature/club-lifecycle-monitor-3610
  feature/club-lifecycle-monitor-3610
  feature/club-lifecycle-monitor-3610
+ main
 
  feature/vendor-contract-nudges
  main
@@ -3437,9 +3472,15 @@ export default function EventDetailsPage() {
               }}
               disabled={toggleRsvp.isPending || !prereqMet}
               variant="primary"
+ feature/waitlist-churn-predictor
+ feature/waitlist-churn-predictor
+ feature/waitlist-churn-predictor
+ feature/waitlist-churn-predictor
+
  feature/club-lifecycle-monitor-3610
  feature/club-lifecycle-monitor-3610
  feature/club-lifecycle-monitor-3610
+ main
 
  feature/vendor-contract-nudges
  main

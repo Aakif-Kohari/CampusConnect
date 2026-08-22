@@ -280,9 +280,15 @@ serve(async (req: Request) => {
       // 1.5 Pre-flight Prerequisite Verification
       const { data: eventData, error: eventErr } = await supabase
         .from("events")
+ feature/waitlist-churn-predictor
+ feature/waitlist-churn-predictor
+ feature/waitlist-churn-predictor
+ feature/waitlist-churn-predictor
+
  feature/club-lifecycle-monitor-3610
  feature/club-lifecycle-monitor-3610
  feature/club-lifecycle-monitor-3610
+ main
 
  feature/vendor-contract-nudges
  main
@@ -296,9 +302,15 @@ serve(async (req: Request) => {
 
       if (eventErr) throw eventErr;
 
+ feature/waitlist-churn-predictor
+ feature/waitlist-churn-predictor
+ feature/waitlist-churn-predictor
+ feature/waitlist-churn-predictor
+
  feature/club-lifecycle-monitor-3610
  feature/club-lifecycle-monitor-3610
  feature/club-lifecycle-monitor-3610
+ main
 
  feature/vendor-contract-nudges
  main
@@ -322,11 +334,19 @@ serve(async (req: Request) => {
           return respond(
             {
               error: `You must attend the prerequisite event before registering for this event.`,
+ feature/waitlist-churn-predictor
+           },
+ feature/waitlist-churn-predictor
+
             },
+ feature/waitlist-churn-predictor
+ feature/waitlist-churn-predictor
+
  feature/club-lifecycle-monitor-3610
  feature/club-lifecycle-monitor-3610
  feature/club-lifecycle-monitor-3610
 
+ main
  feature/vendor-contract-nudges
  main
             403
