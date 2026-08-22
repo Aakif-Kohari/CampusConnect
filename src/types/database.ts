@@ -240,6 +240,43 @@ export interface ProratedRefundCalculation {
   policy_description: string;
 }
 
+export interface SeatMapConfig {
+  rows: number;
+  cols: number;
+  vip_rows: string[];
+  aisle_cols: number[];
+}
+
+export interface SeatNode {
+  seat_id: string;
+  row_label: string;
+  col_num: number;
+  seat_label: string;
+  section: "VIP" | "General" | "Balcony";
+  status: "AVAILABLE" | "SELECTED" | "LOCKED" | "RESERVED";
+}
+
+export interface EventSeat {
+  id: string;
+  event_id: string;
+  seat_id: string;
+  seat_label: string;
+  section: string;
+  status: "AVAILABLE" | "LOCKED" | "RESERVED";
+  reserved_by_user_id?: string | null;
+  rsvp_id?: string | null;
+  locked_until?: string | null;
+  created_at?: string;
+}
+
+export interface SeatLockResult {
+  success: boolean;
+  seat_id: string;
+  seat_label: string;
+  status: string;
+  error?: string;
+}
+
 /**
  * Database Table Enums
  */

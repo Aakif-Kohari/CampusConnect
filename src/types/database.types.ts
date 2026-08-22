@@ -538,6 +538,48 @@ export type Database = {
         Update: { micro_event_id?: string; user_id?: string; joined_at?: string };
         Relationships: [];
       };
+      event_seats: {
+        Row: {
+          id: string;
+          event_id: string;
+          seat_id: string;
+          seat_label: string;
+          section: string;
+          status: string;
+          reserved_by_user_id: string | null;
+          rsvp_id: string | null;
+          locked_until: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          event_id: string;
+          seat_id: string;
+          seat_label: string;
+          section?: string;
+          status?: string;
+          reserved_by_user_id?: string | null;
+          rsvp_id?: string | null;
+          locked_until?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          event_id?: string;
+          seat_id?: string;
+          seat_label?: string;
+          section?: string;
+          status?: string;
+          reserved_by_user_id?: string | null;
+          rsvp_id?: string | null;
+          locked_until?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       event_song_requests: {
         Row: {
           id: string;
