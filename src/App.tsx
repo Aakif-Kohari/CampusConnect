@@ -115,6 +115,7 @@ const DashboardCalendar = lazy(() => import("./routes/dashboard.calendar"));
 const GlobalCalendar = lazy(() => import("./routes/calendar"));
 const Feed = lazy(() => import("./routes/feed"));
 const EventsMapPage = lazy(() => import("./routes/events.map"));
+const InteractiveCampusMap = lazy(() => import("./routes/events.interactive-map"));
 const MapPage = lazy(() => import("./routes/map"));
 const ForgotPassword = lazy(() => import("./routes/forgot-password"));
 const ResetPassword = lazy(() => import("./routes/reset-password"));
@@ -314,6 +315,14 @@ const router = createBrowserRouter(
             <Route path="/events/:eventId/gantt" element={<EventGantt />} />
             {/* Events Map View with clustering */}
             <Route path="events/map" element={<EventsMapPage />} />
+            <Route
+              path="/events/interactive-map"
+              element={
+                <Suspense fallback={<RemoteLoadingScreen />}>
+                  <InteractiveCampusMap />
+                </Suspense>
+              }
+            />
             {/* Campus Heatmap - Live Activity */}
             <Route path="/map" element={<MapPage />} />
             <Route path="/tours/manage" element={<TourManager />} />
